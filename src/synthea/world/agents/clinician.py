@@ -10,6 +10,15 @@ class Clinician:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Clinician constructor; pending T13."""
+        self.identifier: int = 0
+        self.uuid: str | None = None
+        self.npi: str | None = None
+        self.attributes: dict[object, object] = {}
+        self.servicesProvided: list[object] = []
+        self.organization: object | None = None
+        self.encounters: int = 0
+        self.procedures: int = 0
+        self.populationSeed: int = 0
         raise NotImplementedError("Java: Clinician — pending T13")
 
     def to_clinician_npi(self, *args: object, **kwargs: object) -> object:
