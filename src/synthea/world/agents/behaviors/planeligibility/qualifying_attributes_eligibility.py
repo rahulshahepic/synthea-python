@@ -10,6 +10,7 @@ class QualifyingAttributesEligibility:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: QualifyingAttributesEligibility constructor; pending T16."""
+        self.qualifyingAttributes: list[object] = []
         raise NotImplementedError("Java: QualifyingAttributesEligibility — pending T16")
 
     def is_person_eligible(self, *args: object, **kwargs: object) -> object:
@@ -38,6 +39,7 @@ class AttributeQualifier:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: AttributeQualifier constructor; pending T16."""
+        self.logic: object | None = None
         raise NotImplementedError("Java: AttributeQualifier — pending T16")
 
 
