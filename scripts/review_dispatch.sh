@@ -49,11 +49,14 @@ if [[ "$want" == "merge" ]]; then
   # Approved earlier; any agent push would have removed review:approved, so the only new
   # commits are auto-sync merges from main. CI is green on this head: merge it.
   title="$(gh pr view "$num" --repo "$REPO" --json title --jq .title)"
-  gh pr merge "$num" --repo "$REPO" --squash --subject "$title (#$num)" --match-head-commit "$sha"
+  GH_TOKEN="${MERGE_TOKEN:-$GH_TOKEN}" gh pr merge "$num" --repo "$REPO" --squash \
+    --subject "$title (#$num)" --match-head-commit "$sha"
   echo "merged #$num"
-  # Merges made with GITHUB_TOKEN don't trigger push workflows; run them explicitly.
-  gh workflow run ci.yml --repo "$REPO" --ref main
-  gh workflow run sync-task-branches.yml --repo "$REPO" --ref main
+  if [[ -z "${MERGE_TOKEN:-}" ]]; then
+    # Merges made with GITHUB_TOKEN don't trigger push workflows; run them explicitly.
+    gh workflow run ci.yml --repo "$REPO" --ref main
+    gh workflow run sync-task-branches.yml --repo "$REPO" --ref main
+  fi
   exit 0
 fi
 msg="Review PR #$num (head ${sha:0:7}) in $REPO: CI is green and it is labelled review:needed. Run the review routine in docs/REVIEW.md."

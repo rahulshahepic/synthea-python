@@ -48,6 +48,7 @@ jobs:
           REPO: ${{ github.repository }}
           BRANCH: ${{ inputs.branch || github.event.workflow_run.head_branch || github.event.pull_request.head.ref }}
           WAIT_FOR_CI: ${{ inputs.wait_for_ci }}
+          MERGE_TOKEN: ${{ secrets.SYNC_TOKEN }}
           TRIGGER_URL: ${{ secrets.REVIEWER_TRIGGER_URL }}
           TRIGGER_TOKEN: ${{ secrets.REVIEWER_TRIGGER_TOKEN }}
         run: scripts/review_dispatch.sh
