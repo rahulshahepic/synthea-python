@@ -8,6 +8,8 @@ class ExpressedSymptom:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ExpressedSymptom constructor; pending T09."""
+        self.sources: dict[object, object] = {}
+        self.name: str | None = None
         raise NotImplementedError("Java: ExpressedSymptom#constructor — pending T09")
 
     def clone(self, *args: object, **kwargs: object) -> object:
@@ -92,6 +94,9 @@ class SymptomInfo:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: SymptomInfo constructor; pending T09."""
+        self.cause: str | None = None
+        self.value: object | None = None
+        self.time: object | None = None
         raise NotImplementedError("Java: SymptomInfo#constructor — pending T09")
 
 
@@ -100,4 +105,8 @@ class SymptomSource:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: SymptomSource constructor; pending T09."""
+        self.source: str | None = None
+        self.resolved: bool = False
+        self.lastUpdateTime: object | None = None
+        self.timeInfos: dict[object, object] = {}
         raise NotImplementedError("Java: SymptomSource#constructor — pending T09")
