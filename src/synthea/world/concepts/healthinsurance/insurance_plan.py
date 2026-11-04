@@ -8,8 +8,40 @@ from __future__ import annotations
 class InsurancePlan:
     """Java: InsurancePlan; pending T15."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: InsurancePlan constructor; pending T15."""
+    def __init__(
+        self,
+        id: int,
+        payer: object,
+        services_covered: set[str],
+        deductible: object,
+        default_coinsurance: object,
+        default_copay: object,
+        monthly_premium: object,
+        max_out_of_pocket: object,
+        medicare_supplement: bool,
+        is_aca: bool,
+        income_based_premium: bool,
+        active_year_start: int,
+        active_year_end: int,
+        priority: int,
+        eligibility_name: str,
+    ) -> None:
+        """Java: InsurancePlan#InsurancePlan; pending T15."""
+        self.id: int = id
+        self.payer: object = payer
+        self.servicesCovered: set[str] = services_covered
+        self.deductible: object = deductible
+        self.defaultCoinsurance: object = default_coinsurance
+        self.defaultCopay: object = default_copay
+        self.monthlyPremium: object = monthly_premium
+        self.maxOutOfPocket: object = max_out_of_pocket
+        self.medicareSupplement: bool = medicare_supplement
+        self.isACA: bool = is_aca
+        self.incomeBasedPremium: bool = income_based_premium
+        self.priority: int = priority
+        self.insuranceStatus: str | None = None
+        self.planEligibility: object | None = None
+        self.activeTimeRange: object | None = None
         raise NotImplementedError("Java: InsurancePlan — pending T15")
 
     def is_active(self, *args: object, **kwargs: object) -> object:
