@@ -387,6 +387,17 @@ class Supply:
 class EncounterType(StrEnum):
     """Java: EncounterType; pending T08."""
 
+    WELLNESS = "WELLNESS"
+    AMBULATORY = "AMBULATORY"
+    OUTPATIENT = "OUTPATIENT"
+    INPATIENT = "INPATIENT"
+    EMERGENCY = "EMERGENCY"
+    URGENTCARE = "URGENTCARE"
+    HOSPICE = "HOSPICE"
+    HOME = "HOME"
+    SNF = "SNF"
+    VIRTUAL = "VIRTUAL"
+
 
 class Encounter:
     """Java: Encounter; pending T08."""
