@@ -8,6 +8,8 @@ class RandomCollection:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: RandomCollection#RandomCollection; pending T07."""
+        self.map: dict[object, object] = {}
+        self.total: float = 0.0
         raise NotImplementedError("Java: RandomCollection#RandomCollection — pending T07")
 
     def add(self, *args: object, **kwargs: object) -> object:
