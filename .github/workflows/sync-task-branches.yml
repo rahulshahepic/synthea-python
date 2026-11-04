@@ -1,0 +1,35 @@
+# Keeps every open task/* PR mergeable without waiting for the agent: whenever main changes,
+# merge main into each task branch (a merge commit, never a rebase), auto-resolving the
+# predictable conflicts, then trigger CI and review-gate on the new head. Branches with a real
+# code conflict get the label `needs:manual-merge` plus one comment, for the agent to resolve.
+name: sync-task-branches
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: sync-task-branches
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - name: Merge main into open task branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: scripts/sync_task_branches.sh

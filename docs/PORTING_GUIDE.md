@@ -12,7 +12,7 @@ here serves that goal.
 2. **Every RNG call must match.** Same method (`rand()` vs `randInt(n)` vs `randGaussian()`),
    same arguments, same order, same count, including draws whose results Java ignores.
 3. **The Java is the spec, bugs included.** If the Java has an off-by-one or a quirky
-   rounding, reproduce it, and note it in `docs/PORTING_NOTES.md`.
+   rounding, reproduce it, and note it in `docs/porting_notes/T<nn>.md`.
 4. **Iteration order is part of the behaviour.** See §3.
 5. **Number formatting is part of the behaviour.** See §4.
 
@@ -115,12 +115,14 @@ and other non-CSV exporters, the flexporter, Graphviz, ChartRenderer.
 When a config flag that is off by default enables one of these, the Python code checks it
 and raises `NotImplementedError("<feature> not ported yet")`. It must never silently ignore it.
 
-## 9. PORTING_NOTES.md
+## 9. Porting notes
 
-Append (never rewrite) an entry for every intentional deviation, Java quirk you reproduced,
-or suspected libm/precision issue:
+Write one file per task, `docs/porting_notes/T<nn>.md`, with an entry for every intentional
+deviation, Java quirk you reproduced, or suspected libm/precision issue:
 
 ```
-## #<issue> <Class> (agent: <name>)
+# T<nn> (#<issue>) <Class/area> (agent: <name>)
 - <what and why>
 ```
+
+Never edit another task's notes file. One file per task means parallel PRs can't conflict.

@@ -1,11 +1,18 @@
 # Required status check that passes only when the PR carries the `review:approved` label.
-# Only the reviewer (Claude) adds that label. Any new commit removes it, so an approval
-# only ever covers the exact commit that was reviewed.
+# Only the reviewer (Claude) adds that label. Any new commit pushed by an agent removes it, so
+# an approval only ever covers the exact commit that was reviewed.
+# It can also be dispatched with a PR number (the auto-sync bot does this after merging main
+# into a task branch, because pushes made with GITHUB_TOKEN do not trigger workflows).
 name: review-gate
 
 on:
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number to evaluate
+        required: true
 
 permissions:
   pull-requests: write
@@ -17,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Drop stale approval after new commits
-        if: github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'review:approved')
+        if: github.event_name == 'pull_request' && github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'review:approved')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -26,11 +33,13 @@ jobs:
           echo "New commits pushed after approval; approval removed, re-review required."
           exit 1
       - name: Require review:approved
-        if: github.event.action != 'synchronize' || !contains(github.event.pull_request.labels.*.name, 'review:approved')
+        if: github.event_name != 'pull_request' || github.event.action != 'synchronize' || !contains(github.event.pull_request.labels.*.name, 'review:approved')
         env:
-          APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'review:approved') }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number || inputs.pr }}
         run: |
-          if [ "$APPROVED" != "true" ]; then
+          labels="$(gh pr view "$PR" --repo "${{ github.repository }}" --json labels --jq '.labels[].name')"
+          if ! grep -qx 'review:approved' <<<"$labels"; then
             echo "Waiting for the reviewer's 'review:approved' label. See docs/REVIEW.md."
             exit 1
           fi
