@@ -11,13 +11,14 @@ Task: T<nn>
 - [ ] Parity tests `tests/parity/test_<area>.py` pass exactly
 - [ ] Upstream JUnit tests ported to `tests/unit/` (list skipped ones below with reasons)
 - [ ] `uv run python scripts/check_port_map.py --task T<nn> --no-stubs` passes
+- [ ] No merge conflicts with `main` (merged `origin/main` in, never rebased)
 - [ ] lint / typecheck / tests green in CI
 - [ ] Every acceptance criterion in the issue is met (one line each below)
 
 ## Acceptance criteria evidence
 1. …
 
-## Deviations / Java quirks reproduced (also appended to docs/PORTING_NOTES.md)
+## Deviations / Java quirks reproduced (also in docs/porting_notes/T<nn>.md)
 none
 
 ## Problems found (bugs in other tasks, ambiguous spec, suspected non-determinism)

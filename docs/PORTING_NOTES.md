@@ -1,21 +1,13 @@
-# Porting notes (append-only)
+# Porting notes
 
-Record intentional deviations, reproduced Java quirks and suspected precision issues here.
-Format (see PORTING_GUIDE §9):
+Notes live in **one file per task**: `docs/porting_notes/T<nn>.md`. Only the task that owns a
+file writes to it, so parallel PRs never conflict. Do **not** add entries to this file.
+
+Record intentional deviations, reproduced Java quirks and suspected precision issues, in this format:
 
 ```
-## #<issue> <Class> (agent: <name>)
+# T<nn> (#<issue>) <Class/area> (agent: <name>)
 - <what and why>
 ```
 
-## #1 JavaRandom and DefaultRandomNumberGenerator (agent: chatgpt)
-- `java.util.Random#nextLong` sign-extends each 32-bit draw before adding the low word; combining unsigned halves changes results.
-- `java.util.Random#nextGaussian` requires the fdlibm 5.3 implementation of `StrictMath.log` for exact parity. Platform `math.log` differs by up to an ulp on observed seeded trajectories; `random.py` includes the permissively licensed fdlibm polynomial with its notice preserved.
-- `DefaultRandomNumberGenerator#randUUID` constructs the UUID from the original seed and one counted `randLong` draw (not four random words).
-
-## #2 javacompat numerics (agent: muse)
-- `fmt.format` `%x` on a negative value: Java renders the unsigned two's-complement form at the argument type's width (Integer -> 32 bits, Long -> 64 bits), but Python ints are unbounded and carry no type. The port infers the type from the value's range: values inside int range render 32-bit, the rest 64-bit. Callers formatting a negative int-range value that Java held in a `long` would get 32-bit output; Synthea's actual `%x` uses are on int-range values, so this is safe in practice, but it is an inference, not a port of a typed value.
-- `numbers.parse_double` does not accept hexadecimal floating-point literals (`0x1.8p1`), which `Double.parseDouble` accepts. Synthea never parses hex float strings; supporting them needs a correctly-rounded hex parser. Documented in the docstring.
-- `bigdecimal.divide_preferred` (Java `divide(BigDecimal, RoundingMode)`): the JDK increases the quotient scale beyond the preferred scale when the exact quotient does not fit, in steps that can skip; the port increases by 1 until the division succeeds, which reaches the same value at possibly a smaller scale in rare cases. The (scale, mode) form — the one claims code uses — is exact.
-- `numbers.double_to_string` and `numbers.float_to_string` are operation-for-operation ports of the JDK 21 Schubfach implementation (`jdk.internal.math.DoubleToDecimal` / `FloatToDecimal`, including the `MathUtils` fixed-point helpers). An earlier draft used Python `repr` plus an exact rounding-interval check, which diverged on 17 of 131,072 subnormals: the JDK does not do a shortest-length search over the midpoint interval — it fixes one decimal scale, chooses between the floor/ceil candidates at that scale, and rescales tiny subnormal significands (double `t < 3`, float `t < 8`) by 10 first, which forces an extra digit (e.g. `Double.MIN_VALUE` renders `4.9E-324`, not the shortest-interval `5E-324`). The port's 126-bit `g` constants are computed exactly from their mathematical definition rather than copied from the JDK table; the computation was verified against all 617 table entries. Java `long` wraparound and `Math.multiplyHigh` are emulated explicitly. Verified: exact match on a 598,752-value random sweep against JDK 21 and on all 131,072 double/float subnormals with significands 1..65536.
-- `numbers.math_round` / `math_round_float` evaluate `floor(x + 0.5)` on the exact value of `x` (via `Fraction`), not in floating-point arithmetic. In double arithmetic `0.49999999999999994 + 0.5` rounds to exactly 1.0 and would give 1; `Math.round` gives 0. Same for the float overload at its just-below-half boundaries.
+Index: see `docs/porting_notes/`.
