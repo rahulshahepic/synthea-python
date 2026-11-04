@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Protocol, overload
 
@@ -42,16 +43,18 @@ class RandomNumberGenerator(Protocol):
         ...
 
 
-class RandomNumberGeneratorDefaults:
+class RandomNumberGeneratorDefaults(ABC):
     """Java: RandomNumberGenerator default rand overloads (mixin)."""
 
+    @abstractmethod
     def _rand(self) -> float:
-        """Java: RandomNumberGenerator#rand(), implemented by subclass."""
-        raise NotImplementedError
+        """Java: RandomNumberGenerator#rand(), abstract primitive."""
+        ...
 
+    @abstractmethod
     def rand_int(self, bound: int | None = None) -> int:
-        """Java: RandomNumberGenerator#randInt(int), implemented by subclass."""
-        raise NotImplementedError
+        """Java: RandomNumberGenerator#randInt(int), abstract primitive."""
+        ...
 
     @overload
     def rand(self) -> float: ...
