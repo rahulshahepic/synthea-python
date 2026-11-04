@@ -10,6 +10,8 @@ class LateAdopterModel:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: LateAdopterModel constructor; pending T24."""
+        self.chanceOfGettingShot: float = 0.0
+        self.lastUpdated: int = 0
         raise NotImplementedError("Java: LateAdopterModel — pending T24")
 
     def get_chance_of_getting_shot(self, *args: object, **kwargs: object) -> object:
