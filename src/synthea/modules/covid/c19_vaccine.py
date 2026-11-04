@@ -12,6 +12,11 @@ class C19Vaccine:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: C19Vaccine constructor; pending T24."""
+        self.display: str | None = None
+        self.cvx: str | None = None
+        self.twoDose: bool = False
+        self.usagePercentage: float = 0.0
+        self.timeBetweenDoses: int = 0
         raise NotImplementedError("Java: C19Vaccine — pending T24")
 
     def initialize(self, *args: object, **kwargs: object) -> object:
