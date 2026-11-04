@@ -14,9 +14,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def _clean(source: str) -> str:
     """Java: source lexical scan, preserving offsets while ignoring comments and literals."""
-    source = re.sub(r"/\\*[\\s\\S]*?\\*/", lambda m: " " * len(m[0]), source)
-    source = re.sub(r"//[^\\n]*", lambda m: " " * len(m[0]), source)
-    source = re.sub(r'"(?:\\\\.|[^"\\\\])*"', lambda m: " " * len(m[0]), source)
+    source = re.sub(r"/\*[\s\S]*?\*/", lambda m: " " * len(m[0]), source)
+    source = re.sub(r"//[^\n]*", lambda m: " " * len(m[0]), source)
+    source = re.sub(r'"(?:\\.|[^"\\])*"', lambda m: " " * len(m[0]), source)
     return source
 
 
@@ -28,7 +28,7 @@ def _java_fields(source: str) -> list[tuple[str, str]]:
     fields: list[tuple[str, str]] = []
     for i, ch in enumerate(clean):
         if ch == "{":
-            match = re.search(r"\\b(class|interface|enum|record)\\s+(\\w+)", clean[start:i])
+            match = re.search(r"\b(class|interface|enum|record)\s+(\w+)", clean[start:i])
             if match:
                 types.append((match[2], depth + 1, match[1]))
             depth += 1
@@ -42,10 +42,10 @@ def _java_fields(source: str) -> list[tuple[str, str]]:
             if types and types[-1][1] == depth and types[-1][2] != "enum":
                 statement = " ".join(clean[start:i].split())
                 match = re.match(
-                    r"(?:@\\w+(?:\\([^)]*\\))?\\s+)*"
-                    r"(?:public|private|protected)\\s+"
-                    r"((?:(?:static|final|transient|volatile)\\s+)*)"
-                    r"[A-Za-z][A-Za-z0-9_<>?,. \\[\\]]*\\s+(\\w+)\\s*(?:=.+)?$",
+                    r"(?:@\w+(?:\([^)]*\))?\s+)*"
+                    r"(?:public|private|protected)\s+"
+                    r"((?:(?:static|final|transient|volatile)\s+)*)"
+                    r"[A-Za-z][A-Za-z0-9_<>?,. \[\]]*\s+(\w+)\s*(?:=.+)?$",
                     statement,
                 )
                 if match and "static" not in match[1]:
@@ -56,9 +56,9 @@ def _java_fields(source: str) -> list[tuple[str, str]]:
 
 def _java_enums(source: str) -> dict[str, set[str]]:
     """Java: enum constant declarations, including constants with constructor parameters."""
-    clean = re.sub(r"/\\*[\\s\\S]*?\\*/|//[^\\n]*", " ", source)
+    clean = re.sub(r"/\*[\s\S]*?\*/|//[^\n]*", " ", source)
     result: dict[str, set[str]] = {}
-    for match in re.finditer(r"\\benum\\s+(\\w+)\\s*\\{", clean):
+    for match in re.finditer(r"\benum\s+(\w+)\s*\{", clean):
         start = match.end()
         end = clean.find(";", start)
         close = clean.find("}", start)
@@ -67,7 +67,7 @@ def _java_enums(source: str) -> dict[str, set[str]]:
         if end < 0:
             continue
         section = clean[start:end]
-        names = set(re.findall(r"(?:^|,)\\s*([A-Z][A-Z0-9_]*)\\s*(?:\\(|,|$)", section))
+        names = set(re.findall(r"(?:^|,)\s*([A-Z][A-Z0-9_]*)\s*(?:\(|,|$)", section))
         if names:
             result[match[1]] = names
     return result
@@ -129,4 +129,4 @@ def test_skeleton_java_fields_and_enums(entry: dict[str, object]) -> None:
         }
         for member in sorted(members - declared):
             errors.append(f"{name}.{member}: missing enum value")
-    assert not errors, "\\n".join(errors)
+    assert not errors, "\n".join(errors)
