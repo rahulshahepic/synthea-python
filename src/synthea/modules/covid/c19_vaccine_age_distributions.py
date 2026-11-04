@@ -56,3 +56,6 @@ class AgeRange:
         """Java: AgeRange constructor; pending T24."""
         raise NotImplementedError("Java: AgeRange — pending T24")
 
+
+# Java API contains an identifier that is a Python keyword.
+setattr(C19VaccineAgeDistributions, "in", C19VaccineAgeDistributions.in_)
