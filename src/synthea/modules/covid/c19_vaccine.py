@@ -66,6 +66,6 @@ class C19Vaccine:
 class EUASet(StrEnum):
     """Java: EUASet; pending T24."""
 
-    LNP = "LNP"
-    PF = "PF"
-    U = "U"
+    PFIZER = "PFIZER"
+    MODERNA = "MODERNA"
+    JANSSEN = "JANSSEN"
