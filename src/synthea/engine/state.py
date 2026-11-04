@@ -17,7 +17,7 @@ class State:
         self.entered: object | None = None
         self.entry: object | None = None
         self.exited: object | None = None
-        self.transition: object | None = None
+        self._transition: object | None = None
         self.directTransition: str | None = None
         self.conditionalTransition: list[object] = []
         self.distributedTransition: list[object] = []
