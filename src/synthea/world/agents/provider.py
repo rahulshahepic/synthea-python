@@ -195,3 +195,16 @@ class Provider:
 
 class ProviderType(StrEnum):
     """Java: ProviderType; pending T13."""
+
+    DIALYSIS = "DIALYSIS"
+    HOME_HEALTH = "HOME_HEALTH"
+    HOSPICE = "HOSPICE"
+    HOSPITAL = "HOSPITAL"
+    LONG_TERM = "LONG_TERM"
+    NURSING = "NURSING"
+    PRIMARY = "PRIMARY"
+    REHAB = "REHAB"
+    URGENT = "URGENT"
+    VETERAN = "VETERAN"
+    PHARMACY = "PHARMACY"
+    IHS = "IHS"
