@@ -209,6 +209,7 @@ class Counter:
 
 class TelemedicinePossibility(StrEnum):
     """Java: TelemedicinePossibility; pending T19."""
+
     S = "S"
 
 

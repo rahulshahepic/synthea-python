@@ -84,6 +84,7 @@ class Person:
     CURRENT_ENCOUNTER_MODULE: str = "current-encounter-module"
     CURRENTPROVIDER: str = "currentProvider"
     PREFERREDYPROVIDER: str = "preferredProvider"
+
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Person constructor; pending T09."""
         self.random: object = None

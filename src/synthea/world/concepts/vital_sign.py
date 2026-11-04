@@ -7,6 +7,7 @@ from enum import StrEnum
 
 class VitalSign(StrEnum):
     """Java: VitalSign; pending T11."""
+
     HEIGHT = "HEIGHT"
     WEIGHT = "WEIGHT"
     HEIGHT_PERCENTILE = "HEIGHT_PERCENTILE"

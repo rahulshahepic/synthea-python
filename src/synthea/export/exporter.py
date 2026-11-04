@@ -109,6 +109,7 @@ class Exporter:
 
 class SupportedFhirVersion(StrEnum):
     """Java: SupportedFhirVersion; pending T25."""
+
     DSTU2 = "DSTU2"
     STU3 = "STU3"
     R4 = "R4"

@@ -12,6 +12,7 @@ class HealthRecord:
     PROCEDURES: str = "procedures"
     MEDICATIONS: str = "medications"
     IMMUNIZATIONS: str = "immunizations"
+
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: HealthRecord constructor; pending T08."""
         self.person: object = None

@@ -10,10 +10,11 @@ class Generator:
 
     DEFAULT_STATE: str = "Massachusetts"
     TARGET_AGE: str = "target_age"
-    ANSI_GREEN: str = "\u001B[32m"
-    ANSI_BLUE: str = "\u001B[34m"
-    ANSI_RESET: str = "\u001B[0m"
+    ANSI_GREEN: str = "\u001b[32m"
+    ANSI_BLUE: str = "\u001b[34m"
+    ANSI_RESET: str = "\u001b[0m"
     DONATION_LINK: str = "https://github.com/sponsors/synthetichealth"
+
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Generator constructor; pending T27."""
         self.id: object = None

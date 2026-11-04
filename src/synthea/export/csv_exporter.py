@@ -145,6 +145,7 @@ class SingletonHolder:
 
 class ClaimTransactionType(StrEnum):
     """Java: ClaimTransactionType; pending T26."""
+
     CHARGE = "CHARGE"
     PAYMENT = "PAYMENT"
     ADJUSTMENT = "ADJUSTMENT"
@@ -154,6 +155,7 @@ class ClaimTransactionType(StrEnum):
 
 class PaymentMethod(StrEnum):
     """Java: PaymentMethod; pending T26."""
+
     CASH = "CASH"
     CHECK = "CHECK"
     COPAY = "COPAY"
