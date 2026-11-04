@@ -8,6 +8,8 @@ import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
@@ -127,6 +129,19 @@ public class JavaFormatProbe {
     o.addProperty("ts", "ERROR");
     o.addProperty("ps", "ERROR");
     w.println(o.toString());
+  }
+
+  private static JsonObject bdOp(String op, String a) {
+    JsonObject o = new JsonObject();
+    o.addProperty("op", op);
+    o.addProperty("a", a);
+    return o;
+  }
+
+  private static JsonObject bdOp(String op, String a, String b) {
+    JsonObject o = bdOp(op, a);
+    o.addProperty("b", b);
+    return o;
   }
 
   public static void main(String[] args) throws Exception {
@@ -451,6 +466,183 @@ public class JavaFormatProbe {
             bdError(w, o);
           }
         }
+      }
+
+      // -- BigDecimal divide(BigDecimal, RoundingMode): result scale is a.scale() ----
+      RoundingMode[] modes7 = {
+        RoundingMode.UP, RoundingMode.DOWN, RoundingMode.CEILING, RoundingMode.FLOOR,
+        RoundingMode.HALF_UP, RoundingMode.HALF_DOWN, RoundingMode.HALF_EVEN
+      };
+      String[] divA = {
+        "1", "1.0", "1.00", "2", "2.5", "10", "10.00", "100", "1E+2", "0", "0.00",
+        "-1", "-2.50", "123.456", "999.99", "0.001", "1E+7", "5.00", "22", "7",
+        "123456789.987654321", "-987.65", "3.14159", "1000000", "0.5", "-0.25",
+        "8", "9.99", "100000000000000000000", "6.022E+23"
+      };
+      String[] divB = {"3", "12", "7", "2", "2.0", "0.5", "0", "0.00", "-4", "1E+3", "0.001", "9"};
+      int modeIdx = 0;
+      for (String as : divA) {
+        for (String bs : divB) {
+          RoundingMode m = modes7[modeIdx++ % modes7.length];
+          JsonObject o = bdOp("bdDivideRound", as, bs);
+          o.addProperty("mode", m.name());
+          try {
+            bdResult(w, o, new BigDecimal(as).divide(new BigDecimal(bs), m));
+          } catch (ArithmeticException e) {
+            bdError(w, o);
+          }
+        }
+      }
+      for (String as : divA) {
+        for (RoundingMode m : modes7) {
+          JsonObject o = bdOp("bdDivideRound", as, "3");
+          o.addProperty("mode", m.name());
+          try {
+            bdResult(w, o, new BigDecimal(as).divide(new BigDecimal("3"), m));
+          } catch (ArithmeticException e) {
+            bdError(w, o);
+          }
+        }
+      }
+      // The InsurancePlan#getMonthlyPremium shape:
+      // x.setScale(2, HALF_UP).multiply(new BigDecimal(income)).divide(new BigDecimal(12),
+      // HALF_UP). a is x, b is income; the Python side replays the same chain.
+      String[][] premium = {
+        {"1500.00", "75000"}, {"2300.50", "62000"}, {"999.995", "50000"}, {"0.005", "1"},
+        {"100.004", "123456"}, {"49.99", "0"}, {"1000000.00", "999999"}, {"3.33", "33333"},
+        {"7.77", "77777"}, {"12345.67", "89012"}, {"0.01", "100"}, {"99999.99", "250000"},
+        {"555.555", "44444"}, {"88.88", "8888"}, {"100000.005", "75000"}, {"250.75", "98000"},
+        {"199.99", "19999"}, {"10000000.00", "10000000"}, {"42.00", "42000"}, {"6.02", "60221"},
+        {"13.37", "13337"}, {"777.77", "7777"}, {"2024.02", "20240"}, {"500.005", "500005"},
+        {"9.99", "999"}, {"100000.10", "100001"}, {"64.64", "6464"}, {"31.41", "31415"}
+      };
+      for (String[] p : premium) {
+        JsonObject o = bdOp("bdDivideRound", p[0], p[1]);
+        o.addProperty("shape", "premium");
+        try {
+          BigDecimal r = new BigDecimal(p[0])
+              .setScale(2, RoundingMode.HALF_UP)
+              .multiply(new BigDecimal(p[1]))
+              .divide(new BigDecimal(12), RoundingMode.HALF_UP);
+          bdResult(w, o, r);
+        } catch (ArithmeticException e) {
+          bdError(w, o);
+        }
+      }
+
+      // -- BigDecimal divide(BigDecimal): exact quotient or ArithmeticException -----
+      String[][] exactPairs = {
+        {"1", "8"}, {"2.00", "2"}, {"1", "3"}, {"22", "7"}, {"0.00", "3"}, {"0", "5"},
+        {"10", "4"}, {"1", "6"}, {"100", "8"}, {"1E+2", "4"}, {"1E+2", "1"}, {"5", "5"},
+        {"0.5", "0.25"}, {"1.5", "0.5"}, {"-1", "8"}, {"1", "-8"}, {"-1", "-8"},
+        {"123.456", "1.6"}, {"1", "0"}, {"0.00", "0"}, {"999", "3"}, {"1", "40"},
+        {"7", "0.5"}, {"2.5", "0.05"}, {"1E-3", "1E-6"}, {"123456789", "1000"},
+        {"355", "113"}, {"1", "7"}, {"10", "3"}, {"0.1", "0.3"}, {"81", "27"},
+        {"1000000", "64"}, {"3.6", "1.2"}, {"-0.00", "7"}, {"6.02E+23", "2"},
+        {"1", "16"}, {"1", "32"}, {"1", "12"}, {"5", "6"}, {"2", "0.4"}
+      };
+      for (String[] p : exactPairs) {
+        JsonObject o = bdOp("bdDivideExact", p[0], p[1]);
+        try {
+          bdResult(w, o, new BigDecimal(p[0]).divide(new BigDecimal(p[1])));
+        } catch (ArithmeticException e) {
+          bdError(w, o);
+        }
+      }
+      String[] exactDivisors = {"3", "8", "7", "16"};
+      for (int i = -20; i <= 20; i++) {
+        for (String bs : exactDivisors) {
+          JsonObject o = bdOp("bdDivideExact", Integer.toString(i), bs);
+          try {
+            bdResult(w, o, new BigDecimal(Integer.toString(i)).divide(new BigDecimal(bs)));
+          } catch (ArithmeticException e) {
+            bdError(w, o);
+          }
+        }
+      }
+      // Operands built with BigDecimal.valueOf(long), the HealthRecord.java:444 shape.
+      long[] longs = {
+        0L, 1L, 2L, 3L, 7L, 12L, 100L, 444L, 1000000L, 9223372036854775807L, -5L,
+        -9223372036854775808L
+      };
+      for (int i = 0; i < longs.length; i++) {
+        for (int k = 1; k <= 4; k++) {
+          long la = longs[i];
+          long lb = longs[(i + k) % longs.length];
+          JsonObject o = bdOp("bdDivideExact", Long.toString(la), Long.toString(lb));
+          o.addProperty("via", "valueOf");
+          try {
+            bdResult(w, o, BigDecimal.valueOf(la).divide(BigDecimal.valueOf(lb)));
+          } catch (ArithmeticException e) {
+            bdError(w, o);
+          }
+        }
+      }
+
+      // -- BigDecimal equals / max / min: scale is observable -------------------------
+      String[][] tiePairs = {
+        {"2.0", "2.00"}, {"2.00", "2.0"}, {"1.0", "1.00"}, {"1.00", "1.0"},
+        {"0.0", "0.00"}, {"0.00", "0.0"}, {"-1.0", "-1.00"}, {"-1.00", "-1.0"},
+        {"2.000", "2.00"}, {"10", "1E+1"}, {"1E+1", "10"}, {"0", "-0.00"}
+      };
+      for (String[] p : tiePairs) {
+        JsonObject oMax = bdOp("bdMax", p[0], p[1]);
+        bdResult(w, oMax, new BigDecimal(p[0]).max(new BigDecimal(p[1])));
+        JsonObject oMin = bdOp("bdMin", p[0], p[1]);
+        bdResult(w, oMin, new BigDecimal(p[0]).min(new BigDecimal(p[1])));
+      }
+      String[] eqPool = {
+        "0", "0.0", "0.00", "-0.0", "-0.00", "1", "1.0", "1.00", "2", "2.0", "2.00",
+        "2.000", "-1", "-1.0", "10", "1E+1", "0.5", "0.50", "123.456", "123.4560",
+        "1E+30", "100", "-2.5", "-2.50"
+      };
+      for (int i = 0; i < eqPool.length; i++) {
+        for (int k = 0; k < 10; k++) {
+          String as = eqPool[i];
+          String bs = eqPool[(i + k) % eqPool.length];
+          BigDecimal a = new BigDecimal(as);
+          BigDecimal b = new BigDecimal(bs);
+          JsonObject oEq = bdOp("bdEquals", as, bs);
+          oEq.addProperty("v", Boolean.toString(a.equals(b)));
+          w.println(oEq.toString());
+          JsonObject oMax = bdOp("bdMax", as, bs);
+          bdResult(w, oMax, a.max(b));
+          JsonObject oMin = bdOp("bdMin", as, bs);
+          bdResult(w, oMin, a.min(b));
+        }
+      }
+
+      // -- BigDecimal unary ops and value conversions ---------------------------------
+      List<String> vals = new ArrayList<>(List.of(
+          "0", "0.00", "-0.0", "-0.00", "1", "-1", "2.0", "2.00", "10", "1E+30", "-1E+30",
+          "123456789012345678901234567890.5", "-123456789012345678901234567890.5",
+          "1E-320", "-1E-320", "4.9E-324", "-4.9E-324", "2.4E-324", "1.7976931348623157E+308",
+          "1E+309", "-1E+309", "2.5", "-2.5", "0.1", "3.14159", "9223372036854775807",
+          "9223372036854775808", "-9223372036854775809", "2147483647", "2147483648",
+          "-2147483649", "999999999999999999999999999999999999999", "0.5", "-0.5", "123.456",
+          "-987.65", "1E-400", "-1E-400"));
+      for (int i = -40; i <= 40; i++) {
+        vals.add(Integer.toString(i));
+        vals.add(i + ".5");
+        vals.add(i + ".00");
+        vals.add(i + "E+3");
+      }
+      for (String s : vals) {
+        BigDecimal v = new BigDecimal(s);
+        bdResult(w, bdOp("bdAbs", s), v.abs());
+        bdResult(w, bdOp("bdNegate", s), v.negate());
+        JsonObject oSignum = bdOp("bdSignum", s);
+        oSignum.addProperty("v", Integer.toString(v.signum()));
+        w.println(oSignum.toString());
+        JsonObject oDouble = bdOp("bdDoubleValue", s);
+        oDouble.addProperty("v", Double.toString(v.doubleValue()));
+        w.println(oDouble.toString());
+        JsonObject oLong = bdOp("bdLongValue", s);
+        oLong.addProperty("v", Long.toString(v.longValue()));
+        w.println(oLong.toString());
+        JsonObject oInt = bdOp("bdIntValue", s);
+        oInt.addProperty("v", Integer.toString(v.intValue()));
+        w.println(oInt.toString());
       }
     }
   }

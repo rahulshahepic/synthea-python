@@ -11,10 +11,12 @@ context and the result's scale is then forced to the exact Java result scale.
 from __future__ import annotations
 
 import decimal
+import math
 from decimal import Decimal
 from enum import Enum
+from fractions import Fraction
 
-from synthea.javacompat.numbers import double_to_string
+from synthea.javacompat.numbers import double_to_string, to_int32, to_int64
 
 # Precision high enough that Decimal arithmetic in this module is exact for
 # any realistic Synthea money value; Java BigDecimal add/subtract/multiply are
@@ -68,6 +70,17 @@ def scale_of(d: Decimal) -> int:
     return -exponent
 
 
+def _positive_zero(d: Decimal) -> Decimal:
+    """Strip the sign from a zero Decimal, preserving its scale.
+
+    Java BigDecimal has no negative zero: the unscaled value is a
+    ``BigInteger``, and ``BigInteger`` zero is unsigned, so every operation
+    that produces zero produces ``0``/``0.00``/``0E+2``, never ``-0``.
+    Python Decimals keep a sign on zero, so port results are normalized.
+    """
+    return d.copy_abs() if d.is_zero() else d
+
+
 def _with_scale(d: Decimal, scale: int) -> Decimal:
     """Return a Decimal equal to ``d`` whose exponent is exactly ``-scale``.
 
@@ -75,7 +88,13 @@ def _with_scale(d: Decimal, scale: int) -> Decimal:
     value is zero); no rounding can occur.
     """
     sign, digits, _ = d.as_tuple()
-    return Decimal((sign, digits, -scale))
+    return _positive_zero(Decimal((sign, digits, -scale)))
+
+
+# Java: the ``java.math.BigDecimal`` constants ZERO, ONE and TEN (all scale 0).
+ZERO = Decimal(0)
+ONE = Decimal(1)
+TEN = Decimal(10)
 
 
 def value_of(x: float) -> Decimal:
@@ -84,7 +103,7 @@ def value_of(x: float) -> Decimal:
     Uses ``Double.toString(x)`` as the intermediate string, so ``value_of(0.1)``
     is the decimal ``0.1``, not the exact binary expansion.
     """
-    return Decimal(double_to_string(x))
+    return _positive_zero(Decimal(double_to_string(x)))
 
 
 def from_double_exact(x: float) -> Decimal:
@@ -94,7 +113,7 @@ def from_double_exact(x: float) -> Decimal:
     Python's ``Decimal(float)`` constructor is likewise exact.
     """
     with decimal.localcontext(_ctx()):
-        return Decimal(x)
+        return _positive_zero(Decimal(x))
 
 
 def from_string(s: str) -> Decimal:
@@ -109,7 +128,7 @@ def from_string(s: str) -> Decimal:
         raise ValueError(f'For input string: "{s}"') from None
     if not d.is_finite():
         raise ValueError(f'For input string: "{s}"')
-    return d
+    return _positive_zero(d)
 
 
 def set_scale(d: Decimal, scale: int, mode: RoundingMode) -> Decimal:
@@ -125,22 +144,28 @@ def set_scale(d: Decimal, scale: int, mode: RoundingMode) -> Decimal:
             result = d.quantize(quantum, rounding=decimal.ROUND_DOWN)
             if result != d:
                 raise ValueError("Rounding necessary")
-            return result
-        return d.quantize(quantum, rounding=mode.decimal_constant())
+            return _positive_zero(result)
+        return _positive_zero(d.quantize(quantum, rounding=mode.decimal_constant()))
+
+
+def _scale_max(a: Decimal, b: Decimal) -> int:
+    """The larger of the two operands' scales (``max`` below is BigDecimal's)."""
+    sa, sb = scale_of(a), scale_of(b)
+    return sa if sa >= sb else sb
 
 
 def add(a: Decimal, b: Decimal) -> Decimal:
     """Java: ``java.math.BigDecimal#add(BigDecimal)`` — result scale is max of scales."""
     with decimal.localcontext(_ctx()):
         result = a + b
-    return _with_scale(result, max(scale_of(a), scale_of(b)))
+    return _with_scale(result, _scale_max(a, b))
 
 
 def subtract(a: Decimal, b: Decimal) -> Decimal:
     """Java: ``java.math.BigDecimal#subtract(BigDecimal)`` — result scale is max of scales."""
     with decimal.localcontext(_ctx()):
         result = a - b
-    return _with_scale(result, max(scale_of(a), scale_of(b)))
+    return _with_scale(result, _scale_max(a, b))
 
 
 def multiply(a: Decimal, b: Decimal) -> Decimal:
@@ -163,24 +188,70 @@ def divide(a: Decimal, b: Decimal, scale: int, mode: RoundingMode) -> Decimal:
             quotient = (a / b).quantize(quantum, rounding=decimal.ROUND_DOWN)
             if quotient * b != a:
                 raise ValueError("Rounding necessary")
-            return quotient
-        return (a / b).quantize(quantum, rounding=mode.decimal_constant())
+            return _positive_zero(quotient)
+        return _positive_zero((a / b).quantize(quantum, rounding=mode.decimal_constant()))
 
 
-def divide_preferred(a: Decimal, b: Decimal, mode: RoundingMode) -> Decimal:
+def divide_round(a: Decimal, b: Decimal, mode: RoundingMode) -> Decimal:
     """Java: ``java.math.BigDecimal#divide(BigDecimal, RoundingMode)``.
 
-    Preferred scale is ``a.scale - b.scale``; if the exact quotient needs more
-    digits, the scale is increased as in the JDK implementation.
+    The result's scale is ``a.scale()``: the quotient is rounded with ``mode``
+    at exactly that scale, which is never raised. Division by zero raises
+    ``decimal.DivisionByZero`` (Java: ``ArithmeticException``), an
+    ``ArithmeticError`` subclass.
     """
-    scale = scale_of(a) - scale_of(b)
-    while True:
-        try:
-            return divide(a, b, scale, mode)
-        except ValueError:
-            if mode is RoundingMode.UNNECESSARY:
-                raise
-            scale += 1
+    return divide(a, b, scale_of(a), mode)
+
+
+def divide_exact(a: Decimal, b: Decimal) -> Decimal:
+    """Java: ``java.math.BigDecimal#divide(BigDecimal)`` (no rounding mode).
+
+    The preferred scale is ``a.scale() - b.scale()``; the result is the exact
+    quotient at the smallest scale >= the preferred scale that represents it
+    exactly. Raises ``ArithmeticError`` (Java: ``ArithmeticException``) when
+    the quotient has a non-terminating decimal expansion, or when ``b`` is
+    zero. Implemented with exact integer arithmetic (``Fraction``), never
+    with Decimal division.
+    """
+    if b.is_zero():
+        raise ArithmeticError("Division by zero")
+    preferred = scale_of(a) - scale_of(b)
+    if a.is_zero():
+        # Zero is representable at any scale; Java returns it at the
+        # preferred scale (0.00 / 3 -> 0.00).
+        return _with_scale(Decimal(0), preferred)
+    quotient = Fraction(a) / Fraction(b)
+    if quotient.denominator == 1:
+        # An integer quotient: the minimal scale is negative, lowered by the
+        # numerator's trailing zeros (100 is representable at scale -2).
+        numerator = quotient.numerator
+        if numerator < 0:
+            numerator = -numerator
+        minimal = 0
+        while numerator % 10 == 0:
+            numerator //= 10
+            minimal -= 1
+    else:
+        rest = quotient.denominator
+        twos = 0
+        while rest % 2 == 0:
+            rest //= 2
+            twos += 1
+        fives = 0
+        while rest % 5 == 0:
+            rest //= 5
+            fives += 1
+        if rest != 1:
+            raise ArithmeticError(
+                "Non-terminating decimal expansion; no exact representable decimal result."
+            )
+        minimal = twos if twos >= fives else fives
+    scale = minimal if minimal >= preferred else preferred
+    unscaled = quotient * Fraction(10) ** scale
+    value = unscaled.numerator  # denominator is 1 by construction of `scale`
+    sign = 1 if value < 0 else 0
+    digits = tuple(int(c) for c in str(-value if value < 0 else value))
+    return Decimal((sign, digits, -scale))
 
 
 def compare_to(a: Decimal, b: Decimal) -> int:
@@ -193,6 +264,85 @@ def compare_to(a: Decimal, b: Decimal) -> int:
     if a > b:
         return 1
     return 0
+
+
+def equals(a: Decimal, b: Decimal) -> bool:
+    """Java: ``java.math.BigDecimal#equals(Object)`` — scale-sensitive.
+
+    Two BigDecimals are equal only if they have the same value *and* the same
+    scale, so ``2.0`` does not equal ``2.00``. A negative zero equals a
+    positive zero when the scales match (Java's unscaled value has no sign
+    for zero, and Python's Decimal comparison agrees).
+    """
+    return bool(a == b and scale_of(a) == scale_of(b))
+
+
+def max(a: Decimal, b: Decimal) -> Decimal:
+    """Java: ``java.math.BigDecimal#max(BigDecimal)``.
+
+    Returns the larger by ``compareTo``; on a tie it returns ``a`` (Java
+    returns ``this``), so the winner's scale is the first argument's.
+    """
+    return a if compare_to(a, b) >= 0 else b
+
+
+def min(a: Decimal, b: Decimal) -> Decimal:
+    """Java: ``java.math.BigDecimal#min(BigDecimal)``.
+
+    Returns the smaller by ``compareTo``; on a tie it returns ``a`` (Java
+    returns ``this``), so the winner's scale is the first argument's.
+    """
+    return a if compare_to(a, b) <= 0 else b
+
+
+def abs(d: Decimal) -> Decimal:
+    """Java: ``java.math.BigDecimal#abs()`` — scale preserved, context-free."""
+    return d.copy_abs()
+
+
+def negate(d: Decimal) -> Decimal:
+    """Java: ``java.math.BigDecimal#negate()`` — scale preserved, context-free."""
+    return _positive_zero(d.copy_negate())
+
+
+def signum(d: Decimal) -> int:
+    """Java: ``java.math.BigDecimal#signum()`` — -1, 0 or 1 (zero is 0)."""
+    if d > 0:
+        return 1
+    if d < 0:
+        return -1
+    return 0
+
+
+def double_value(d: Decimal) -> float:
+    """Java: ``java.math.BigDecimal#doubleValue()`` — correctly rounded.
+
+    ``float(Fraction)`` rounds to nearest, ties to even, exactly like the
+    JDK; an out-of-range magnitude becomes ``Infinity`` with the value's
+    sign (Java semantics) instead of propagating ``OverflowError``.
+    """
+    try:
+        return float(Fraction(d))
+    except OverflowError:
+        return math.inf if d > 0 else -math.inf
+
+
+def long_value(d: Decimal) -> int:
+    """Java: ``java.math.BigDecimal#longValue()``.
+
+    Truncates toward zero, then wraps modulo 2**64 like a Java ``long``
+    conversion of an out-of-range ``BigInteger``.
+    """
+    return to_int64(int(d))
+
+
+def int_value(d: Decimal) -> int:
+    """Java: ``java.math.BigDecimal#intValue()``.
+
+    Truncates toward zero, then wraps modulo 2**32 like a Java ``int``
+    conversion of an out-of-range ``BigInteger``.
+    """
+    return to_int32(int(d))
 
 
 def _digits_str(d: Decimal) -> str:

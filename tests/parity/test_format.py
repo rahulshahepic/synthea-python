@@ -66,6 +66,19 @@ def _check_bigdecimal(line: dict[str, Any], actual: bd.Decimal) -> None:
 def test_format_probe(golden: Callable[[str], Path]) -> None:
     path = golden("JavaFormatProbe") / "format.jsonl"
     double_lines = 0
+    counts = {
+        "bdDivideRound": 0,
+        "bdDivideExact": 0,
+        "bdEquals": 0,
+        "bdMax": 0,
+        "bdMin": 0,
+        "bdAbs": 0,
+        "bdNegate": 0,
+        "bdSignum": 0,
+        "bdDoubleValue": 0,
+        "bdLongValue": 0,
+        "bdIntValue": 0,
+    }
     with path.open(encoding="utf-8") as fh:
         for raw in fh:
             line = json.loads(raw)
@@ -148,6 +161,83 @@ def test_format_probe(golden: Callable[[str], Path]) -> None:
             elif op == "bdCompareTo":
                 actual = bd.compare_to(bd.from_string(line["a"]), bd.from_string(line["b"]))
                 assert actual == int(line["v"]), line
+            elif op == "bdDivideRound":
+                counts[op] += 1
+                if line.get("shape") == "premium":
+                    # x.setScale(2, HALF_UP).multiply(BigDecimal(income))
+                    #   .divide(BigDecimal(12), HALF_UP)
+                    product = bd.multiply(
+                        bd.set_scale(bd.from_string(line["a"]), 2, bd.RoundingMode.HALF_UP),
+                        bd.from_string(line["b"]),
+                    )
+                    dividend, divisor = product, bd.from_string("12")
+                    mode = bd.RoundingMode.HALF_UP
+                else:
+                    dividend = bd.from_string(line["a"])
+                    divisor = bd.from_string(line["b"])
+                    mode = bd.RoundingMode[line["mode"]]
+                if line["ts"] == "ERROR":
+                    with pytest.raises(ArithmeticError):
+                        bd.divide_round(dividend, divisor, mode)
+                else:
+                    _check_bigdecimal(line, bd.divide_round(dividend, divisor, mode))
+            elif op == "bdDivideExact":
+                counts[op] += 1
+                if line["ts"] == "ERROR":
+                    with pytest.raises(ArithmeticError):
+                        bd.divide_exact(bd.from_string(line["a"]), bd.from_string(line["b"]))
+                else:
+                    _check_bigdecimal(
+                        line,
+                        bd.divide_exact(bd.from_string(line["a"]), bd.from_string(line["b"])),
+                    )
+            elif op == "bdEquals":
+                counts[op] += 1
+                actual = bd.equals(bd.from_string(line["a"]), bd.from_string(line["b"]))
+                assert actual == (line["v"] == "true"), line
+            elif op == "bdMax":
+                counts[op] += 1
+                _check_bigdecimal(
+                    line, bd.max(bd.from_string(line["a"]), bd.from_string(line["b"]))
+                )
+            elif op == "bdMin":
+                counts[op] += 1
+                _check_bigdecimal(
+                    line, bd.min(bd.from_string(line["a"]), bd.from_string(line["b"]))
+                )
+            elif op == "bdAbs":
+                counts[op] += 1
+                _check_bigdecimal(line, bd.abs(bd.from_string(line["a"])))
+            elif op == "bdNegate":
+                counts[op] += 1
+                _check_bigdecimal(line, bd.negate(bd.from_string(line["a"])))
+            elif op == "bdSignum":
+                counts[op] += 1
+                assert bd.signum(bd.from_string(line["a"])) == int(line["v"]), line
+            elif op == "bdDoubleValue":
+                counts[op] += 1
+                actual = double_to_string(bd.double_value(bd.from_string(line["a"])))
+                assert actual == line["v"], line
+            elif op == "bdLongValue":
+                counts[op] += 1
+                assert bd.long_value(bd.from_string(line["a"])) == int(line["v"]), line
+            elif op == "bdIntValue":
+                counts[op] += 1
+                assert bd.int_value(bd.from_string(line["a"])) == int(line["v"]), line
             else:
                 raise AssertionError(f"unknown op {op}")
     assert double_lines >= 20000, f"double corpus too small: {double_lines}"
+    assert counts["bdDivideRound"] >= 500, counts
+    assert counts["bdDivideExact"] >= 150, counts
+    for name in (
+        "bdEquals",
+        "bdMax",
+        "bdMin",
+        "bdAbs",
+        "bdNegate",
+        "bdSignum",
+        "bdDoubleValue",
+        "bdLongValue",
+        "bdIntValue",
+    ):
+        assert counts[name] >= 200, counts
