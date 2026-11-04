@@ -8,8 +8,11 @@ from __future__ import annotations
 class CoverageRecord:
     """Java: CoverageRecord; pending T16."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: CoverageRecord constructor; pending T16."""
+    def __init__(self, person: object) -> None:
+        """Java: CoverageRecord#CoverageRecord(Person); pending T16."""
+        self.person: object = person
+        self.planHistory: set[object] = set()
+        self.nextEnrollmentPeriod: int | None = None
         raise NotImplementedError("Java: CoverageRecord — pending T16")
 
     def get_plan_history(self, *args: object, **kwargs: object) -> object:
