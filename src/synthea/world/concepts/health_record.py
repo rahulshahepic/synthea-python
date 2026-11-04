@@ -421,3 +421,25 @@ class Allergy:
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Allergy constructor; pending T08."""
         raise NotImplementedError("Java: Allergy#constructor — pending T08")
+
+
+# Java: HealthRecord.EncounterType(String code) data.
+ENCOUNTER_TYPE_CODES: dict[EncounterType, str] = {
+    EncounterType.WELLNESS: "AMB",
+    EncounterType.AMBULATORY: "AMB",
+    EncounterType.OUTPATIENT: "AMB",
+    EncounterType.INPATIENT: "IMP",
+    EncounterType.EMERGENCY: "EMER",
+    EncounterType.URGENTCARE: "AMB",
+    EncounterType.HOSPICE: "HH",
+    EncounterType.HOME: "HH",
+    EncounterType.SNF: "IMP",
+    EncounterType.VIRTUAL: "VR",
+}
+
+# Java: HealthRecord.ReactionSeverity(String code, String display) data.
+REACTION_SEVERITY_DETAILS: dict[ReactionSeverity, tuple[str, str]] = {
+    ReactionSeverity.SEVERE: ("24484000", "Severe"),
+    ReactionSeverity.MODERATE: ("6736007", "Moderate"),
+    ReactionSeverity.MILD: ("255604002", "Mild"),
+}
