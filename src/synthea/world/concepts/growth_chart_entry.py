@@ -10,6 +10,9 @@ class GrowthChartEntry:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: GrowthChartEntry constructor; pending T12."""
+        self.lboxCox: float = 0.0
+        self.median: float = 0.0
+        self.scov: float = 0.0
         raise NotImplementedError("Java: GrowthChartEntry — pending T12")
 
     def zscore_for_value(self, *args: object, **kwargs: object) -> object:
