@@ -14,6 +14,11 @@ class Place:
 
     def __init__(self, row: dict[str, str]) -> None:
         """Java: Place#Place(Map<String,String> row); pending T10."""
+        self.state: str | None = None
+        self.abbreviation: str | None = None
+        self.name: str | None = None
+        self.postalCode: str | None = None
+        self.coordinate: object | None = None
         raise NotImplementedError("Java: Place#constructor — pending T10")
 
     def same_state(self, state: str) -> bool:
