@@ -6,6 +6,22 @@ git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
 
+# Make sure every protocol label exists (gh refuses to add labels that don't exist).
+while read -r name color; do
+  gh label create "$name" --repo "$REPO" --color "$color" --force >/dev/null 2>&1 || true
+done <<'LABELS'
+type:task 5319E7
+status:ready 0E8A16
+status:blocked B60205
+status:claimed FBCA04
+agent:muse 1D76DB
+agent:chatgpt 1D76DB
+review:needed FBCA04
+review:changes-requested D93F0B
+review:approved 0E8A16
+needs:manual-merge D93F0B
+LABELS
+
 # Files that are safe to resolve mechanically (besides .gitattributes merge=union files).
 REGENERATED="uv.lock"
 
