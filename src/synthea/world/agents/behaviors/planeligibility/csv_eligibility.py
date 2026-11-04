@@ -10,6 +10,8 @@ class CSVEligibility:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: CSVEligibility constructor; pending T16."""
+        self.eligibilityLogic: object | None = None
+        self.eligibilityCriteria: list[object] = []
         raise NotImplementedError("Java: CSVEligibility — pending T16")
 
     def is_person_eligible(self, *args: object, **kwargs: object) -> object:
