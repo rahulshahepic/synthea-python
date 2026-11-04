@@ -8,6 +8,11 @@ Format (see PORTING_GUIDE §9):
 - <what and why>
 ```
 
+## #1 JavaRandom and DefaultRandomNumberGenerator (agent: chatgpt)
+- `java.util.Random#nextLong` sign-extends each 32-bit draw before adding the low word; combining unsigned halves changes results.
+- `java.util.Random#nextGaussian` requires the fdlibm 5.3 implementation of `StrictMath.log` for exact parity. Platform `math.log` differs by up to an ulp on observed seeded trajectories; `random.py` includes the permissively licensed fdlibm polynomial with its notice preserved.
+- `DefaultRandomNumberGenerator#randUUID` constructs the UUID from the original seed and one counted `randLong` draw (not four random words).
+
 ## #2 javacompat numerics (agent: muse)
 - `fmt.format` `%x` on a negative value: Java renders the unsigned two's-complement form at the argument type's width (Integer -> 32 bits, Long -> 64 bits), but Python ints are unbounded and carry no type. The port infers the type from the value's range: values inside int range render 32-bit, the rest 64-bit. Callers formatting a negative int-range value that Java held in a `long` would get 32-bit output; Synthea's actual `%x` uses are on int-range values, so this is safe in practice, but it is an inference, not a port of a typed value.
 - `numbers.parse_double` does not accept hexadecimal floating-point literals (`0x1.8p1`), which `Double.parseDouble` accepts. Synthea never parses hex float strings; supporting them needs a correctly-rounded hex parser. Documented in the docstring.
