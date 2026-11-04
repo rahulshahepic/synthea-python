@@ -85,3 +85,12 @@ push and come first. The reviewer only looks at PRs whose CI is green.
   on the synced head, so you never have to come back just to merge.
 * A real code conflict gets the `needs:manual-merge` label and one comment. Treat it as
   "waiting on the agent". Never resolve it yourself.
+
+## Repository secrets the automation needs
+
+| Secret | Used by | What it is |
+|---|---|---|
+| `SYNC_TOKEN` | `sync-task-branches`, `review-dispatch` | Fine-grained PAT for this repo with Contents, Pull requests and Workflows read/write. Its pushes trigger normal push CI; checks from `GITHUB_TOKEN`-dispatched runs don't count for branch rules. |
+| `REVIEWER_TRIGGER_URL` / `REVIEWER_TRIGGER_TOKEN` | `review-dispatch` | The review routine's API trigger (Fire URL + token), used to wake the reviewer when a PR is green and labelled `review:needed`. |
+
+Rotate `SYNC_TOKEN` before it expires: regenerate the PAT and replace the secret.
