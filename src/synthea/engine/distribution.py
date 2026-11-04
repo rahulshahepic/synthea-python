@@ -22,4 +22,10 @@ class Distribution:
 
 
 class Kind(StrEnum):
-    """Java: Kind; pending T07."""
+    """Java: Distribution.Kind; pending T07."""
+
+    EXACT = "EXACT"
+    GAUSSIAN = "GAUSSIAN"
+    UNIFORM = "UNIFORM"
+    EXPONENTIAL = "EXPONENTIAL"
+    TRIANGULAR = "TRIANGULAR"
