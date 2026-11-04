@@ -10,6 +10,16 @@ class CSVFileManager:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: CSVFileManager constructor; pending T25."""
+        self.charset: object | None = None
+        self.append: bool = False
+        self.outputDirectory: object | None = None
+        self.includedFiles: list[object] = []
+        self.excludedFiles: list[object] = []
+        self.filenameMap: dict[object, object] = {}
+        self.writerMap: dict[object, object] = {}
+        self.resourceCountMap: dict[object, object] = {}
+        self.maxLinesPerFile: int = 0
+        self.fileNumberDigits: int = 0
         raise NotImplementedError("Java: CSVFileManager — pending T25")
 
     def initialize_append(self, *args: object, **kwargs: object) -> object:
