@@ -8,6 +8,13 @@ class ExpressionProcessor:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ExpressionProcessor constructor; pending T07."""
+        self.libraryManager: object | None = None
+        self.expression: str | None = None
+        self.library: object | None = None
+        self.context: object | None = None
+        self.elm: str | None = None
+        self.paramTypeMap: dict[object, object] = {}
+        self.cqlParamMap: object | None = None
         raise NotImplementedError("Java: ExpressionProcessor#constructor — pending T07")
 
     def cql_to_elm(self, *args: object, **kwargs: object) -> object:
