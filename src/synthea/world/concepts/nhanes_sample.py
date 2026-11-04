@@ -10,6 +10,15 @@ class NHANESSample:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: NHANESSample constructor; pending T12."""
+        self.id: int = 0
+        self.sex: int = 0
+        self.agem: int = 0
+        self.wt: float = 0.0
+        self.ht: float = 0.0
+        self.swt: float = 0.0
+        self.racec: str | None = None
+        self.bmi: float = 0.0
+        self.prob: float = 0.0
         raise NotImplementedError("Java: NHANESSample — pending T12")
 
     def to_string(self, *args: object, **kwargs: object) -> object:
