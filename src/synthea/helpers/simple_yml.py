@@ -8,6 +8,7 @@ class SimpleYML:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: SimpleYML#SimpleYML; pending T05."""
+        self.internalMap: dict[object, object] = {}
         raise NotImplementedError("Java: SimpleYML#SimpleYML — pending T05")
 
     def get(self, *args: object, **kwargs: object) -> object:
