@@ -277,6 +277,11 @@ class Code:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Code constructor; pending T08."""
+        self.system: str | None = None
+        self.code: str | None = None
+        self.display: str | None = None
+        self.version: str | None = None
+        self.valueSet: str | None = None
         raise NotImplementedError("Java: Code#constructor — pending T08")
 
 
@@ -285,6 +290,15 @@ class Entry:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Entry constructor; pending T08."""
+        self.uuid: object | None = None
+        self.fullUrl: str | None = None
+        self.name: str | None = None
+        self.start: int = 0
+        self.stop: int = 0
+        self.type: str | None = None
+        self.codes: list[object] = []
+        self.cost: object | None = None
+        self.note: str | None = None
         raise NotImplementedError("Java: Entry#constructor — pending T08")
 
 
@@ -293,6 +307,7 @@ class EntryWithReasons:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: EntryWithReasons constructor; pending T08."""
+        self.reasons: list[object] = []
         raise NotImplementedError("Java: EntryWithReasons#constructor — pending T08")
 
 
@@ -301,6 +316,11 @@ class Observation:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Observation constructor; pending T08."""
+        self.value: object | None = None
+        self.category: str | None = None
+        self.unit: str | None = None
+        self.observations: list[object] = []
+        self.report: object | None = None
         raise NotImplementedError("Java: Observation#constructor — pending T08")
 
 
@@ -309,6 +329,7 @@ class Report:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Report constructor; pending T08."""
+        self.observations: list[object] = []
         raise NotImplementedError("Java: Report#constructor — pending T08")
 
 
@@ -317,6 +338,11 @@ class Medication:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Medication constructor; pending T08."""
+        self.stopReason: object | None = None
+        self.prescriptionDetails: object | None = None
+        self.claim: object | None = None
+        self.administration: bool = False
+        self.chronic: bool = False
         raise NotImplementedError("Java: Medication#constructor — pending T08")
 
 
@@ -325,6 +351,7 @@ class Immunization:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Immunization constructor; pending T08."""
+        self.series: int = 0
         raise NotImplementedError("Java: Immunization#constructor — pending T08")
 
 
@@ -333,6 +360,8 @@ class Procedure:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Procedure constructor; pending T08."""
+        self.provider: object | None = None
+        self.clinician: object | None = None
         raise NotImplementedError("Java: Procedure#constructor — pending T08")
 
 
@@ -341,6 +370,9 @@ class CarePlan:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: CarePlan constructor; pending T08."""
+        self.activities: set[object] = set()
+        self.goals: set[object] = set()
+        self.stopReason: object | None = None
         raise NotImplementedError("Java: CarePlan#constructor — pending T08")
 
 
@@ -349,6 +381,8 @@ class ImagingStudy:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ImagingStudy constructor; pending T08."""
+        self.dicomUid: str | None = None
+        self.series: list[object] = []
         raise NotImplementedError("Java: ImagingStudy#constructor — pending T08")
 
 
@@ -357,6 +391,12 @@ class Series:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Series constructor; pending T08."""
+        self.dicomUid: str | None = None
+        self.bodySite: object | None = None
+        self.modality: object | None = None
+        self.instances: list[object] = []
+        self.minNumberInstances: int = 0
+        self.maxNumberInstances: int = 0
         raise NotImplementedError("Java: Series#constructor — pending T08")
 
 
@@ -365,6 +405,9 @@ class Instance:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Instance constructor; pending T08."""
+        self.dicomUid: str | None = None
+        self.title: str | None = None
+        self.sopClass: object | None = None
         raise NotImplementedError("Java: Instance#constructor — pending T08")
 
 
@@ -373,6 +416,14 @@ class Device:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Device constructor; pending T08."""
+        self.manufacturer: str | None = None
+        self.model: str | None = None
+        self.udi: str | None = None
+        self.manufactureTime: int = 0
+        self.expirationTime: int = 0
+        self.deviceIdentifier: str | None = None
+        self.lotNumber: str | None = None
+        self.serialNumber: str | None = None
         raise NotImplementedError("Java: Device#constructor — pending T08")
 
 
@@ -381,6 +432,7 @@ class Supply:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Supply constructor; pending T08."""
+        self.quantity: int = 0
         raise NotImplementedError("Java: Supply#constructor — pending T08")
 
 
@@ -404,6 +456,26 @@ class Encounter:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Encounter constructor; pending T08."""
+        self.observations: list[object] = []
+        self.reports: list[object] = []
+        self.conditions: list[object] = []
+        self.allergies: list[object] = []
+        self.procedures: list[object] = []
+        self.immunizations: list[object] = []
+        self.medications: list[object] = []
+        self.careplans: list[object] = []
+        self.imagingStudies: list[object] = []
+        self.devices: list[object] = []
+        self.supplies: list[object] = []
+        self.claim: object | None = None
+        self.reason: object | None = None
+        self.discharge: object | None = None
+        self.provider: object | None = None
+        self.clinician: object | None = None
+        self.ended: bool = False
+        self.endedTime: int = 0
+        self.chronicMedsRenewed: bool = False
+        self.clinicalNote: str | None = None
         raise NotImplementedError("Java: Encounter#constructor — pending T08")
 
 
@@ -420,6 +492,9 @@ class Allergy:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Allergy constructor; pending T08."""
+        self.allergyType: str | None = None
+        self.category: str | None = None
+        self.reactions: dict[object, object] = {}
         raise NotImplementedError("Java: Allergy#constructor — pending T08")
 
 
