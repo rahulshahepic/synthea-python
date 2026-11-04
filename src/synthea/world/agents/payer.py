@@ -8,8 +8,15 @@ from __future__ import annotations
 class Payer:
     """Java: Payer; pending T15."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Payer constructor; pending T15."""
+    def __init__(self, name: str, id: int, states_covered: set[str], ownership: str) -> None:
+        """Java: Payer#Payer(String,int,Set<String>,String); pending T15."""
+        self.attributes: dict[str, object] = {}
+        self.name: str | None = None
+        self.uuid: str | None = None
+        self.plans: list[object] = []
+        self.ownership: str | None = None
+        self.planLinkId: int = 0
+        self.statesCovered: set[str] = set()
         raise NotImplementedError("Java: Payer — pending T15")
 
     def write_object(self, *args: object, **kwargs: object) -> object:
