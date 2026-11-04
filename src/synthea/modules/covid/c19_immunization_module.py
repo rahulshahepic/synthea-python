@@ -48,4 +48,11 @@ class C19ImmunizationModule:
 
 
 class VaccinationStatus(StrEnum):
-    """Java: VaccinationStatus; pending T24."""
+    """Java: C19ImmunizationModule.VaccinationStatus; pending T24."""
+
+    NOT_ELIGIBLE = "NOT_ELIGIBLE"
+    WAITING_FOR_SHOT = "WAITING_FOR_SHOT"
+    POTENTIAL_LATE_ADOPTER = "POTENTIAL_LATE_ADOPTER"
+    NEVER_GOING_TO_GET_SHOT = "NEVER_GOING_TO_GET_SHOT"
+    FIRST_SHOT = "FIRST_SHOT"
+    FULLY_VACCINATED = "FULLY_VACCINATED"
