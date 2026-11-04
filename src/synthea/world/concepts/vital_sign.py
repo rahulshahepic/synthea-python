@@ -37,10 +37,44 @@ class VitalSign(StrEnum):
     HEART_RATE = "HEART_RATE"
     RESPIRATION_RATE = "RESPIRATION_RATE"
 
-    def from_string(self, *args: object, **kwargs: object) -> object:
+    @classmethod
+    def from_string(cls, text: str) -> VitalSign:
         """Java: VitalSign#fromString; pending T11."""
         raise NotImplementedError("Java: VitalSign#fromString — pending T11")
 
-    def to_string(self, *args: object, **kwargs: object) -> object:
+    def to_string(self) -> str:
         """Java: VitalSign#toString; pending T11."""
         raise NotImplementedError("Java: VitalSign#toString — pending T11")
+
+
+# Java: VitalSign#name, the annotations' display names are data, not enum identifiers.
+VITAL_SIGN_DISPLAY_NAMES: dict[VitalSign, str] = {
+    VitalSign.HEIGHT: "Height",
+    VitalSign.WEIGHT: "Weight",
+    VitalSign.HEIGHT_PERCENTILE: "Height Percentile",
+    VitalSign.WEIGHT_PERCENTILE: "Weight Percentile",
+    VitalSign.BMI: "BMI",
+    VitalSign.HEAD: "Head Circumference",
+    VitalSign.HEAD_PERCENTILE: "Head Circumference Percentile",
+    VitalSign.SYSTOLIC_BLOOD_PRESSURE: "Systolic Blood Pressure",
+    VitalSign.DIASTOLIC_BLOOD_PRESSURE: "Diastolic Blood Pressure",
+    VitalSign.OXYGEN_SATURATION: "Oxygen Saturation",
+    VitalSign.BLOOD_GLUCOSE: "Blood Glucose",
+    VitalSign.GLUCOSE: "Glucose",
+    VitalSign.UREA_NITROGEN: "Urea Nitrogen",
+    VitalSign.CREATININE: "Creatinine",
+    VitalSign.CALCIUM: "Calcium",
+    VitalSign.SODIUM: "Sodium",
+    VitalSign.POTASSIUM: "Potassium",
+    VitalSign.CHLORIDE: "Chloride",
+    VitalSign.CARBON_DIOXIDE: "Carbon Dioxide",
+    VitalSign.TOTAL_CHOLESTEROL: "Total Cholesterol",
+    VitalSign.TRIGLYCERIDES: "Triglycerides",
+    VitalSign.LDL: "LDL",
+    VitalSign.HDL: "HDL",
+    VitalSign.MICROALBUMIN_CREATININE_RATIO: "Microalbumin Creatinine Ratio",
+    VitalSign.EGFR: "EGFR",
+    VitalSign.LVEF: "Left ventricular Ejection fraction",
+    VitalSign.HEART_RATE: "Heart Rate",
+    VitalSign.RESPIRATION_RATE: "Respiration Rate",
+}
