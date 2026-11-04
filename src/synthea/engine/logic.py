@@ -10,6 +10,7 @@ class Logic:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Logic constructor; pending T17."""
+        self.remarks: list[object] = []
         raise NotImplementedError("Java: Logic — pending T17")
 
     def test(self, *args: object, **kwargs: object) -> object:
@@ -42,6 +43,7 @@ class Gender:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Gender constructor; pending T17."""
+        self.gender: str | None = None
         raise NotImplementedError("Java: Gender — pending T17")
 
 
@@ -50,6 +52,9 @@ class Age:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Age constructor; pending T17."""
+        self.quantity: object | None = None
+        self.unit: str | None = None
+        self.operator: str | None = None
         raise NotImplementedError("Java: Age — pending T17")
 
 
@@ -58,6 +63,10 @@ class Date:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Date constructor; pending T17."""
+        self.year: object | None = None
+        self.month: object | None = None
+        self.date: object | None = None
+        self.operator: str | None = None
         raise NotImplementedError("Java: Date — pending T17")
 
 
@@ -66,6 +75,7 @@ class SocioeconomicStatus:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: SocioeconomicStatus constructor; pending T17."""
+        self.category: str | None = None
         raise NotImplementedError("Java: SocioeconomicStatus — pending T17")
 
 
@@ -74,6 +84,7 @@ class Race:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Race constructor; pending T17."""
+        self.race: str | None = None
         raise NotImplementedError("Java: Race — pending T17")
 
 
@@ -82,6 +93,9 @@ class Symptom:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Symptom constructor; pending T17."""
+        self.symptom: str | None = None
+        self.operator: str | None = None
+        self.value: float = 0.0
         raise NotImplementedError("Java: Symptom — pending T17")
 
 
@@ -90,6 +104,11 @@ class Observation:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Observation constructor; pending T17."""
+        self.operator: str | None = None
+        self.codes: list[object] = []
+        self.referencedByAttribute: str | None = None
+        self.value: object | None = None
+        self.valueCode: object | None = None
         raise NotImplementedError("Java: Observation — pending T17")
 
 
@@ -98,6 +117,9 @@ class Attribute:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Attribute constructor; pending T17."""
+        self.attribute: str | None = None
+        self.operator: str | None = None
+        self.value: object | None = None
         raise NotImplementedError("Java: Attribute — pending T17")
 
 
@@ -106,6 +128,7 @@ class GroupedCondition:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: GroupedCondition constructor; pending T17."""
+        self.conditions: object | None = None
         raise NotImplementedError("Java: GroupedCondition — pending T17")
 
 
@@ -130,6 +153,7 @@ class Not:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Not constructor; pending T17."""
+        self.condition: object | None = None
         raise NotImplementedError("Java: Not — pending T17")
 
 
@@ -138,6 +162,7 @@ class AtLeast:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: AtLeast constructor; pending T17."""
+        self.minimum: object | None = None
         raise NotImplementedError("Java: AtLeast — pending T17")
 
 
@@ -146,6 +171,7 @@ class AtMost:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: AtMost constructor; pending T17."""
+        self.maximum: object | None = None
         raise NotImplementedError("Java: AtMost — pending T17")
 
 
@@ -170,6 +196,10 @@ class PriorState:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: PriorState constructor; pending T17."""
+        self.name: str | None = None
+        self.since: str | None = None
+        self.within: object | None = None
+        self.window: object | None = None
         raise NotImplementedError("Java: PriorState — pending T17")
 
 
@@ -178,6 +208,8 @@ class ActiveLogic:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ActiveLogic constructor; pending T17."""
+        self.codes: list[object] = []
+        self.referencedByAttribute: str | None = None
         raise NotImplementedError("Java: ActiveLogic — pending T17")
 
 
@@ -218,6 +250,9 @@ class VitalSign:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: VitalSign constructor; pending T17."""
+        self.vitalSign: object | None = None
+        self.operator: str | None = None
+        self.value: float = 0.0
         raise NotImplementedError("Java: VitalSign — pending T17")
 
 
