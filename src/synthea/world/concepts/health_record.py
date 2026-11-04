@@ -410,6 +410,10 @@ class Encounter:
 class ReactionSeverity(StrEnum):
     """Java: ReactionSeverity; pending T08."""
 
+    SEVERE = "SEVERE"
+    MODERATE = "MODERATE"
+    MILD = "MILD"
+
 
 class Allergy:
     """Java: Allergy; pending T08."""
