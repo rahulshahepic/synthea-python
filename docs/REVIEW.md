@@ -13,12 +13,16 @@ This file is both the reviewer's runbook and the instructions for the scheduled 
 | `agent:muse` / `agent:chatgpt` | issue + PR | who owns it | agent |
 | `review:needed` | PR | agent asks for a verdict (or asked a `❓ QUESTION`) | agent (and CI, after a post-approval push) |
 | `review:changes-requested` | PR | reviewer asked for changes | reviewer |
-| `review:approved` | PR | reviewer approved **this exact head commit**. Satisfies the required `review-gate` check | reviewer only |
+| `review:approved` | PR | reviewer approved **this exact head commit**. Turns the required `review-gate` status from pending (amber) to success | reviewer only |
 
 Every party may push as the same GitHub account, so GitHub's native "Approve" / "Request
 changes" cannot be used. A review is a PR comment whose first line is `🟢 ALL CLEAR` or
 `🔴 CHANGES REQUESTED`, plus the label swap. The `review-gate` workflow turns the label into a
-required status check, and removes the label automatically when new commits arrive.
+required commit status (pending until approved, never a red failure), and removes the label
+automatically when an agent pushes new commits.
+
+Order of operations: automated checks (`lint`, `typecheck`, `java-golden`, `test`) run on every
+push and come first. The reviewer only looks at PRs whose CI is green.
 
 ## Routine (each scheduled run)
 
@@ -31,7 +35,10 @@ required status check, and removes the label automatically when new commits arri
    * Look for protocol violations: an agent with two open PRs, `review:approved` added by
      someone other than the reviewer, pushes to `main`, edits under `java/` or `.github/`.
      Flag them on the PR and tell the user.
-2. **Review** every open PR labelled `review:needed`, oldest first:
+2. **Review** every open PR labelled `review:needed` whose CI is green on the head commit,
+   oldest first. (`review-dispatch.yml` already bounces PRs with red CI back to the agent
+   automatically, and wakes this routine when a PR is green and waiting. Skip a PR whose CI
+   is still running: you'll be woken again when it finishes.)
    1. Read the issue (scope + acceptance criteria) and the full diff at the head SHA.
    2. Check CI on the head SHA. If it's red, request changes with the failing job and the reason.
       If the PR conflicts with `main` (no checks appear at all), request changes: "merge
