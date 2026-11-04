@@ -8,6 +8,12 @@ class TelemedicineConfig:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: TelemedicineConfig constructor; pending T11."""
+        self.telemedicineStartTime: int = 0
+        self.highEmergencyUseInsuranceNames: list[object] = []
+        self.preTelemedHighEmergency: object | None = None
+        self.preTelemedTypicalEmergency: object | None = None
+        self.telemedHighEmergency: object | None = None
+        self.telemedTypicalEmergency: object | None = None
         raise NotImplementedError("Java: TelemedicineConfig#constructor — pending T11")
 
     def to_enumerated_distribution(self, *args: object, **kwargs: object) -> object:
@@ -56,4 +62,7 @@ class TelemedicineProbabilities:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: TelemedicineProbabilities constructor; pending T11."""
+        self.ambulatory: float = 0.0
+        self.emergency: float = 0.0
+        self.telemedicine: float = 0.0
         raise NotImplementedError("Java: TelemedicineProbabilities#constructor — pending T11")
