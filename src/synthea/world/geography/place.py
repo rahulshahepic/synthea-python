@@ -4,20 +4,26 @@ from __future__ import annotations
 
 
 class Place:
-    """Java: Place; pending T10."""
+    """Java: org.mitre.synthea.world.geography.Place; pending T10."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Place constructor; pending T10."""
+    state: str
+    abbreviation: str
+    name: str
+    postal_code: str
+    coordinate: tuple[float, float]
+
+    def __init__(self, row: dict[str, str]) -> None:
+        """Java: Place#Place(Map<String,String> row); pending T10."""
         raise NotImplementedError("Java: Place#constructor — pending T10")
 
-    def same_state(self, *args: object, **kwargs: object) -> object:
-        """Java: Place#sameState; pending T10."""
+    def same_state(self, state: str) -> bool:
+        """Java: Place#sameState(String state); pending T10."""
         raise NotImplementedError("Java: Place#sameState — pending T10")
 
-    def get_x(self, *args: object, **kwargs: object) -> object:
-        """Java: Place#getX; pending T10."""
+    def get_x(self) -> float:
+        """Java: Place#getX(); pending T10."""
         raise NotImplementedError("Java: Place#getX — pending T10")
 
-    def get_y(self, *args: object, **kwargs: object) -> object:
-        """Java: Place#getY; pending T10."""
+    def get_y(self) -> float:
+        """Java: Place#getY(); pending T10."""
         raise NotImplementedError("Java: Place#getY — pending T10")
