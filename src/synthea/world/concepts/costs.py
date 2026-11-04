@@ -62,4 +62,8 @@ class CostData:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: CostData constructor; pending T14."""
+        self.min: float = 0.0
+        self.mode: float = 0.0
+        self.max: float = 0.0
+        self.distribution: object | None = None
         raise NotImplementedError("Java: CostData — pending T14")
