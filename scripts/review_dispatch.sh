@@ -12,7 +12,18 @@ run="$(gh run list --repo "$REPO" --workflow ci.yml --commit "$sha" --limit 1 \
   --json databaseId,status,conclusion,url --jq '.[0] // empty')"
 if [[ -z "$run" ]]; then echo "CI not started for $sha yet"; exit 0; fi
 status="$(jq -r .status <<<"$run")"; conclusion="$(jq -r .conclusion <<<"$run")"; url="$(jq -r .url <<<"$run")"
-if [[ "$status" != "completed" ]]; then echo "CI still running for $sha"; exit 0; fi
+if [[ "$status" != "completed" ]]; then
+  if [[ "${WAIT_FOR_CI:-}" == "true" ]]; then
+    # Started by the sync bot: GitHub won't fire workflow_run for runs it dispatched,
+    # so wait here for CI to finish instead.
+    echo "waiting for CI on $sha"
+    gh run watch "$(jq -r .databaseId <<<"$run")" --repo "$REPO" --exit-status >/dev/null || true
+    run="$(gh run view "$(jq -r .databaseId <<<"$run")" --repo "$REPO" --json status,conclusion,url)"
+    conclusion="$(jq -r .conclusion <<<"$run")"; url="$(jq -r .url <<<"$run")"
+  else
+    echo "CI still running for $sha"; exit 0
+  fi
+fi
 
 if [[ "$conclusion" != "success" ]]; then
   gh pr edit "$num" --repo "$REPO" --remove-label "review:needed" --add-label "review:changes-requested"
