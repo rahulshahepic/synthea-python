@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run mypy
+
+  java-golden:
+    name: java-golden
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Golden cache
+        id: golden-cache
+        uses: actions/cache@v4
+        with:
+          path: parity/golden
+          key: golden-v1-${{ hashFiles('java/**', 'parity/probes/**', 'parity/scenarios/**', 'parity/*.sh') }}
+      - uses: actions/setup-java@v4
+        if: steps.golden-cache.outputs.cache-hit != 'true'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Gradle cache
+        if: steps.golden-cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('java/**/*.gradle*', 'java/gradle/wrapper/**') }}
+      - name: Generate goldens from the Java reference
+        if: steps.golden-cache.outputs.cache-hit != 'true'
+        run: parity/gen_golden.sh --verify-determinism
+      - uses: actions/upload-artifact@v4
+        with:
+          name: golden
+          path: parity/golden
+          retention-days: 7
+
+  test:
+    name: test
+    needs: java-golden
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - uses: actions/download-artifact@v4
+        with:
+          name: golden
+          path: parity/golden
+      - name: Port-map structure check (modules that exist must match their Java API)
+        run: uv run python scripts/check_port_map.py --existing-only
+      - name: Unit + parity tests
+        env:
+          PARITY_REQUIRED: '1'
+        run: uv run pytest

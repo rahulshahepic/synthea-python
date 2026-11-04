@@ -1,0 +1,37 @@
+# Required status check that passes only when the PR carries the `review:approved` label.
+# Only the reviewer (Claude) adds that label. Any new commit removes it, so an approval
+# only ever covers the exact commit that was reviewed.
+name: review-gate
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled, ready_for_review]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  review-gate:
+    name: review-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Drop stale approval after new commits
+        if: github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'review:approved')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" \
+            --remove-label "review:approved" --add-label "review:needed"
+          echo "New commits pushed after approval; approval removed, re-review required."
+          exit 1
+      - name: Require review:approved
+        if: github.event.action != 'synchronize' || !contains(github.event.pull_request.labels.*.name, 'review:approved')
+        env:
+          APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'review:approved') }}
+        run: |
+          if [ "$APPROVED" != "true" ]; then
+            echo "Waiting for the reviewer's 'review:approved' label. See docs/REVIEW.md."
+            exit 1
+          fi
+          echo "Approved by reviewer."

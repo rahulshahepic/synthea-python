@@ -1,0 +1,19 @@
+# End-to-end scenario: 10 living people in Massachusetts, fixed seeds and dates, CSV only.
+# One argument per line. gen_golden.sh appends --exporter.baseDirectory.
+-s
+42
+-cs
+42
+-r
+20250101
+-e
+20250101
+-p
+10
+--generate.thread_pool_size=1
+--exporter.csv.export=true
+--exporter.fhir.export=false
+--exporter.hospital.fhir.export=false
+--exporter.practitioner.fhir.export=false
+--exporter.metadata.export=false
+Massachusetts
