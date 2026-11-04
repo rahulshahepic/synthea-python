@@ -189,8 +189,11 @@ class Payer:
 
 
 class UtilizationBean:
-    """Java: UtilizationBean; pending T15."""
+    """Java: Payer.UtilizationBean; pending T15."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: UtilizationBean constructor; pending T15."""
+    def __init__(self, year: int, type: str, count: object) -> None:
+        """Java: Payer.UtilizationBean#UtilizationBean; pending T15."""
+        self.year: int = year
+        self.type: str = type
+        self.count: object = count
         raise NotImplementedError("Java: UtilizationBean — pending T15")
