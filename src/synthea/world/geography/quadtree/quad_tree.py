@@ -8,6 +8,13 @@ class QuadTree:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: QuadTree constructor; pending T10."""
+        self.isLeaf: bool = False
+        self.maxLeafSize: int = 0
+        self.data: list[object] = []
+        self.xcoord: float = 0.0
+        self.ycoord: float = 0.0
+        self.radius: float = 0.0
+        self.branches: object | None = None
         raise NotImplementedError("Java: QuadTree#constructor — pending T10")
 
     def has_bounds_around(self, *args: object, **kwargs: object) -> object:
