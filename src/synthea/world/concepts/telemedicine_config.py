@@ -1,6 +1,6 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/world/concepts/TelemedicineConfig.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class TelemedicineConfig:
     """Java: TelemedicineConfig; pending T11."""
@@ -15,22 +15,31 @@ class TelemedicineConfig:
         raise NotImplementedError("Java: TelemedicineConfig#getTelemedicineStartTime — pending T11")
     def get_high_emergency_use_insurance_names(self, *args: object, **kwargs: object) -> object:
         """Java: TelemedicineConfig#getHighEmergencyUseInsuranceNames; pending T11."""
-        raise NotImplementedError("Java: TelemedicineConfig#getHighEmergencyUseInsuranceNames — pending T11")
+        raise NotImplementedError(
+            "Java: TelemedicineConfig#getHighEmergencyUseInsuranceNames — pending T11"
+        )
     def get_pre_telemed_high_emergency(self, *args: object, **kwargs: object) -> object:
         """Java: TelemedicineConfig#getPreTelemedHighEmergency; pending T11."""
-        raise NotImplementedError("Java: TelemedicineConfig#getPreTelemedHighEmergency — pending T11")
+        raise NotImplementedError(
+            "Java: TelemedicineConfig#getPreTelemedHighEmergency — pending T11"
+        )
     def get_pre_telemed_typical_emergency(self, *args: object, **kwargs: object) -> object:
         """Java: TelemedicineConfig#getPreTelemedTypicalEmergency; pending T11."""
-        raise NotImplementedError("Java: TelemedicineConfig#getPreTelemedTypicalEmergency — pending T11")
+        raise NotImplementedError(
+            "Java: TelemedicineConfig#getPreTelemedTypicalEmergency — pending T11"
+        )
     def get_telemed_high_emergency(self, *args: object, **kwargs: object) -> object:
         """Java: TelemedicineConfig#getTelemedHighEmergency; pending T11."""
         raise NotImplementedError("Java: TelemedicineConfig#getTelemedHighEmergency — pending T11")
     def get_telemed_typical_emergency(self, *args: object, **kwargs: object) -> object:
         """Java: TelemedicineConfig#getTelemedTypicalEmergency; pending T11."""
-        raise NotImplementedError("Java: TelemedicineConfig#getTelemedTypicalEmergency — pending T11")
+        raise NotImplementedError(
+            "Java: TelemedicineConfig#getTelemedTypicalEmergency — pending T11"
+        )
     def from_json(self, *args: object, **kwargs: object) -> object:
         """Java: TelemedicineConfig#fromJSON; pending T11."""
         raise NotImplementedError("Java: TelemedicineConfig#fromJSON — pending T11")
+
 
 class TelemedicineProbabilities:
     """Java: TelemedicineProbabilities; pending T11."""

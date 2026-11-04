@@ -1,8 +1,10 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/world/concepts/VitalSign.java."""
 from __future__ import annotations
-from enum import Enum
 
-class VitalSign(str, Enum):
+from enum import StrEnum
+
+
+class VitalSign(StrEnum):
     """Java: VitalSign; pending T11."""
     HEIGHT = "HEIGHT"
     WEIGHT = "WEIGHT"

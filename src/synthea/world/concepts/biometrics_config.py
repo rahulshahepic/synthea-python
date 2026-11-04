@@ -1,6 +1,6 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/world/concepts/BiometricsConfig.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class BiometricsConfig:
     """Java: BiometricsConfig; pending T11."""

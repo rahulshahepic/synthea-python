@@ -1,6 +1,6 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/world/concepts/RaceAndEthnicity.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class RaceAndEthnicity:
     """Java: RaceAndEthnicity; pending T11."""
@@ -15,4 +15,6 @@ class RaceAndEthnicity:
         raise NotImplementedError("Java: RaceAndEthnicity#createCDCEthnicityLookup — pending T11")
     def create_cdc_ethnicity_display_lookup(self, *args: object, **kwargs: object) -> object:
         """Java: RaceAndEthnicity#createCDCEthnicityDisplayLookup; pending T11."""
-        raise NotImplementedError("Java: RaceAndEthnicity#createCDCEthnicityDisplayLookup — pending T11")
+        raise NotImplementedError(
+            "Java: RaceAndEthnicity#createCDCEthnicityDisplayLookup — pending T11"
+        )

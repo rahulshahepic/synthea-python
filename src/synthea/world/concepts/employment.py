@@ -1,6 +1,6 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/world/concepts/Employment.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class Employment:
     """Java: Employment; pending T10."""

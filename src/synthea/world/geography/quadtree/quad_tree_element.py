@@ -1,6 +1,6 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/world/geography/quadtree/QuadTreeElement.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class QuadTreeElement:
     """Java: QuadTreeElement; pending T10."""
