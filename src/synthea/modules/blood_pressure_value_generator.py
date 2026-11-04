@@ -7,14 +7,20 @@ from __future__ import annotations
 from enum import StrEnum
 
 
-class BloodPressureValueGenerator:
+from synthea.helpers.value_generator import ValueGenerator
+
+
+class BloodPressureValueGenerator(ValueGenerator):
     """Java: BloodPressureValueGenerator; pending T21."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: BloodPressureValueGenerator constructor; pending T21."""
+    def __init__(self, person: object, sys_dias: SysDias) -> None:
+        """Java: BloodPressureValueGenerator#BloodPressureValueGenerator; pending T21."""
+        self.cachedValue: float | None = None
+        self.cacheTime: int = 0
+        self.sysDias: SysDias | None = None
         raise NotImplementedError("Java: BloodPressureValueGenerator — pending T21")
 
-    def get_value(self, *args: object, **kwargs: object) -> object:
+    def get_value(self, time: int) -> float:
         """Java: BloodPressureValueGenerator#getValue."""
         raise NotImplementedError("Java: getValue — pending T21")
 
@@ -40,4 +46,7 @@ class BloodPressureValueGenerator:
 
 
 class SysDias(StrEnum):
-    """Java: SysDias; pending T21."""
+    """Java: BloodPressureValueGenerator.SysDias; pending T21."""
+
+    SYSTOLIC = "SYSTOLIC"
+    DIASTOLIC = "DIASTOLIC"
