@@ -8,6 +8,13 @@ class TrendingValueGenerator:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: TrendingValueGenerator constructor; pending T07."""
+        self.standardDeviation: float = 0.0
+        self.minimumValue: object | None = None
+        self.maximumValue: object | None = None
+        self.beginMean: float = 0.0
+        self.endMean: float = 0.0
+        self.beginTime: int = 0
+        self.endTime: int = 0
         raise NotImplementedError("Java: TrendingValueGenerator#constructor — pending T07")
 
     def get_begin_time(self, *args: object, **kwargs: object) -> object:
