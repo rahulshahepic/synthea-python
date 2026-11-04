@@ -30,6 +30,8 @@ echo "#$num is green and waiting for review"
 if [[ -n "${TRIGGER_URL:-}" && -n "${TRIGGER_TOKEN:-}" ]]; then
   jq -n --arg t "Review PR #$num (head ${sha:0:7}) in $REPO: CI is green and it is labelled review:needed. Run the review routine in docs/REVIEW.md." \
     '{text: $t}' | curl -fsS -X POST "$TRIGGER_URL" -H "Authorization: Bearer $TRIGGER_TOKEN" \
+      -H "anthropic-beta: experimental-cc-routine-2026-04-01" \
+      -H "anthropic-version: 2023-06-01" \
       -H "Content-Type: application/json" --data @- >/dev/null && echo "reviewer notified"
 else
   echo "REVIEWER_TRIGGER_URL/TOKEN not set; the scheduled routine will pick it up"
