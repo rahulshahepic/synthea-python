@@ -8,8 +8,18 @@ from enum import StrEnum
 class HealthRecord:
     """Java: HealthRecord; pending T08."""
 
+    ENCOUNTERS: str = "encounters"
+    PROCEDURES: str = "procedures"
+    MEDICATIONS: str = "medications"
+    IMMUNIZATIONS: str = "immunizations"
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: HealthRecord constructor; pending T08."""
+        self.person: object = None
+        self.provider: object = None
+        self.encounters: object = None
+        self.present: str | None = None
+        self.death: object = None
+        self.demographicsAtRecordCreation: str | None = None
         raise NotImplementedError("Java: HealthRecord#constructor — pending T08")
 
     def hash_code(self, *args: object, **kwargs: object) -> object:

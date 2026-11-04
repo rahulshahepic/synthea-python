@@ -8,8 +8,57 @@ from __future__ import annotations
 class Generator:
     """Java: Generator; pending T27."""
 
+    DEFAULT_STATE: str = "Massachusetts"
+    TARGET_AGE: str = "target_age"
+    ANSI_GREEN: str = "\u001B[32m"
+    ANSI_BLUE: str = "\u001B[34m"
+    ANSI_RESET: str = "\u001B[0m"
+    DONATION_LINK: str = "https://github.com/sponsors/synthetichealth"
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Generator constructor; pending T27."""
+        self.id: object = None
+        self.options: object = None
+        self.populationRandom: object = None
+        self.clinicianRandom: object = None
+        self.timestep: int = 0
+        self.stop: int = 0
+        self.referenceTime: int = 0
+        self.stats: str | None = None
+        self.location: object = None
+        self.totalGeneratedPopulation: object = None
+        self.logLevel: str | None = None
+        self.onlyAlivePatients: bool = False
+        self.onlyDeadPatients: bool = False
+        self.onlyVeterans: bool = False
+        self.keepPatientsModule: object = None
+        self.maxAttemptsToKeepPatient: object = None
+        self.exporterRuntimeOptions: object = None
+        self.threadPoolSize: int = 0
+        self.population: int = 0
+        self.endTime: int = 0
+        self.runStartTime: int = 0
+        self.seed: int = 0
+        self.clinicianSeed: int = 0
+        self.singlePersonSeed: object = None
+        self.overflow: bool = False
+        self.gender: str | None = None
+        self.ageSpecified: bool = False
+        self.minAge: int = 0
+        self.maxAge: int = 0
+        self.city: str | None = None
+        self.state: str | None = None
+        self.localModuleDir: object = None
+        self.fixedRecordPath: object = None
+        self.enabledModules: str | None = None
+        self.initialPopulationSnapshotPath: object = None
+        self.updatedPopulationSnapshotPath: object = None
+        self.daysToTravelForward: int = 0
+        self.keepPatientsModulePath: object = None
+        self.rejectDeadButOverflow: bool = False
+        self.isAliveButDeadRequired: bool = False
+        self.isDeadButAliveRequired: bool = False
+        self.insufficientProviders: bool = False
+        self.failedKeepModule: bool = False
         raise NotImplementedError("Java: Generator — pending T27")
 
     def get_module_predicate(self, *args: object, **kwargs: object) -> object:
