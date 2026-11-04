@@ -1,8 +1,10 @@
-# Required status check that passes only when the PR carries the `review:approved` label.
-# Only the reviewer (Claude) adds that label. Any new commit pushed by an agent removes it, so
-# an approval only ever covers the exact commit that was reviewed.
-# It can also be dispatched with a PR number (the auto-sync bot does this after merging main
-# into a task branch, because pushes made with GITHUB_TOKEN do not trigger workflows).
+# Publishes the required commit status `review-gate`:
+#   pending -> waiting for the reviewer (shown amber, not as a failure)
+#   success -> the PR carries `review:approved` (added only by the reviewer)
+# Any new commit pushed by an agent removes `review:approved`, so an approval only covers the
+# commit that was reviewed. Automated checks (ci.yml) run independently on every push and are
+# never blocked by this gate. The auto-sync bot dispatches this workflow with a PR number,
+# because pushes made with GITHUB_TOKEN don't trigger workflows.
 name: review-gate
 
 on:
@@ -17,30 +19,32 @@ on:
 permissions:
   pull-requests: write
   issues: write
+  statuses: write
 
 jobs:
-  review-gate:
-    name: review-gate
+  publish:
+    name: review-gate-status
     runs-on: ubuntu-latest
     steps:
-      - name: Drop stale approval after new commits
-        if: github.event_name == 'pull_request' && github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'review:approved')
+      - name: Publish review-gate status
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr edit "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" \
-            --remove-label "review:approved" --add-label "review:needed"
-          echo "New commits pushed after approval; approval removed, re-review required."
-          exit 1
-      - name: Require review:approved
-        if: github.event_name != 'pull_request' || github.event.action != 'synchronize' || !contains(github.event.pull_request.labels.*.name, 'review:approved')
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number || inputs.pr }}
+          ACTION: ${{ github.event.action }}
         run: |
-          labels="$(gh pr view "$PR" --repo "${{ github.repository }}" --json labels --jq '.labels[].name')"
-          if ! grep -qx 'review:approved' <<<"$labels"; then
-            echo "Waiting for the reviewer's 'review:approved' label. See docs/REVIEW.md."
-            exit 1
+          read -r sha labels < <(gh pr view "$PR" --repo "$REPO" \
+            --json headRefOid,labels --jq '[.headRefOid, ([.labels[].name] | join(","))] | @tsv')
+          if [[ "$ACTION" == "synchronize" && ",$labels," == *",review:approved,"* ]]; then
+            gh pr edit "$PR" --repo "$REPO" --remove-label "review:approved" --add-label "review:needed"
+            labels="${labels//review:approved/}"
+            echo "New commits after approval: approval removed, re-review required."
           fi
-          echo "Approved by reviewer."
+          if [[ ",$labels," == *",review:approved,"* ]]; then
+            state=success; desc="Approved by reviewer"
+          else
+            state=pending; desc="Waiting for reviewer (label review:approved)"
+          fi
+          gh api "repos/$REPO/statuses/$sha" -f state="$state" -f context="review-gate" \
+            -f description="$desc" >/dev/null
+          echo "review-gate=$state on $sha"
