@@ -1,6 +1,6 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/engine/ExpressedSymptom.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class ExpressedSymptom:
     """Java: ExpressedSymptom; pending T09."""
@@ -65,11 +65,13 @@ class ExpressedSymptom:
         """Java: ExpressedSymptom#getSymptomLastUpdatedTime; pending T09."""
         raise NotImplementedError("Java: ExpressedSymptom#getSymptomLastUpdatedTime — pending T09")
 
+
 class SymptomInfo:
     """Java: SymptomInfo; pending T09."""
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: SymptomInfo constructor; pending T09."""
         raise NotImplementedError("Java: SymptomInfo#constructor — pending T09")
+
 
 class SymptomSource:
     """Java: SymptomSource; pending T09."""

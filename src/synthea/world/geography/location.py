@@ -1,6 +1,6 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/world/geography/Location.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class Location:
     """Java: Location; pending T10."""

@@ -1,6 +1,6 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/world/geography/CMSStateCodeMapper.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class CMSStateCodeMapper:
     """Java: CMSStateCodeMapper; pending T10."""
@@ -24,7 +24,9 @@ class CMSStateCodeMapper:
         raise NotImplementedError("Java: CMSStateCodeMapper#zipToCountyCode — pending T10")
     def state_county_name_to_county_code(self, *args: object, **kwargs: object) -> object:
         """Java: CMSStateCodeMapper#stateCountyNameToCountyCode; pending T10."""
-        raise NotImplementedError("Java: CMSStateCodeMapper#stateCountyNameToCountyCode — pending T10")
+        raise NotImplementedError(
+            "Java: CMSStateCodeMapper#stateCountyNameToCountyCode — pending T10"
+        )
     def build_ssa_table(self, *args: object, **kwargs: object) -> object:
         """Java: CMSStateCodeMapper#buildSSATable; pending T10."""
         raise NotImplementedError("Java: CMSStateCodeMapper#buildSSATable — pending T10")
