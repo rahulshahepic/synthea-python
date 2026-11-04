@@ -27,6 +27,10 @@ class QualifyingAttributesEligibility:
     def build_qualifying_attributes_file(self, *args: object, **kwargs: object) -> object:
         """Java: QualifyingAttributesEligibility#buildQualifyingAttributesFile."""
         raise NotImplementedError("Java: buildQualifyingAttributesFile — pending T16")
+    def check_attribute_logic(self, *args: object, **kwargs: object) -> object:
+        """Java: qualifying_attributes_eligibility.py#check_attribute_logic."""
+        raise NotImplementedError("Java: check_attribute_logic — pending T16")
+
 
 
 class AttributeQualifier:

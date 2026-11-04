@@ -60,3 +60,7 @@ class ExportHelper:
         """Java: ExportHelper#buildUUID."""
         raise NotImplementedError("Java: buildUUID — pending T25")
 
+
+    def build_fhir_npi_search_url(self, *args: object, **kwargs: object) -> object:
+        """Java: export_helper.py#build_fhir_npi_search_url."""
+        raise NotImplementedError("Java: build_fhir_npi_search_url — pending T25")

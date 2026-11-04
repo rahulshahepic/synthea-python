@@ -81,6 +81,30 @@ class Exporter:
     def run_post_completion_exports(self, *args: object, **kwargs: object) -> object:
         """Java: Exporter#runPostCompletionExports."""
         raise NotImplementedError("Java: runPostCompletionExports — pending T25")
+    def entry_within_time_range(self, *args: object, **kwargs: object) -> object:
+        """Java: exporter.py#entry_within_time_range."""
+        raise NotImplementedError("Java: entry_within_time_range — pending T25")
+
+    def filename(self, *args: object, **kwargs: object) -> object:
+        """Java: exporter.py#filename."""
+        raise NotImplementedError("Java: filename — pending T25")
+
+    def filter_after_death(self, *args: object, **kwargs: object) -> object:
+        """Java: exporter.py#filter_after_death."""
+        raise NotImplementedError("Java: filter_after_death — pending T25")
+
+    def filter_entries(self, *args: object, **kwargs: object) -> object:
+        """Java: exporter.py#filter_entries."""
+        raise NotImplementedError("Java: filter_entries — pending T25")
+
+    def filter_for_export(self, *args: object, **kwargs: object) -> object:
+        """Java: exporter.py#filter_for_export."""
+        raise NotImplementedError("Java: filter_for_export — pending T25")
+
+    def get_output_folder(self, *args: object, **kwargs: object) -> object:
+        """Java: exporter.py#get_output_folder."""
+        raise NotImplementedError("Java: get_output_folder — pending T25")
+
 
 
 class SupportedFhirVersion(StrEnum):

@@ -149,7 +149,7 @@ class AtMost:
         raise NotImplementedError("Java: AtMost — pending T17")
 
 
-class True:
+class TrueLogic:
     """Java: True; pending T17."""
 
     def __init__(self, *args: object, **kwargs: object) -> None:
@@ -157,7 +157,7 @@ class True:
         raise NotImplementedError("Java: True — pending T17")
 
 
-class False:
+class FalseLogic:
     """Java: False; pending T17."""
 
     def __init__(self, *args: object, **kwargs: object) -> None:
@@ -220,3 +220,7 @@ class VitalSign:
         """Java: VitalSign constructor; pending T17."""
         raise NotImplementedError("Java: VitalSign — pending T17")
 
+
+# Java inner classes named True and False cannot use Python keyword syntax.
+globals()["True"] = type("True", (TrueLogic,), {})
+globals()["False"] = type("False", (FalseLogic,), {})

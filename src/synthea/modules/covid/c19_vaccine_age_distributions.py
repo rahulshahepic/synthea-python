@@ -20,7 +20,7 @@ class C19VaccineAgeDistributions:
         """Java: C19VaccineAgeDistributions#hashCode."""
         raise NotImplementedError("Java: hashCode — pending T24")
 
-    def in(self, *args: object, **kwargs: object) -> object:
+    def in_(self, *args: object, **kwargs: object) -> object:
         """Java: C19VaccineAgeDistributions#in."""
         raise NotImplementedError("Java: in — pending T24")
 
