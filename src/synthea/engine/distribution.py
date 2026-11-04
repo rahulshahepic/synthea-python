@@ -10,6 +10,9 @@ class Distribution:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Distribution constructor; pending T07."""
+        self.kind: object | None = None
+        self.round: object | None = None
+        self.parameters: dict[object, object] = {}
         raise NotImplementedError("Java: Distribution#constructor — pending T07")
 
     def generate(self, *args: object, **kwargs: object) -> object:
