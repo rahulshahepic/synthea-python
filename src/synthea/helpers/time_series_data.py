@@ -8,6 +8,8 @@ class TimeSeriesData:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: TimeSeriesData#TimeSeriesData; pending T06."""
+        self.values: list[object] = []
+        self.period: float = 0.0
         raise NotImplementedError("Java: TimeSeriesData#TimeSeriesData — pending T06")
 
     def get_values(self, *args: object, **kwargs: object) -> object:
