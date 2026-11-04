@@ -10,6 +10,12 @@ class Claim:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Claim constructor; pending T14."""
+        self.person: object | None = None
+        self.mainEntry: object | None = None
+        self.items: list[object] = []
+        self.totals: object | None = None
+        self.uuid: object | None = None
+        self.planRecord: object | None = None
         raise NotImplementedError("Java: Claim — pending T14")
 
     def reset(self, *args: object, **kwargs: object) -> object:
@@ -102,6 +108,14 @@ class ClaimCost:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ClaimCost constructor; pending T14."""
+        self.cost: object | None = None
+        self.copayPaidByPatient: object | None = None
+        self.deductiblePaidByPatient: object | None = None
+        self.adjustment: object | None = None
+        self.coinsurancePaidByPayer: object | None = None
+        self.paidByPayer: object | None = None
+        self.paidBySecondaryPayer: object | None = None
+        self.patientOutOfPocket: object | None = None
         raise NotImplementedError("Java: ClaimCost — pending T14")
 
 
@@ -110,4 +124,5 @@ class ClaimEntry:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ClaimEntry constructor; pending T14."""
+        self.entry: object | None = None
         raise NotImplementedError("Java: ClaimEntry — pending T14")
