@@ -3,6 +3,7 @@
 #   * CI red   -> bounce it back to the agent automatically (no reviewer involved)
 #   * CI green -> wake the reviewer routine (REVIEWER_TRIGGER_URL/TOKEN secrets)
 #   * CI still running -> do nothing; this workflow runs again when CI completes
+#   * already approved (review:approved) and CI green on a head the sync bot moved -> merge
 #
 # Security: this job holds the reviewer-trigger secret, so it always runs the workflow and
 # script from main (pull_request_target / workflow_run / explicit ref), never code from a PR.
@@ -19,9 +20,13 @@ on:
       branch:
         description: PR head branch to route (e.g. task/2)
         required: true
+      wait_for_ci:
+        description: Wait for an in-progress CI run to finish (used by the sync bot)
+        required: false
+        default: 'false'
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   issues: write
   actions: read
@@ -31,6 +36,7 @@ jobs:
   dispatch:
     name: review-dispatch
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     if: github.event_name != 'pull_request_target' || github.event.label.name == 'review:needed'
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +47,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           BRANCH: ${{ inputs.branch || github.event.workflow_run.head_branch || github.event.pull_request.head.ref }}
+          WAIT_FOR_CI: ${{ inputs.wait_for_ci }}
+          MERGE_TOKEN: ${{ secrets.SYNC_TOKEN }}
           TRIGGER_URL: ${{ secrets.REVIEWER_TRIGGER_URL }}
           TRIGGER_TOKEN: ${{ secrets.REVIEWER_TRIGGER_TOKEN }}
         run: scripts/review_dispatch.sh
