@@ -1,6 +1,6 @@
 """Java API skeleton: org/mitre/synthea/helpers/TimeSeriesData.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class TimeSeriesData:
     """Java: TimeSeriesData.java#TimeSeriesData."""

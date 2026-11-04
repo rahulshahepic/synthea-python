@@ -1,6 +1,6 @@
 """Java API skeleton: org/mitre/synthea/helpers/RandomCollection.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class RandomCollection:
     """Java: RandomCollection.java#RandomCollection."""

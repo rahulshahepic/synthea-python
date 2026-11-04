@@ -1,6 +1,6 @@
 """Java API skeleton: org/mitre/synthea/helpers/Telemedicine.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class Telemedicine:
     """Java: Telemedicine.java#Telemedicine."""

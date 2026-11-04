@@ -1,6 +1,6 @@
 """Java API skeleton: org/mitre/synthea/helpers/SimpleCSV.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class SimpleCSV:
     """Java: SimpleCSV.java#SimpleCSV."""

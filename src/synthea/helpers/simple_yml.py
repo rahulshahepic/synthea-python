@@ -1,6 +1,6 @@
 """Java API skeleton: org/mitre/synthea/helpers/SimpleYML.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class SimpleYML:
     """Java: SimpleYML.java#SimpleYML."""

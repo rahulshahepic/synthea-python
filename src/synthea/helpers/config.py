@@ -1,6 +1,6 @@
 """Java API skeleton: org/mitre/synthea/helpers/Config.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class Config:
     """Java: Config.java#Config."""

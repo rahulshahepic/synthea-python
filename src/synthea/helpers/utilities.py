@@ -1,6 +1,6 @@
 """Java API skeleton: org/mitre/synthea/helpers/Utilities.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class Utilities:
     """Java: Utilities.java#Utilities."""
