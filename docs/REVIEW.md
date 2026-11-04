@@ -34,8 +34,10 @@ required status check, and removes the label automatically when new commits arri
 2. **Review** every open PR labelled `review:needed`, oldest first:
    1. Read the issue (scope + acceptance criteria) and the full diff at the head SHA.
    2. Check CI on the head SHA. If it's red, request changes with the failing job and the reason.
+      If the PR conflicts with `main` (no checks appear at all), request changes: "merge
+      `origin/main` into your branch (AGENTS.md §4)".
    3. Check scope: the changed files must be owned by the PR's task in `docs/port_map.toml`,
-      or be its own tests, probes, or `PORTING_NOTES.md` appends.
+      or be its own tests, probes, or `docs/porting_notes/T<nn>.md`.
    4. Check faithfulness: compare the Python with the Java side by side. Look for RNG call
       order and count, iteration over Java hash collections, number formatting, integer
       arithmetic and rounding, BigDecimal scale, and time zone handling (PORTING_GUIDE).
@@ -63,5 +65,11 @@ required status check, and removes the label automatically when new commits arri
 * Squash-merge only, and only by the reviewer.
 * Require: CI (`lint`, `typecheck`, `java-golden`, `test`) green **and** `review-gate` green
   on the head commit.
-* If the branch is behind `main` and conflicts, request changes ("rebase/merge main"). If it
+* If the branch is behind `main` and conflicts, request changes ("merge `origin/main` in; never rebase"). If it
   is only behind, update it from `main`, let CI rerun, and merge if still green.
+
+## Housekeeping: conflicted PRs
+
+On every run, check each open `task/*` PR, draft or not, for `mergeable_state == dirty`.
+For each one, post a single comment (once per conflict): "This PR conflicts with `main`, so
+CI cannot run. Merge `origin/main` into `task/<N>` (AGENTS.md §4)."

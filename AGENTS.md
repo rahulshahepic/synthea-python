@@ -86,7 +86,8 @@ Immediately after the push succeeds:
   * the probe(s) `parity/probes/.../<Area>Probe.java` for your area,
   * `pyproject.toml` / `uv.lock`, **only** to add a dependency the issue allows or that you
     justify in the PR body,
-  * `docs/PORTING_NOTES.md`, append-only, to record deviations or discoveries (see guide).
+  * your own notes file `docs/porting_notes/T<nn>.md` (create it), to record deviations or
+    discoveries (see guide). Never edit another task's notes file or `docs/PORTING_NOTES.md`.
   * the shared canonical dumpers `tests/parity/canonical.py` and
     `parity/probes/org/synthea/parity/probes/support/Canonical.java` (created by T08):
     **append-only**. You may add support for new types, but never change existing output.
@@ -95,8 +96,8 @@ Immediately after the push succeeds:
   by your dependencies, report it under "Problems found". Don't implement it.
 * Break Java's circular imports with `from __future__ import annotations` and
   `if TYPE_CHECKING:` imports, or with a function-local import. Never merge modules to avoid a cycle.
-* **Never modify**: anything under `java/`, `.github/`, `AGENTS.md`, `docs/` (except
-  appending to `PORTING_NOTES.md`), or another task's code, tests or probes. If you believe
+* **Never modify**: anything under `java/`, `.github/`, `AGENTS.md`, `docs/` (except your own
+  `docs/porting_notes/T<nn>.md`), or another task's code, tests or probes. If you believe
   one of those is wrong, say so in your PR body under "Problems found". Do not fix it.
 * If a dependency's existing Python code is wrong (a parity bug in an earlier task), do
   **not** patch it in your PR. Write it up under "Problems found". The reviewer opens a fix task.
@@ -109,12 +110,26 @@ Immediately after the push succeeds:
   parity/gen_golden.sh <Area>Probe      # needs JDK 21; see "No JDK?" below
   PARITY_REQUIRED=1 uv run pytest
   ```
+* **Keep your branch mergeable: GitHub runs NO CI on a PR that has merge conflicts.** If the PR
+  page says "This branch has conflicts", or CI checks never appear after a push, bring in main
+  with a **merge** (never a rebase, never a force-push):
+  ```bash
+  git fetch origin
+  git merge origin/main          # resolve conflicts: keep both sides' content
+  uv lock                        # if uv.lock or pyproject.toml conflicted, regenerate the lock
+  # re-run the local checks above, then:
+  git commit                     # the merge commit; message "#<N> merge main" + "Agent: <name>"
+  git push origin task/<N>
+  ```
+  Do this **before** asking for review as well, and whenever the reviewer asks. Merge
+  commits are fine; history rewriting is not.
 * **No JDK?** Push anyway. CI builds the Java and runs your parity tests. Read the failing
   CI job log (job `test`), fix, and push again. CI is the source of truth.
 
 ## 5. Ask for review
 
-When **every** acceptance criterion in the issue holds **and** CI is green on your latest commit:
+When **every** acceptance criterion in the issue holds, the branch has **no merge conflicts**
+with `main`, **and** CI is green on your latest commit:
 1. Mark the PR **Ready for review** (no longer a draft).
 2. Add the label `review:needed` to the PR.
 3. Comment on the PR: `Ready for review at <short-sha>. Agent: <your-name>`, plus a
@@ -170,3 +185,4 @@ The reviewer answers with a PR comment whose first line is one of:
 5. Type hints everywhere (`mypy` passes). No `Any` unless the Java uses `Object`.
 6. The PR body is complete: checklist ticked, deviations listed, "Problems found" filled in
    or "none".
+7. The PR has no merge conflicts with `main` (merge `origin/main` in; see §4).
