@@ -58,4 +58,7 @@ class DisabilityWeight:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: DisabilityWeight constructor; pending T23."""
+        self.low: float = 0.0
+        self.medium: float = 0.0
+        self.high: float = 0.0
         raise NotImplementedError("Java: DisabilityWeight — pending T23")
