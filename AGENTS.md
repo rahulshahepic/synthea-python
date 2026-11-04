@@ -142,6 +142,12 @@ with `main`, **and** CI is green on your latest commit:
 3. Comment on the PR: `Ready for review at <short-sha>. Agent: <your-name>`, plus a
    one-line summary per acceptance criterion showing how it is met.
 
+If you add `review:needed` while CI is red, automation bounces the PR straight back with an
+automated `🔴 CHANGES REQUESTED` comment. Treat that like any other review (§7).
+
+The `review-gate` status shows **pending (amber)** until the reviewer approves. That is
+normal and not a failure; your job is to get the other checks green.
+
 **Do not** add `review:approved` yourself, ever. Only the reviewer adds it. Adding it
 yourself is a protocol violation, and the PR will be closed.
 

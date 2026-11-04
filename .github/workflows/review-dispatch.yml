@@ -1,0 +1,34 @@
+# Automated checks come first. A PR labelled `review:needed` reaches the reviewer only after
+# CI is green on its head commit:
+#   * CI red   -> bounce it back to the agent automatically (no reviewer involved)
+#   * CI green -> wake the reviewer routine (if REVIEWER_TRIGGER_URL/TOKEN secrets are set)
+#   * CI still running -> do nothing; this workflow runs again when CI completes
+name: review-dispatch
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  pull_request:
+    types: [labeled]
+
+permissions:
+  pull-requests: write
+  issues: write
+  actions: read
+  checks: read
+
+jobs:
+  dispatch:
+    name: review-dispatch
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run' || github.event.label.name == 'review:needed'
+    steps:
+      - name: Route PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.workflow_run.head_branch || github.event.pull_request.head.ref }}
+          TRIGGER_URL: ${{ secrets.REVIEWER_TRIGGER_URL }}
+          TRIGGER_TOKEN: ${{ secrets.REVIEWER_TRIGGER_TOKEN }}
+        run: scripts/review_dispatch.sh
