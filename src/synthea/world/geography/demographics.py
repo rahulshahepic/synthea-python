@@ -8,6 +8,23 @@ class Demographics:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Demographics constructor; pending T10."""
+        self.population: int = 0
+        self.id: str | None = None
+        self.city: str | None = None
+        self.state: str | None = None
+        self.county: str | None = None
+        self.ages: dict[object, object] = {}
+        self.ageDistribution: object | None = None
+        self.gender: dict[object, object] = {}
+        self.genderDistribution: object | None = None
+        self.race: dict[object, object] = {}
+        self.raceDistribution: object | None = None
+        self.ethnicity: float = 0.0
+        self.ethnicityDistribution: object | None = None
+        self.income: dict[object, object] = {}
+        self.incomeDistribution: object | None = None
+        self.education: dict[object, object] = {}
+        self.educationDistribution: object | None = None
         raise NotImplementedError("Java: Demographics#constructor — pending T10")
 
     def pick_age(self, *args: object, **kwargs: object) -> object:
