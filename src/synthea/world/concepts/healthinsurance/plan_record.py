@@ -10,6 +10,17 @@ class PlanRecord:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: PlanRecord constructor; pending T16."""
+        self.id: str | None = None
+        self.start: int = 0
+        self.stop: int = 0
+        self.plan: object | None = None
+        self.secondaryPlan: object | None = None
+        self.ownership: str | None = None
+        self.ownerName: str | None = None
+        self.coveredExpenses: object | None = None
+        self.remainingDeductible: object | None = None
+        self.outOfPocketExpenses: object | None = None
+        self.insuranceExpenses: object | None = None
         raise NotImplementedError("Java: PlanRecord — pending T16")
 
     def pay_monthly_premiums(self, *args: object, **kwargs: object) -> object:
