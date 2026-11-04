@@ -1,34 +1,53 @@
-"""Java port skeleton: java/src/main/java/org/mitre/synthea/engine/Distribution.java."""
+"""Java API skeleton: Distribution.java."""
 
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from synthea.world.agents.person import Person
 
 
 class Distribution:
     """Java: Distribution; pending T07."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Distribution constructor; pending T07."""
-        self.kind: object | None = None
-        self.round: object | None = None
-        self.parameters: dict[object, object] = {}
-        raise NotImplementedError("Java: Distribution#constructor — pending T07")
+    def __init__(self) -> None:
+        """Java: Distribution#Distribution.
 
-    def generate(self, *args: object, **kwargs: object) -> object:
-        """Java: Distribution#generate; pending T07."""
+        Java overloads:
+        ()
+        """
+        self.kind: Kind
+        self.round: bool
+        self.parameters: dict[str, float]
+        raise NotImplementedError("Java: Distribution#Distribution — pending T07")
+
+    def generate(self, person: Person) -> float:
+        """Java: Distribution#generate.
+
+        Java overloads:
+        (Person person)
+        """
         raise NotImplementedError("Java: Distribution#generate — pending T07")
 
-    def validate(self, *args: object, **kwargs: object) -> object:
-        """Java: Distribution#validate; pending T07."""
+    def validate(self) -> bool:
+        """Java: Distribution#validate.
+
+        Java overloads:
+        ()
+        """
         raise NotImplementedError("Java: Distribution#validate — pending T07")
 
 
 class Kind(StrEnum):
-    """Java: Distribution.Kind; pending T07."""
+    """Java: Kind; pending T07."""
 
     EXACT = "EXACT"
     GAUSSIAN = "GAUSSIAN"
     UNIFORM = "UNIFORM"
     EXPONENTIAL = "EXPONENTIAL"
     TRIANGULAR = "TRIANGULAR"
+
+
+setattr(Distribution, "Kind", Kind)  # noqa: B010

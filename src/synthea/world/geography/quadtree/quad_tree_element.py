@@ -1,23 +1,43 @@
-"""Java: quad_tree_element skeleton (pending implementation)."""
+"""Java API skeleton:
+java/src/main/java/org/mitre/synthea/world/geography/quadtree/QuadTreeElement.java.
+"""
 
 from __future__ import annotations
 
+from typing import Protocol
 
-class QuadTreeElement:
+
+class QuadTreeElement(Protocol):
     """Java: QuadTreeElement; pending T10."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: QuadTreeElement constructor; pending T10."""
-        raise NotImplementedError("Java: QuadTreeElement#constructor — pending T10")
+    def __init__(self) -> None:
+        """Java: QuadTreeElement#QuadTreeElement.
 
-    def get_x(self, *args: object, **kwargs: object) -> object:
-        """Java: QuadTreeElement#getX; pending T10."""
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: QuadTreeElement#QuadTreeElement — pending T10")
+
+    def get_x(self) -> float:
+        """Java: QuadTreeElement#getX.
+
+        Java overloads:
+        ()
+        """
         raise NotImplementedError("Java: QuadTreeElement#getX — pending T10")
 
-    def get_y(self, *args: object, **kwargs: object) -> object:
-        """Java: QuadTreeElement#getY; pending T10."""
+    def get_y(self) -> float:
+        """Java: QuadTreeElement#getY.
+
+        Java overloads:
+        ()
+        """
         raise NotImplementedError("Java: QuadTreeElement#getY — pending T10")
 
-    def distance(self, *args: object, **kwargs: object) -> object:
-        """Java: QuadTreeElement#distance; pending T10."""
+    def distance(self, element: QuadTreeElement) -> float:
+        """Java: QuadTreeElement#distance.
+
+        Java overloads:
+        (QuadTreeElement element)
+        """
         raise NotImplementedError("Java: QuadTreeElement#distance — pending T10")

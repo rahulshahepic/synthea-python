@@ -1,206 +1,399 @@
-"""Java API skeleton for payer.py.
-Java: org.mitre.synthea.world.agents.Payer.
-"""
+"""Java API skeleton: Payer.java."""
 
 from __future__ import annotations
+
+import builtins
+from decimal import Decimal
+from typing import IO, TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from synthea.world.agents.behaviors.payeradjustment.i_payer_adjustment import IPayerAdjustment
+    from synthea.world.agents.person import Person
+    from synthea.world.concepts.claim import ClaimEntry
+    from synthea.world.concepts.health_record import Entry
+    from synthea.world.concepts.healthinsurance.insurance_plan import InsurancePlan
+
+    class AtomicInteger(Protocol):
+        """Java boundary type: AtomicInteger; external to the mapped Python port."""
 
 
 class Payer:
     """Java: Payer; pending T15."""
 
-    def __init__(self, name: str, id: int, states_covered: set[str], ownership: str) -> None:
-        """Java: Payer#Payer(String,int,Set<String>,String); pending T15."""
-        self.payerAdjustment: object | None = None
-        self.revenue: object | None = None
-        self.costsCovered: object | None = None
-        self.costsUncovered: object | None = None
-        self.totalQOLS: float = 0.0
-        self.customerUtilization: dict[object, object] = {}
-        self.entryUtilization: object | None = None
-        self.attributes: dict[str, object] = {}
-        self.name: str | None = None
-        self.uuid: str | None = None
-        self.plans: list[object] = []
-        self.ownership: str | None = None
-        self.planLinkId: int = 0
-        self.statesCovered: set[str] = set()
-        raise NotImplementedError("Java: Payer — pending T15")
+    def __init__(
+        self, name: str, id: int, states_covered: builtins.set[str], ownership: str
+    ) -> None:
+        """Java: Payer#Payer.
 
-    def write_object(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#writeObject."""
-        raise NotImplementedError("Java: writeObject — pending T15")
+        Java overloads:
+        (String name, int id, Set statesCovered, String ownership)
+        """
+        self.payer_adjustment: IPayerAdjustment
+        self.attributes: dict[str, object]
+        self.name: str
+        self.uuid: str
+        self.plans: list[InsurancePlan]
+        self.ownership: str
+        self.plan_link_id: int
+        self.states_covered: builtins.set[str]
+        self.revenue: Decimal
+        self.costs_covered: Decimal
+        self.costs_uncovered: Decimal
+        self.total_qols: float
+        self.customer_utilization: dict[str, AtomicInteger]
+        self.entry_utilization: dict[int, str]
+        raise NotImplementedError("Java: Payer#Payer — pending T15")
 
-    def read_object(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#readObject."""
-        raise NotImplementedError("Java: readObject — pending T15")
+    def write_object(self, oos: IO[bytes]) -> None:
+        """Java: Payer#writeObject.
 
-    def add_plan(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#addPlan."""
-        raise NotImplementedError("Java: addPlan — pending T15")
+        Java overloads:
+        (ObjectOutputStream oos)
+        """
+        raise NotImplementedError("Java: Payer#writeObject — pending T15")
 
-    def is_government_payer(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#isGovernmentPayer."""
-        raise NotImplementedError("Java: isGovernmentPayer — pending T15")
+    def read_object(self, ois: IO[bytes]) -> None:
+        """Java: Payer#readObject.
 
-    def get_resource_id(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getResourceID."""
-        raise NotImplementedError("Java: getResourceID — pending T15")
+        Java overloads:
+        (ObjectInputStream ois)
+        """
+        raise NotImplementedError("Java: Payer#readObject — pending T15")
 
-    def get_name(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getName."""
-        raise NotImplementedError("Java: getName — pending T15")
+    def add_plan(self, new_plan: InsurancePlan) -> None:
+        """Java: Payer#addPlan.
 
-    def get_ownership(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getOwnership."""
-        raise NotImplementedError("Java: getOwnership — pending T15")
+        Java overloads:
+        (InsurancePlan newPlan)
+        """
+        raise NotImplementedError("Java: Payer#addPlan — pending T15")
 
-    def get_attributes(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getAttributes."""
-        raise NotImplementedError("Java: getAttributes — pending T15")
+    def is_government_payer(self) -> bool:
+        """Java: Payer#isGovernmentPayer.
 
-    def get_plans(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getPlans."""
-        raise NotImplementedError("Java: getPlans — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#isGovernmentPayer — pending T15")
 
-    def covers_care(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#coversCare."""
-        raise NotImplementedError("Java: coversCare — pending T15")
+    def get_resource_id(self) -> str:
+        """Java: Payer#getResourceID.
 
-    def adjust_claim(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#adjustClaim."""
-        raise NotImplementedError("Java: adjustClaim — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getResourceID — pending T15")
 
-    def increment_customers(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#incrementCustomers."""
-        raise NotImplementedError("Java: incrementCustomers — pending T15")
+    def get_name(self) -> str:
+        """Java: Payer#getName.
 
-    def increment_covered_entries(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#incrementCoveredEntries."""
-        raise NotImplementedError("Java: incrementCoveredEntries — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getName — pending T15")
 
-    def increment_uncovered_entries(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#incrementUncoveredEntries."""
-        raise NotImplementedError("Java: incrementUncoveredEntries — pending T15")
+    def get_ownership(self) -> str:
+        """Java: Payer#getOwnership.
 
-    def get_entry_type(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getEntryType."""
-        raise NotImplementedError("Java: getEntryType — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getOwnership — pending T15")
 
-    def increment_entries(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#incrementEntries."""
-        raise NotImplementedError("Java: incrementEntries — pending T15")
+    def get_attributes(self) -> dict[str, object]:
+        """Java: Payer#getAttributes.
 
-    def add_covered_cost(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#addCoveredCost."""
-        raise NotImplementedError("Java: addCoveredCost — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getAttributes — pending T15")
 
-    def add_uncovered_cost(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#addUncoveredCost."""
-        raise NotImplementedError("Java: addUncoveredCost — pending T15")
+    def get_plans(self) -> list[InsurancePlan]:
+        """Java: Payer#getPlans.
 
-    def add_qols(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#addQols."""
-        raise NotImplementedError("Java: addQols — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getPlans — pending T15")
 
-    def get_revenue(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getRevenue."""
-        raise NotImplementedError("Java: getRevenue — pending T15")
+    def covers_care(self, entry: Entry) -> bool:
+        """Java: Payer#coversCare.
 
-    def get_customer_utilization(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getCustomerUtilization."""
-        raise NotImplementedError("Java: getCustomerUtilization — pending T15")
+        Java overloads:
+        (Entry entry)
+        """
+        raise NotImplementedError("Java: Payer#coversCare — pending T15")
 
-    def get_unique_customers(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getUniqueCustomers."""
-        raise NotImplementedError("Java: getUniqueCustomers — pending T15")
+    def adjust_claim(self, claim_entry: ClaimEntry, person: Person) -> Decimal:
+        """Java: Payer#adjustClaim.
 
-    def get_num_years_covered(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getNumYearsCovered."""
-        raise NotImplementedError("Java: getNumYearsCovered — pending T15")
+        Java overloads:
+        (ClaimEntry claimEntry, Person person)
+        """
+        raise NotImplementedError("Java: Payer#adjustClaim — pending T15")
 
-    def get_encounters_covered_count(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getEncountersCoveredCount."""
-        raise NotImplementedError("Java: getEncountersCoveredCount — pending T15")
+    def increment_customers(self, person_id: str) -> None:
+        """Java: Payer#incrementCustomers.
 
-    def get_encounters_uncovered_count(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getEncountersUncoveredCount."""
-        raise NotImplementedError("Java: getEncountersUncoveredCount — pending T15")
+        Java overloads:
+        (String personId)
+        """
+        raise NotImplementedError("Java: Payer#incrementCustomers — pending T15")
 
-    def get_medications_covered_count(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getMedicationsCoveredCount."""
-        raise NotImplementedError("Java: getMedicationsCoveredCount — pending T15")
+    def increment_covered_entries(self, entry: Entry) -> None:
+        """Java: Payer#incrementCoveredEntries.
 
-    def get_medications_uncovered_count(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getMedicationsUncoveredCount."""
-        raise NotImplementedError("Java: getMedicationsUncoveredCount — pending T15")
+        Java overloads:
+        (Entry entry)
+        """
+        raise NotImplementedError("Java: Payer#incrementCoveredEntries — pending T15")
 
-    def get_procedures_covered_count(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getProceduresCoveredCount."""
-        raise NotImplementedError("Java: getProceduresCoveredCount — pending T15")
+    def increment_uncovered_entries(self, entry: Entry) -> None:
+        """Java: Payer#incrementUncoveredEntries.
 
-    def get_procedures_uncovered_count(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getProceduresUncoveredCount."""
-        raise NotImplementedError("Java: getProceduresUncoveredCount — pending T15")
+        Java overloads:
+        (Entry entry)
+        """
+        raise NotImplementedError("Java: Payer#incrementUncoveredEntries — pending T15")
 
-    def get_immunizations_covered_count(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getImmunizationsCoveredCount."""
-        raise NotImplementedError("Java: getImmunizationsCoveredCount — pending T15")
+    def get_entry_type(self, entry: Entry) -> str:
+        """Java: Payer#getEntryType.
 
-    def get_immunizations_uncovered_count(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getImmunizationsUncoveredCount."""
-        raise NotImplementedError("Java: getImmunizationsUncoveredCount — pending T15")
+        Java overloads:
+        (Entry entry)
+        """
+        raise NotImplementedError("Java: Payer#getEntryType — pending T15")
 
-    def get_amount_covered(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getAmountCovered."""
-        raise NotImplementedError("Java: getAmountCovered — pending T15")
+    def increment_entries(self, year: int, key: str) -> None:
+        """Java: Payer#incrementEntries.
 
-    def get_amount_uncovered(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getAmountUncovered."""
-        raise NotImplementedError("Java: getAmountUncovered — pending T15")
+        Java overloads:
+        (Integer year, String key)
+        """
+        raise NotImplementedError("Java: Payer#incrementEntries — pending T15")
 
-    def get_qols_average(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getQolsAverage."""
-        raise NotImplementedError("Java: getQolsAverage — pending T15")
+    def add_covered_cost(self, cost_to_payer: Decimal) -> None:
+        """Java: Payer#addCoveredCost.
 
-    def hash_code(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#hashCode."""
-        raise NotImplementedError("Java: hashCode — pending T15")
+        Java overloads:
+        (BigDecimal costToPayer)
+        """
+        raise NotImplementedError("Java: Payer#addCoveredCost — pending T15")
 
-    def equals(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#equals."""
-        raise NotImplementedError("Java: equals — pending T15")
+    def add_uncovered_cost(self, cost_to_patient: Decimal) -> None:
+        """Java: Payer#addUncoveredCost.
 
-    def set_payer_adjustment(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#setPayerAdjustment."""
-        raise NotImplementedError("Java: setPayerAdjustment — pending T15")
+        Java overloads:
+        (BigDecimal costToPatient)
+        """
+        raise NotImplementedError("Java: Payer#addUncoveredCost — pending T15")
 
-    def add_revenue(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#addRevenue."""
-        raise NotImplementedError("Java: addRevenue — pending T15")
+    def add_qols(self, qols: float) -> None:
+        """Java: Payer#addQols.
 
-    def get_government_payer_plan(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getGovernmentPayerPlan."""
-        raise NotImplementedError("Java: getGovernmentPayerPlan — pending T15")
+        Java overloads:
+        (double qols)
+        """
+        raise NotImplementedError("Java: Payer#addQols — pending T15")
 
-    def add_attribute(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#addAttribute."""
-        raise NotImplementedError("Java: addAttribute — pending T15")
+    def get_revenue(self) -> Decimal:
+        """Java: Payer#getRevenue.
 
-    def is_no_insurance(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#isNoInsurance."""
-        raise NotImplementedError("Java: isNoInsurance — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getRevenue — pending T15")
 
-    def get_plan_link_id(self, *args: object, **kwargs: object) -> object:
-        """Java: Payer#getPlanLinkId."""
-        raise NotImplementedError("Java: getPlanLinkId — pending T15")
+    def get_customer_utilization(self, person_id: str) -> int:
+        """Java: Payer#getCustomerUtilization.
+
+        Java overloads:
+        (String personId)
+        """
+        raise NotImplementedError("Java: Payer#getCustomerUtilization — pending T15")
+
+    def get_unique_customers(self) -> int:
+        """Java: Payer#getUniqueCustomers.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getUniqueCustomers — pending T15")
+
+    def get_num_years_covered(self) -> int:
+        """Java: Payer#getNumYearsCovered.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getNumYearsCovered — pending T15")
+
+    def get_encounters_covered_count(self) -> int:
+        """Java: Payer#getEncountersCoveredCount.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getEncountersCoveredCount — pending T15")
+
+    def get_encounters_uncovered_count(self) -> int:
+        """Java: Payer#getEncountersUncoveredCount.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getEncountersUncoveredCount — pending T15")
+
+    def get_medications_covered_count(self) -> int:
+        """Java: Payer#getMedicationsCoveredCount.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getMedicationsCoveredCount — pending T15")
+
+    def get_medications_uncovered_count(self) -> int:
+        """Java: Payer#getMedicationsUncoveredCount.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getMedicationsUncoveredCount — pending T15")
+
+    def get_procedures_covered_count(self) -> int:
+        """Java: Payer#getProceduresCoveredCount.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getProceduresCoveredCount — pending T15")
+
+    def get_procedures_uncovered_count(self) -> int:
+        """Java: Payer#getProceduresUncoveredCount.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getProceduresUncoveredCount — pending T15")
+
+    def get_immunizations_covered_count(self) -> int:
+        """Java: Payer#getImmunizationsCoveredCount.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getImmunizationsCoveredCount — pending T15")
+
+    def get_immunizations_uncovered_count(self) -> int:
+        """Java: Payer#getImmunizationsUncoveredCount.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getImmunizationsUncoveredCount — pending T15")
+
+    def get_amount_covered(self) -> Decimal:
+        """Java: Payer#getAmountCovered.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getAmountCovered — pending T15")
+
+    def get_amount_uncovered(self) -> Decimal:
+        """Java: Payer#getAmountUncovered.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getAmountUncovered — pending T15")
+
+    def get_qols_average(self) -> float:
+        """Java: Payer#getQolsAverage.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getQolsAverage — pending T15")
+
+    def hash_code(self) -> int:
+        """Java: Payer#hashCode.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#hashCode — pending T15")
+
+    def equals(self, obj: object) -> bool:
+        """Java: Payer#equals.
+
+        Java overloads:
+        (Object obj)
+        """
+        raise NotImplementedError("Java: Payer#equals — pending T15")
+
+    def set_payer_adjustment(self, payer_adjustment: IPayerAdjustment) -> None:
+        """Java: Payer#setPayerAdjustment.
+
+        Java overloads:
+        (IPayerAdjustment payerAdjustment)
+        """
+        raise NotImplementedError("Java: Payer#setPayerAdjustment — pending T15")
+
+    def add_revenue(self, additional_revenue: Decimal) -> None:
+        """Java: Payer#addRevenue.
+
+        Java overloads:
+        (BigDecimal additionalRevenue)
+        """
+        raise NotImplementedError("Java: Payer#addRevenue — pending T15")
+
+    def get_government_payer_plan(self) -> InsurancePlan:
+        """Java: Payer#getGovernmentPayerPlan.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getGovernmentPayerPlan — pending T15")
+
+    def add_attribute(self, key: str, value: str) -> None:
+        """Java: Payer#addAttribute.
+
+        Java overloads:
+        (String key, String value)
+        """
+        raise NotImplementedError("Java: Payer#addAttribute — pending T15")
+
+    def is_no_insurance(self) -> bool:
+        """Java: Payer#isNoInsurance.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#isNoInsurance — pending T15")
+
+    def get_plan_link_id(self) -> int:
+        """Java: Payer#getPlanLinkId.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Payer#getPlanLinkId — pending T15")
 
 
 class UtilizationBean:
-    """Java: Payer.UtilizationBean; pending T15."""
+    """Java: UtilizationBean; pending T15."""
 
-    def __init__(self, year: int, type: str, count: object) -> None:
-        """Java: Payer.UtilizationBean#UtilizationBean; pending T15."""
-        self.year: int = year
-        self.type: str = type
-        self.count: object = count
-        raise NotImplementedError("Java: UtilizationBean — pending T15")
+    def __init__(self, year: int, type: str, count: AtomicInteger) -> None:
+        """Java: UtilizationBean#UtilizationBean.
+
+        Java overloads:
+        (Integer year, String type, AtomicInteger count)
+        """
+        self.year: int
+        self.type: str
+        self.count: AtomicInteger
+        raise NotImplementedError("Java: UtilizationBean#UtilizationBean — pending T15")
+
+
+setattr(Payer, "UtilizationBean", UtilizationBean)  # noqa: B010

@@ -1,28 +1,46 @@
-"""Java API skeleton for growth_chart_entry.py.
-Java: org.mitre.synthea.world.concepts.GrowthChartEntry.
-"""
+"""Java API skeleton: GrowthChartEntry.java."""
 
 from __future__ import annotations
+
+from typing import ClassVar
 
 
 class GrowthChartEntry:
     """Java: GrowthChartEntry; pending T12."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: GrowthChartEntry constructor; pending T12."""
-        self.lboxCox: float = 0.0
-        self.median: float = 0.0
-        self.scov: float = 0.0
-        raise NotImplementedError("Java: GrowthChartEntry — pending T12")
+    MAX_PERCENTILE: ClassVar[float] = 0.995
 
-    def zscore_for_value(self, *args: object, **kwargs: object) -> object:
-        """Java: GrowthChartEntry#zscoreForValue."""
-        raise NotImplementedError("Java: zscoreForValue — pending T12")
+    def __init__(self, l_value: float, m: float, s: float) -> None:
+        """Java: GrowthChartEntry#GrowthChartEntry.
 
-    def percentile_for_value(self, *args: object, **kwargs: object) -> object:
-        """Java: GrowthChartEntry#percentileForValue."""
-        raise NotImplementedError("Java: percentileForValue — pending T12")
+        Java overloads:
+        (double l, double m, double s)
+        """
+        self.lbox_cox: float
+        self.median: float
+        self.scov: float
+        raise NotImplementedError("Java: GrowthChartEntry#GrowthChartEntry — pending T12")
 
-    def look_up(self, *args: object, **kwargs: object) -> object:
-        """Java: GrowthChartEntry#lookUp."""
-        raise NotImplementedError("Java: lookUp — pending T12")
+    def zscore_for_value(self, value: float) -> float:
+        """Java: GrowthChartEntry#zscoreForValue.
+
+        Java overloads:
+        (double value)
+        """
+        raise NotImplementedError("Java: GrowthChartEntry#zscoreForValue — pending T12")
+
+    def percentile_for_value(self, value: float) -> float:
+        """Java: GrowthChartEntry#percentileForValue.
+
+        Java overloads:
+        (double value)
+        """
+        raise NotImplementedError("Java: GrowthChartEntry#percentileForValue — pending T12")
+
+    def look_up(self, percentile: float) -> float:
+        """Java: GrowthChartEntry#lookUp.
+
+        Java overloads:
+        (double percentile)
+        """
+        raise NotImplementedError("Java: GrowthChartEntry#lookUp — pending T12")

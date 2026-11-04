@@ -1,4 +1,4 @@
-"""Java: org.mitre.synthea.world.concepts.ClinicianSpecialty."""
+"""Java API skeleton: ClinicianSpecialty.java."""
 
 from __future__ import annotations
 
@@ -6,10 +6,12 @@ from typing import ClassVar
 
 
 class ClinicianSpecialty:
-    """Java: org.mitre.synthea.world.concepts.ClinicianSpecialty; pending T11."""
+    """Java: ClinicianSpecialty; pending T11."""
 
     ADDICTION_MEDICINE: ClassVar[str] = "ADDICTION MEDICINE"
-    ADVANCED_HEART_FAILURE_AND_TRANSPLANT_CARDIOLOGY: ClassVar[str] = "ADVANCED HEART FAILURE AND TRANSPLANT CARDIOLOGY"
+    ADVANCED_HEART_FAILURE_AND_TRANSPLANT_CARDIOLOGY: ClassVar[str] = (
+        "ADVANCED HEART FAILURE AND TRANSPLANT CARDIOLOGY"
+    )
     ALLERGY_IMMUNOLOGY: ClassVar[str] = "ALLERGY/IMMUNOLOGY"
     ANESTHESIOLOGY: ClassVar[str] = "ANESTHESIOLOGY"
     ANESTHESIOLOGY_ASSISTANT: ClassVar[str] = "ANESTHESIOLOGY ASSISTANT"
@@ -40,7 +42,9 @@ class ClinicianSpecialty:
     HAND_SURGERY: ClassVar[str] = "HAND SURGERY"
     HEMATOLOGY: ClassVar[str] = "HEMATOLOGY"
     HEMATOLOGY_ONCOLOGY: ClassVar[str] = "HEMATOLOGY/ONCOLOGY"
-    HEMATOPOIETIC_CELL_TRANSPLANTATION_AND_CELLULAR_TH: ClassVar[str] = "HEMATOPOIETIC CELL TRANSPLANTATION AND CELLULAR TH"
+    HEMATOPOIETIC_CELL_TRANSPLANTATION_AND_CELLULAR_TH: ClassVar[str] = (
+        "HEMATOPOIETIC CELL TRANSPLANTATION AND CELLULAR TH"
+    )
     HOSPICE_AND_PALLIATIVE_CARE: ClassVar[str] = "HOSPICE/PALLIATIVE CARE"
     HOSPITALIST: ClassVar[str] = "HOSPITALIST"
     INFECTIOUS_DISEASE: ClassVar[str] = "INFECTIOUS DISEASE"
@@ -77,7 +81,9 @@ class ClinicianSpecialty:
     PSYCHIATRY: ClassVar[str] = "PSYCHIATRY"
     PULMONARY_DISEASE: ClassVar[str] = "PULMONARY DISEASE"
     RADIATION_ONCOLOGY: ClassVar[str] = "RADIATION ONCOLOGY"
-    REGISTERED_DIETITIAN_OR_NUTRITION_PROFESSIONAL: ClassVar[str] = "REGISTERED DIETITIAN OR NUTRITION PROFESSIONAL"
+    REGISTERED_DIETITIAN_OR_NUTRITION_PROFESSIONAL: ClassVar[str] = (
+        "REGISTERED DIETITIAN OR NUTRITION PROFESSIONAL"
+    )
     RHEUMATOLOGY: ClassVar[str] = "RHEUMATOLOGY"
     SLEEP_MEDICINE: ClassVar[str] = "SLEEP MEDICINE"
     SPEECH_LANGUAGE_PATHOLOGIST: ClassVar[str] = "SPEECH LANGUAGE PATHOLOGIST"
@@ -89,17 +95,29 @@ class ClinicianSpecialty:
     VASCULAR_SURGERY: ClassVar[str] = "VASCULAR SURGERY"
 
     def __init__(self) -> None:
-        """Java: ClinicianSpecialty#ClinicianSpecialty() implicit constructor."""
+        """Java: ClinicianSpecialty#ClinicianSpecialty.
+
+        Java overloads:
+        ()
+        """
         raise NotImplementedError("Java: ClinicianSpecialty#ClinicianSpecialty — pending T11")
 
     @staticmethod
     def get_specialties() -> list[str]:
-        """Java: ClinicianSpecialty#getSpecialties()."""
+        """Java: ClinicianSpecialty#getSpecialties.
+
+        Java overloads:
+        ()
+        """
         raise NotImplementedError("Java: ClinicianSpecialty#getSpecialties — pending T11")
 
     @staticmethod
     def get_cms_provider_specialty_code(specialty: str) -> str:
-        """Java: ClinicianSpecialty#getCMSProviderSpecialtyCode(String)."""
+        """Java: ClinicianSpecialty#getCMSProviderSpecialtyCode.
+
+        Java overloads:
+        (String specialty)
+        """
         raise NotImplementedError(
             "Java: ClinicianSpecialty#getCMSProviderSpecialtyCode — pending T11"
         )

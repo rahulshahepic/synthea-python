@@ -1,17 +1,39 @@
-"""Java API skeleton for provider_finder_nearest_medicare.py.
-Java: org.mitre.synthea.world.agents.behaviors.providerfinder.ProviderFinderNearestMedicare.
+"""Java API skeleton:
+java/src/main/java/org/mitre/synthea/world/agents/behaviors/providerfinder/Pr
+oviderFinderNearestMedicare.java.
 """
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from synthea.world.agents.person import Person
+    from synthea.world.agents.provider import Provider
+    from synthea.world.concepts.health_record import EncounterType
+
 
 class ProviderFinderNearestMedicare:
-    """Java: ProviderFinderNearestMedicare; pending T13."""
+    """Java: ProviderFinderNearestMedicare;
+    pending T13.
+    """
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: ProviderFinderNearestMedicare constructor; pending T13."""
-        raise NotImplementedError("Java: ProviderFinderNearestMedicare — pending T13")
+    def __init__(self) -> None:
+        """Java: ProviderFinderNearestMedicare#ProviderFinderNearestMedicare.
 
-    def find(self, *args: object, **kwargs: object) -> object:
-        """Java: ProviderFinderNearestMedicare#find."""
-        raise NotImplementedError("Java: find — pending T13")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError(
+            "Java: ProviderFinderNearestMedicare#ProviderFinderNearestMedicare — pending T13"
+        )
+
+    def find(
+        self, providers: list[Provider], person: Person, service: EncounterType, time: int
+    ) -> Provider:
+        """Java: ProviderFinderNearestMedicare#find.
+
+        Java overloads:
+        (List providers, Person person, EncounterType service, long time)
+        """
+        raise NotImplementedError("Java: ProviderFinderNearestMedicare#find — pending T13")

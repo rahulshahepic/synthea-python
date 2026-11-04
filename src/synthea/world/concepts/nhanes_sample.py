@@ -1,38 +1,66 @@
-"""Java API skeleton for nhanes_sample.py.
-Java: org.mitre.synthea.world.concepts.NHANESSample.
-"""
+"""Java API skeleton: NHANESSample.java."""
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+
+    class EnumeratedDistribution(Protocol):
+        """Java boundary type: EnumeratedDistribution; external to the mapped Python port."""
 
 
 class NHANESSample:
     """Java: NHANESSample; pending T12."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: NHANESSample constructor; pending T12."""
-        self.id: int = 0
-        self.sex: int = 0
-        self.agem: int = 0
-        self.wt: float = 0.0
-        self.ht: float = 0.0
-        self.swt: float = 0.0
-        self.racec: str | None = None
-        self.bmi: float = 0.0
-        self.prob: float = 0.0
-        raise NotImplementedError("Java: NHANESSample — pending T12")
+    def __init__(self) -> None:
+        """Java: NHANESSample#NHANESSample.
 
-    def to_string(self, *args: object, **kwargs: object) -> object:
-        """Java: NHANESSample#toString."""
-        raise NotImplementedError("Java: toString — pending T12")
+        Java overloads:
+        ()
+        """
+        self.id: int
+        self.sex: int
+        self.agem: int
+        self.wt: float
+        self.ht: float
+        self.swt: float
+        self.racec: str
+        self.bmi: float
+        self.prob: float
+        raise NotImplementedError("Java: NHANESSample#NHANESSample — pending T12")
 
-    def load_samples(self, *args: object, **kwargs: object) -> object:
-        """Java: NHANESSample#loadSamples."""
-        raise NotImplementedError("Java: loadSamples — pending T12")
+    def to_string(self) -> str:
+        """Java: NHANESSample#toString.
 
-    def load_distribution(self, *args: object, **kwargs: object) -> object:
-        """Java: NHANESSample#loadDistribution."""
-        raise NotImplementedError("Java: loadDistribution — pending T12")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: NHANESSample#toString — pending T12")
 
-    def load_distribution_by_sex(self, *args: object, **kwargs: object) -> object:
-        """Java: NHANESSample#loadDistributionBySex."""
-        raise NotImplementedError("Java: loadDistributionBySex — pending T12")
+    @staticmethod
+    def load_samples() -> list[NHANESSample]:
+        """Java: NHANESSample#loadSamples.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: NHANESSample#loadSamples — pending T12")
+
+    @staticmethod
+    def load_distribution() -> EnumeratedDistribution:
+        """Java: NHANESSample#loadDistribution.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: NHANESSample#loadDistribution — pending T12")
+
+    @staticmethod
+    def load_distribution_by_sex(sex_code: int) -> EnumeratedDistribution:
+        """Java: NHANESSample#loadDistributionBySex.
+
+        Java overloads:
+        (int sexCode)
+        """
+        raise NotImplementedError("Java: NHANESSample#loadDistributionBySex — pending T12")

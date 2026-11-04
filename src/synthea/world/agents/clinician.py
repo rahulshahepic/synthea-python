@@ -1,74 +1,164 @@
-"""Java API skeleton for clinician.py.
-Java: org.mitre.synthea.world.agents.Clinician.
-"""
+"""Java API skeleton: Clinician.java."""
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING, ClassVar
+
+if TYPE_CHECKING:
+    from synthea.helpers.random_number_generator import RandomNumberGenerator
+    from synthea.world.agents.provider import Provider
 
 
 class Clinician:
     """Java: Clinician; pending T13."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Clinician constructor; pending T13."""
-        self.identifier: int = 0
-        self.uuid: str | None = None
-        self.npi: str | None = None
-        self.attributes: dict[object, object] = {}
-        self.servicesProvided: list[object] = []
-        self.organization: object | None = None
-        self.encounters: int = 0
-        self.procedures: int = 0
-        self.populationSeed: int = 0
-        raise NotImplementedError("Java: Clinician — pending T13")
+    serialVersionUID: ClassVar[int] = 1370111157423846567
+    WELLNESS: ClassVar[str] = "wellness"
+    AMBULATORY: ClassVar[str] = "ambulatory"
+    INPATIENT: ClassVar[str] = "inpatient"
+    EMERGENCY: ClassVar[str] = "emergency"
+    URGENTCARE: ClassVar[str] = "urgent care"
+    FIRST_NAME: ClassVar[str] = "first_name"
+    LAST_NAME: ClassVar[str] = "last_name"
+    NAME_PREFIX: ClassVar[str] = "name_prefix"
+    NAME_SUFFIX: ClassVar[str] = "name_suffix"
+    NAME: ClassVar[str] = "name"
+    FIRST_LANGUAGE: ClassVar[str] = "first_language"
+    GENDER: ClassVar[str] = "gender"
+    EDUCATION: ClassVar[str] = "education"
+    SPECIALTY: ClassVar[str] = "specialty"
+    ADDRESS: ClassVar[str] = "address"
+    CITY: ClassVar[str] = "city"
+    STATE: ClassVar[str] = "state"
+    ZIP: ClassVar[str] = "zip"
+    LOCATION: ClassVar[str] = "location"
 
-    def to_clinician_npi(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#toClinicianNPI."""
-        raise NotImplementedError("Java: toClinicianNPI — pending T13")
+    def __init__(
+        self,
+        clinician_seed: int,
+        clinician_rand: RandomNumberGenerator,
+        identifier: int,
+        organization: Provider,
+    ) -> None:
+        """Java: Clinician#Clinician.
 
-    def get_resource_id(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#getResourceID."""
-        raise NotImplementedError("Java: getResourceID — pending T13")
+        Java overloads:
+        (long clinicianSeed, RandomNumberGenerator clinicianRand, long identifier,
+        Provider
+        organization)
+        """
+        self.identifier: int
+        self.uuid: str
+        self.npi: str
+        self.attributes: dict[str, object]
+        self.services_provided: list[str]
+        self.organization: Provider
+        self.encounters: int
+        self.procedures: int
+        self.population_seed: int
+        raise NotImplementedError("Java: Clinician#Clinician — pending T13")
 
-    def get_organization(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#getOrganization."""
-        raise NotImplementedError("Java: getOrganization — pending T13")
+    @staticmethod
+    def to_clinician_npi(id: int) -> str:
+        """Java: Clinician#toClinicianNPI.
 
-    def get_fullname(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#getFullname."""
-        raise NotImplementedError("Java: getFullname — pending T13")
+        Java overloads:
+        (long id)
+        """
+        raise NotImplementedError("Java: Clinician#toClinicianNPI — pending T13")
 
-    def get_attributes(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#getAttributes."""
-        raise NotImplementedError("Java: getAttributes — pending T13")
+    def get_resource_id(self) -> str:
+        """Java: Clinician#getResourceID.
 
-    def has_service(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#hasService."""
-        raise NotImplementedError("Java: hasService — pending T13")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Clinician#getResourceID — pending T13")
 
-    def increment_encounters(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#incrementEncounters."""
-        raise NotImplementedError("Java: incrementEncounters — pending T13")
+    def get_organization(self) -> Provider:
+        """Java: Clinician#getOrganization.
 
-    def get_encounter_count(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#getEncounterCount."""
-        raise NotImplementedError("Java: getEncounterCount — pending T13")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Clinician#getOrganization — pending T13")
 
-    def increment_procedures(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#incrementProcedures."""
-        raise NotImplementedError("Java: incrementProcedures — pending T13")
+    def get_fullname(self) -> str:
+        """Java: Clinician#getFullname.
 
-    def get_procedure_count(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#getProcedureCount."""
-        raise NotImplementedError("Java: getProcedureCount — pending T13")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Clinician#getFullname — pending T13")
 
-    def get_x(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#getX."""
-        raise NotImplementedError("Java: getX — pending T13")
+    def get_attributes(self) -> dict[str, object]:
+        """Java: Clinician#getAttributes.
 
-    def get_y(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#getY."""
-        raise NotImplementedError("Java: getY — pending T13")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Clinician#getAttributes — pending T13")
 
-    def get_lon_lat(self, *args: object, **kwargs: object) -> object:
-        """Java: Clinician#getLonLat."""
-        raise NotImplementedError("Java: getLonLat — pending T13")
+    def has_service(self, service: str) -> bool:
+        """Java: Clinician#hasService.
+
+        Java overloads:
+        (String service)
+        """
+        raise NotImplementedError("Java: Clinician#hasService — pending T13")
+
+    def increment_encounters(self) -> int:
+        """Java: Clinician#incrementEncounters.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Clinician#incrementEncounters — pending T13")
+
+    def get_encounter_count(self) -> int:
+        """Java: Clinician#getEncounterCount.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Clinician#getEncounterCount — pending T13")
+
+    def increment_procedures(self) -> int:
+        """Java: Clinician#incrementProcedures.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Clinician#incrementProcedures — pending T13")
+
+    def get_procedure_count(self) -> int:
+        """Java: Clinician#getProcedureCount.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Clinician#getProcedureCount — pending T13")
+
+    def get_x(self) -> float:
+        """Java: Clinician#getX.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Clinician#getX — pending T13")
+
+    def get_y(self) -> float:
+        """Java: Clinician#getY.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Clinician#getY — pending T13")
+
+    def get_lon_lat(self) -> float:
+        """Java: Clinician#getLonLat.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Clinician#getLonLat — pending T13")

@@ -1,17 +1,37 @@
-"""Java API skeleton for payer_adjustment_none.py.
-Java: org.mitre.synthea.world.agents.behaviors.payeradjustment.PayerAdjustmentNone.
+"""Java API skeleton:
+java/src/main/java/org/mitre/synthea/world/agents/behaviors/payeradjustment/P
+ayerAdjustmentNone.java.
 """
 
 from __future__ import annotations
 
+from decimal import Decimal
+from typing import TYPE_CHECKING, ClassVar
+
+if TYPE_CHECKING:
+    from synthea.world.agents.person import Person
+    from synthea.world.concepts.claim import ClaimEntry
+
 
 class PayerAdjustmentNone:
-    """Java: PayerAdjustmentNone; pending T15."""
+    """Java: PayerAdjustmentNone; pending
+    T15.
+    """
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: PayerAdjustmentNone constructor; pending T15."""
-        raise NotImplementedError("Java: PayerAdjustmentNone — pending T15")
+    serialVersionUID: ClassVar[int] = 3288715364746907944
 
-    def adjust_claim(self, *args: object, **kwargs: object) -> object:
-        """Java: PayerAdjustmentNone#adjustClaim."""
-        raise NotImplementedError("Java: adjustClaim — pending T15")
+    def __init__(self) -> None:
+        """Java: PayerAdjustmentNone#PayerAdjustmentNone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: PayerAdjustmentNone#PayerAdjustmentNone — pending T15")
+
+    def adjust_claim(self, claim_entry: ClaimEntry, person: Person) -> Decimal:
+        """Java: PayerAdjustmentNone#adjustClaim.
+
+        Java overloads:
+        (ClaimEntry claimEntry, Person person)
+        """
+        raise NotImplementedError("Java: PayerAdjustmentNone#adjustClaim — pending T15")

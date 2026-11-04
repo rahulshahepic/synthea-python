@@ -1,107 +1,239 @@
-"""Java API skeleton for module.py.
-Java: org.mitre.synthea.engine.Module.
-"""
+"""Java API skeleton: Module.java."""
 
 from __future__ import annotations
+
+from collections.abc import Callable
+from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar, Protocol
+
+if TYPE_CHECKING:
+    from synthea.engine.state import State
+    from synthea.world.agents.person import Person
+
+    class Configuration(Protocol):
+        """Java boundary type: Configuration; external to the mapped Python port."""
+
+    class Throwable(Protocol):
+        """Java boundary type: Throwable; external to the mapped Python port."""
 
 
 class Module:
     """Java: Module; pending T19."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Module constructor; pending T19."""
-        self.name: str | None = None
-        self.specialty: str | None = None
-        self.submodule: bool = False
-        self.submoduleName: str | None = None
-        self.gmfVersion: object | None = None
-        self.remarks: list[object] = []
-        self.states: dict[object, object] = {}
-        raise NotImplementedError("Java: Module — pending T19")
+    GMF_VERSION: ClassVar[float] = 2.0
+    JSON_PATH_CONFIG: ClassVar[Configuration]  # Java initialization deferred to T19.
+    modules: ClassVar[dict[str, ModuleSupplier]]  # Java initialization deferred to T19.
 
-    def load_modules(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#loadModules."""
-        raise NotImplementedError("Java: loadModules — pending T19")
+    def __init__(
+        self, definition: dict[str, object] | None = None, submodule: bool | None = None
+    ) -> None:
+        """Java: Module#Module.
 
-    def get_module_paths(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#getModulePaths."""
-        raise NotImplementedError("Java: getModulePaths — pending T19")
+        Java overloads:
+        ()
+        (JsonObject definition, boolean submodule)
+        """
+        self.name: str
+        self.specialty: str
+        self.submodule: bool
+        self.submodule_name: str
+        self.gmf_version: float
+        self.remarks: list[str]
+        self.states: dict[str, State]
+        raise NotImplementedError("Java: Module#Module — pending T19")
 
-    def get_module_overrides(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#getModuleOverrides."""
-        raise NotImplementedError("Java: getModuleOverrides — pending T19")
+    @staticmethod
+    def load_modules() -> dict[str, ModuleSupplier]:
+        """Java: Module#loadModules.
 
-    def walk_module_tree(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#walkModuleTree."""
-        raise NotImplementedError("Java: walkModuleTree — pending T19")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Module#loadModules — pending T19")
 
-    def add_modules(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#addModules."""
-        raise NotImplementedError("Java: addModules — pending T19")
+    @staticmethod
+    def get_module_paths() -> list[Path]:
+        """Java: Module#getModulePaths.
 
-    def relative_path(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#relativePath."""
-        raise NotImplementedError("Java: relativePath — pending T19")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Module#getModulePaths — pending T19")
 
-    def load_file(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#loadFile."""
-        raise NotImplementedError("Java: loadFile — pending T19")
+    @staticmethod
+    def get_module_overrides() -> dict[str, str]:
+        """Java: Module#getModuleOverrides.
 
-    def apply_overrides(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#applyOverrides."""
-        raise NotImplementedError("Java: applyOverrides — pending T19")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Module#getModuleOverrides — pending T19")
 
-    def get_module_names(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#getModuleNames."""
-        raise NotImplementedError("Java: getModuleNames — pending T19")
+    @staticmethod
+    def walk_module_tree(
+        modules_path: Path,
+        ret_val: dict[str, ModuleSupplier],
+        overrides: dict[str, str],
+        local_files: bool,
+    ) -> int:
+        """Java: Module#walkModuleTree.
 
-    def get_modules(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#getModules."""
-        raise NotImplementedError("Java: getModules — pending T19")
+        Java overloads:
+        (Path modulesPath, Map retVal, Properties overrides, boolean localFiles)
+        """
+        raise NotImplementedError("Java: Module#walkModuleTree — pending T19")
 
-    def get_module_suppliers(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#getModuleSuppliers."""
-        raise NotImplementedError("Java: getModuleSuppliers — pending T19")
+    @staticmethod
+    def add_modules(dir: Path) -> None:
+        """Java: Module#addModules.
 
-    def get_module_by_path(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#getModuleByPath."""
-        raise NotImplementedError("Java: getModuleByPath — pending T19")
+        Java overloads:
+        (File dir)
+        """
+        raise NotImplementedError("Java: Module#addModules — pending T19")
 
-    def clone(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#clone."""
-        raise NotImplementedError("Java: clone — pending T19")
+    @staticmethod
+    def relative_path(file_path: Path, modules_folder: Path) -> str:
+        """Java: Module#relativePath.
 
-    def process(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#process."""
-        raise NotImplementedError("Java: process — pending T19")
+        Java overloads:
+        (Path filePath, Path modulesFolder)
+        """
+        raise NotImplementedError("Java: Module#relativePath — pending T19")
 
-    def initial_state(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#initialState."""
-        raise NotImplementedError("Java: initialState — pending T19")
+    @staticmethod
+    def load_file(
+        path: Path, submodule: bool, overrides: dict[str, str], local_files: bool
+    ) -> Module:
+        """Java: Module#loadFile.
 
-    def get_state(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#getState."""
-        raise NotImplementedError("Java: getState — pending T19")
+        Java overloads:
+        (Path path, boolean submodule, Properties overrides, boolean localFiles)
+        """
+        raise NotImplementedError("Java: Module#loadFile — pending T19")
 
-    def get_state_names(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#getStateNames."""
-        raise NotImplementedError("Java: getStateNames — pending T19")
+    @staticmethod
+    def apply_overrides(json_string: str, overrides: dict[str, str], module_file_name: str) -> str:
+        """Java: Module#applyOverrides.
 
-    def get(self, *args: object, **kwargs: object) -> object:
-        """Java: Module#get."""
-        raise NotImplementedError("Java: get — pending T19")
+        Java overloads:
+        (String jsonString, Properties overrides, String moduleFileName)
+        """
+        raise NotImplementedError("Java: Module#applyOverrides — pending T19")
+
+    @staticmethod
+    def get_module_names() -> list[str]:
+        """Java: Module#getModuleNames.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Module#getModuleNames — pending T19")
+
+    @staticmethod
+    def get_modules(path_predicate: Callable[[str], bool] | None = None) -> list[Module]:
+        """Java: Module#getModules.
+
+        Java overloads:
+        ()
+        (Predicate pathPredicate)
+        """
+        raise NotImplementedError("Java: Module#getModules — pending T19")
+
+    @staticmethod
+    def get_module_suppliers(
+        predicate: Callable[[ModuleSupplier], bool] | None = None,
+    ) -> list[ModuleSupplier]:
+        """Java: Module#getModuleSuppliers.
+
+        Java overloads:
+        ()
+        (Predicate predicate)
+        """
+        raise NotImplementedError("Java: Module#getModuleSuppliers — pending T19")
+
+    @staticmethod
+    def get_module_by_path(path: str) -> Module:
+        """Java: Module#getModuleByPath.
+
+        Java overloads:
+        (String path)
+        """
+        raise NotImplementedError("Java: Module#getModuleByPath — pending T19")
+
+    def clone(self) -> Module:
+        """Java: Module#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Module#clone — pending T19")
+
+    def process(self, person: Person, time: int, terminate_on_death: bool | None = None) -> bool:
+        """Java: Module#process.
+
+        Java overloads:
+        (Person person, long time)
+        (Person person, long time, boolean terminateOnDeath)
+        """
+        raise NotImplementedError("Java: Module#process — pending T19")
+
+    def initial_state(self) -> State:
+        """Java: Module#initialState.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Module#initialState — pending T19")
+
+    def get_state(self, name: str) -> State:
+        """Java: Module#getState.
+
+        Java overloads:
+        (String name)
+        """
+        raise NotImplementedError("Java: Module#getState — pending T19")
+
+    def get_state_names(self) -> list[str]:
+        """Java: Module#getStateNames.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Module#getStateNames — pending T19")
 
 
 class ModuleSupplier:
     """Java: ModuleSupplier; pending T19."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: ModuleSupplier constructor; pending T19."""
-        self.core: bool = False
-        self.submodule: bool = False
-        self.path: str | None = None
-        self.loaded: bool = False
-        self.loader: object | None = None
-        self.module: object | None = None
-        self.fault: object | None = None
-        raise NotImplementedError("Java: ModuleSupplier — pending T19")
+    def __init__(
+        self,
+        submodule_or_module: bool | Module,
+        path: str | None = None,
+        loader: Callable[[], Module] | None = None,
+    ) -> None:
+        """Java: ModuleSupplier#ModuleSupplier.
+
+        Java overloads:
+        (boolean submodule, String path, Callable loader)
+        (Module module)
+        """
+        self.core: bool
+        self.submodule: bool
+        self.path: str
+        self.loaded: bool
+        self.loader: Callable[[], Module]
+        self.module: Module
+        self.fault: Throwable
+        raise NotImplementedError("Java: ModuleSupplier#ModuleSupplier — pending T19")
+
+    def get(self) -> Module:
+        """Java: ModuleSupplier#get.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: ModuleSupplier#get — pending T19")
+
+
+setattr(Module, "ModuleSupplier", ModuleSupplier)  # noqa: B010

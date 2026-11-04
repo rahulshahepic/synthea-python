@@ -1,4 +1,4 @@
-"""Java port skeleton: java/src/main/java/org/mitre/synthea/world/concepts/VitalSign.java."""
+"""Java API skeleton: VitalSign.java."""
 
 from __future__ import annotations
 
@@ -37,17 +37,25 @@ class VitalSign(StrEnum):
     HEART_RATE = "HEART_RATE"
     RESPIRATION_RATE = "RESPIRATION_RATE"
 
-    @classmethod
-    def from_string(cls, text: str) -> VitalSign:
-        """Java: VitalSign#fromString; pending T11."""
+    @staticmethod
+    def from_string(text: str) -> VitalSign:
+        """Java: VitalSign#fromString.
+
+        Java overloads:
+        (String text)
+        """
         raise NotImplementedError("Java: VitalSign#fromString — pending T11")
 
     def to_string(self) -> str:
-        """Java: VitalSign#toString; pending T11."""
+        """Java: VitalSign#toString.
+
+        Java overloads:
+        ()
+        """
         raise NotImplementedError("Java: VitalSign#toString — pending T11")
 
 
-# Java: VitalSign#name, the annotations' display names are data, not enum identifiers.
+# Java static data initialization; constructors remain stubs.
 VITAL_SIGN_DISPLAY_NAMES: dict[VitalSign, str] = {
     VitalSign.HEIGHT: "Height",
     VitalSign.WEIGHT: "Weight",

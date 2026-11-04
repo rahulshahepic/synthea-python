@@ -1,8 +1,20 @@
-"""Java API skeleton for insurance_plan.py.
-Java: org.mitre.synthea.world.concepts.healthinsurance.InsurancePlan.
+"""Java API skeleton:
+java/src/main/java/org/mitre/synthea/world/concepts/healthinsurance/InsurancePlan.java.
 """
 
 from __future__ import annotations
+
+import builtins
+from decimal import Decimal
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from synthea.engine.components import Range
+    from synthea.world.agents.behaviors.planeligibility.i_plan_eligibility import IPlanEligibility
+    from synthea.world.agents.payer import Payer
+    from synthea.world.agents.person import Person
+    from synthea.world.concepts.claim import ClaimEntry
+    from synthea.world.concepts.health_record import Entry
 
 
 class InsurancePlan:
@@ -11,13 +23,13 @@ class InsurancePlan:
     def __init__(
         self,
         id: int,
-        payer: object,
-        services_covered: set[str],
-        deductible: object,
-        default_coinsurance: object,
-        default_copay: object,
-        monthly_premium: object,
-        max_out_of_pocket: object,
+        payer: Payer,
+        services_covered: builtins.set[str],
+        deductible: Decimal,
+        default_coinsurance: Decimal,
+        default_copay: Decimal,
+        monthly_premium: Decimal,
+        max_out_of_pocket: Decimal,
         medicare_supplement: bool,
         is_aca: bool,
         income_based_premium: bool,
@@ -26,128 +38,245 @@ class InsurancePlan:
         priority: int,
         eligibility_name: str,
     ) -> None:
-        """Java: InsurancePlan#InsurancePlan; pending T15."""
-        self.id: int = id
-        self.payer: object = payer
-        self.servicesCovered: set[str] = services_covered
-        self.deductible: object = deductible
-        self.defaultCoinsurance: object = default_coinsurance
-        self.defaultCopay: object = default_copay
-        self.monthlyPremium: object = monthly_premium
-        self.maxOutOfPocket: object = max_out_of_pocket
-        self.medicareSupplement: bool = medicare_supplement
-        self.isACA: bool = is_aca
-        self.incomeBasedPremium: bool = income_based_premium
-        self.priority: int = priority
-        self.insuranceStatus: str | None = None
-        self.planEligibility: object | None = None
-        self.activeTimeRange: object | None = None
-        raise NotImplementedError("Java: InsurancePlan — pending T15")
+        """Java: InsurancePlan#InsurancePlan.
 
-    def is_active(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#isActive."""
-        raise NotImplementedError("Java: isActive — pending T15")
+        Java overloads:
+        (int id, Payer payer, Set servicesCovered, BigDecimal deductible, BigDecimal
+        defaultCoinsurance, BigDecimal defaultCopay, BigDecimal monthlyPremium,
+        BigDecimal
+        maxOutOfPocket, boolean medicareSupplement, boolean isACA, boolean
+        incomeBasedPremium,
+        int activeYearStart, int activeYearEnd, int priority, String eligibilityName)
+        """
+        self.id: int
+        self.payer: Payer
+        self.deductible: Decimal
+        self.default_copay: Decimal
+        self.default_coinsurance: Decimal
+        self.monthly_premium: Decimal
+        self.max_out_of_pocket: Decimal
+        self.priority: int
+        self.services_covered: builtins.set[str]
+        self.medicare_supplement: bool
+        self.is_aca: bool
+        self.income_based_premium: bool
+        self.insurance_status: str
+        self.plan_eligibility: IPlanEligibility
+        self.active_time_range: Range[int]
+        raise NotImplementedError("Java: InsurancePlan#InsurancePlan — pending T15")
 
-    def determine_copay(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#determineCopay."""
-        raise NotImplementedError("Java: determineCopay — pending T15")
+    def is_active(self, time: int) -> bool:
+        """Java: InsurancePlan#isActive.
 
-    def get_monthly_premium(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#getMonthlyPremium."""
-        raise NotImplementedError("Java: getMonthlyPremium — pending T15")
+        Java overloads:
+        (long time)
+        """
+        raise NotImplementedError("Java: InsurancePlan#isActive — pending T15")
 
-    def get_deductible(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#getDeductible."""
-        raise NotImplementedError("Java: getDeductible — pending T15")
+    def determine_copay(self, entry_type: str, entry_start: int) -> Decimal:
+        """Java: InsurancePlan#determineCopay.
 
-    def get_payer_coinsurance(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#getPayerCoinsurance."""
-        raise NotImplementedError("Java: getPayerCoinsurance — pending T15")
+        Java overloads:
+        (String entryType, long entryStart)
+        """
+        raise NotImplementedError("Java: InsurancePlan#determineCopay — pending T15")
 
-    def get_patient_coinsurance(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#getPatientCoinsurance."""
-        raise NotImplementedError("Java: getPatientCoinsurance — pending T15")
+    def get_monthly_premium(self, income: int) -> Decimal:
+        """Java: InsurancePlan#getMonthlyPremium.
 
-    def pay_monthly_premium(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#payMonthlyPremium."""
-        raise NotImplementedError("Java: payMonthlyPremium — pending T15")
+        Java overloads:
+        (int income)
+        """
+        raise NotImplementedError("Java: InsurancePlan#getMonthlyPremium — pending T15")
 
-    def get_payer(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#getPayer."""
-        raise NotImplementedError("Java: getPayer — pending T15")
+    def get_deductible(self) -> Decimal:
+        """Java: InsurancePlan#getDeductible.
 
-    def determine_insurance_status(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#determineInsuranceStatus."""
-        raise NotImplementedError("Java: determineInsuranceStatus — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#getDeductible — pending T15")
 
-    def get_insurance_status(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#getInsuranceStatus."""
-        raise NotImplementedError("Java: getInsuranceStatus — pending T15")
+    def get_payer_coinsurance(self) -> Decimal:
+        """Java: InsurancePlan#getPayerCoinsurance.
 
-    def increment_customers(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#incrementCustomers."""
-        raise NotImplementedError("Java: incrementCustomers — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#getPayerCoinsurance — pending T15")
 
-    def increment_covered_entries(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#incrementCoveredEntries."""
-        raise NotImplementedError("Java: incrementCoveredEntries — pending T15")
+    def get_patient_coinsurance(self) -> Decimal:
+        """Java: InsurancePlan#getPatientCoinsurance.
 
-    def increment_uncovered_entries(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#incrementUncoveredEntries."""
-        raise NotImplementedError("Java: incrementUncoveredEntries — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#getPatientCoinsurance — pending T15")
 
-    def covers_service(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#coversService."""
-        raise NotImplementedError("Java: coversService — pending T15")
+    def pay_monthly_premium(self, employer_level: float, income: int) -> Decimal:
+        """Java: InsurancePlan#payMonthlyPremium.
 
-    def add_covered_cost(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#addCoveredCost."""
-        raise NotImplementedError("Java: addCoveredCost — pending T15")
+        Java overloads:
+        (double employerLevel, int income)
+        """
+        raise NotImplementedError("Java: InsurancePlan#payMonthlyPremium — pending T15")
 
-    def add_uncovered_cost(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#addUncoveredCost."""
-        raise NotImplementedError("Java: addUncoveredCost — pending T15")
+    def get_payer(self) -> Payer:
+        """Java: InsurancePlan#getPayer.
 
-    def adjust_claim(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#adjustClaim."""
-        raise NotImplementedError("Java: adjustClaim — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#getPayer — pending T15")
 
-    def get_yearly_cost(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#getYearlyCost."""
-        raise NotImplementedError("Java: getYearlyCost — pending T15")
+    def determine_insurance_status(self) -> str:
+        """Java: InsurancePlan#determineInsuranceStatus.
 
-    def accepts(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#accepts."""
-        raise NotImplementedError("Java: accepts — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#determineInsuranceStatus — pending T15")
 
-    def is_no_insurance(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#isNoInsurance."""
-        raise NotImplementedError("Java: isNoInsurance — pending T15")
+    def get_insurance_status(self) -> str:
+        """Java: InsurancePlan#getInsuranceStatus.
 
-    def is_government_plan(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#isGovernmentPlan."""
-        raise NotImplementedError("Java: isGovernmentPlan — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#getInsuranceStatus — pending T15")
 
-    def may_purchase_supplement(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#mayPurchaseSupplement."""
-        raise NotImplementedError("Java: mayPurchaseSupplement — pending T15")
+    def increment_customers(self, person_id: str) -> None:
+        """Java: InsurancePlan#incrementCustomers.
 
-    def is_medicare_supplement_plan(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#isMedicareSupplementPlan."""
-        raise NotImplementedError("Java: isMedicareSupplementPlan — pending T15")
+        Java overloads:
+        (String personId)
+        """
+        raise NotImplementedError("Java: InsurancePlan#incrementCustomers — pending T15")
 
-    def get_priority(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#getPriority."""
-        raise NotImplementedError("Java: getPriority — pending T15")
+    def increment_covered_entries(self, entry: Entry) -> None:
+        """Java: InsurancePlan#incrementCoveredEntries.
 
-    def is_copay_based(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#isCopayBased."""
-        raise NotImplementedError("Java: isCopayBased — pending T15")
+        Java overloads:
+        (Entry entry)
+        """
+        raise NotImplementedError("Java: InsurancePlan#incrementCoveredEntries — pending T15")
 
-    def get_max_oop(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#getMaxOop."""
-        raise NotImplementedError("Java: getMaxOop — pending T15")
+    def increment_uncovered_entries(self, entry: Entry) -> None:
+        """Java: InsurancePlan#incrementUncoveredEntries.
 
-    def to_string(self, *args: object, **kwargs: object) -> object:
-        """Java: InsurancePlan#toString."""
-        raise NotImplementedError("Java: toString — pending T15")
+        Java overloads:
+        (Entry entry)
+        """
+        raise NotImplementedError("Java: InsurancePlan#incrementUncoveredEntries — pending T15")
+
+    def covers_service(self, entry: Entry) -> bool:
+        """Java: InsurancePlan#coversService.
+
+        Java overloads:
+        (Entry entry)
+        """
+        raise NotImplementedError("Java: InsurancePlan#coversService — pending T15")
+
+    def add_covered_cost(self, covered_costs: Decimal) -> None:
+        """Java: InsurancePlan#addCoveredCost.
+
+        Java overloads:
+        (BigDecimal coveredCosts)
+        """
+        raise NotImplementedError("Java: InsurancePlan#addCoveredCost — pending T15")
+
+    def add_uncovered_cost(self, uncovered_costs: Decimal) -> None:
+        """Java: InsurancePlan#addUncoveredCost.
+
+        Java overloads:
+        (BigDecimal uncoveredCosts)
+        """
+        raise NotImplementedError("Java: InsurancePlan#addUncoveredCost — pending T15")
+
+    def adjust_claim(self, claim_entry: ClaimEntry, person: Person) -> Decimal:
+        """Java: InsurancePlan#adjustClaim.
+
+        Java overloads:
+        (ClaimEntry claimEntry, Person person)
+        """
+        raise NotImplementedError("Java: InsurancePlan#adjustClaim — pending T15")
+
+    def get_yearly_cost(self, income: int) -> Decimal:
+        """Java: InsurancePlan#getYearlyCost.
+
+        Java overloads:
+        (int income)
+        """
+        raise NotImplementedError("Java: InsurancePlan#getYearlyCost — pending T15")
+
+    def accepts(self, person: Person, time: int) -> bool:
+        """Java: InsurancePlan#accepts.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: InsurancePlan#accepts — pending T15")
+
+    def is_no_insurance(self) -> bool:
+        """Java: InsurancePlan#isNoInsurance.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#isNoInsurance — pending T15")
+
+    def is_government_plan(self) -> bool:
+        """Java: InsurancePlan#isGovernmentPlan.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#isGovernmentPlan — pending T15")
+
+    def may_purchase_supplement(self) -> bool:
+        """Java: InsurancePlan#mayPurchaseSupplement.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#mayPurchaseSupplement — pending T15")
+
+    def is_medicare_supplement_plan(self) -> bool:
+        """Java: InsurancePlan#isMedicareSupplementPlan.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#isMedicareSupplementPlan — pending T15")
+
+    def get_priority(self) -> int:
+        """Java: InsurancePlan#getPriority.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#getPriority — pending T15")
+
+    def is_copay_based(self) -> bool:
+        """Java: InsurancePlan#isCopayBased.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#isCopayBased — pending T15")
+
+    def get_max_oop(self) -> Decimal:
+        """Java: InsurancePlan#getMaxOop.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#getMaxOop — pending T15")
+
+    def to_string(self) -> str:
+        """Java: InsurancePlan#toString.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: InsurancePlan#toString — pending T15")

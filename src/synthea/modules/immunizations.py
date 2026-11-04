@@ -1,37 +1,85 @@
-"""Java API skeleton for immunizations.py.
-Java: org.mitre.synthea.modules.Immunizations.
-"""
+"""Java API skeleton: Immunizations.java."""
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING, ClassVar, Protocol
+
+if TYPE_CHECKING:
+    from synthea.world.agents.person import Person
+    from synthea.world.concepts.health_record import Code
+
+    class Inventory(Protocol):
+        """Java boundary type: Inventory; external to the mapped Python port."""
 
 
 class Immunizations:
     """Java: Immunizations; pending T22."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Immunizations constructor; pending T22."""
-        raise NotImplementedError("Java: Immunizations — pending T22")
+    IMMUNIZATIONS: ClassVar[str] = "immunizations"
+    immunizationSchedule: ClassVar[
+        dict[str, dict[object, object]]
+    ]  # Java initialization deferred to T22.
 
-    def load_immunization_schedule(self, *args: object, **kwargs: object) -> object:
-        """Java: Immunizations#loadImmunizationSchedule."""
-        raise NotImplementedError("Java: loadImmunizationSchedule — pending T22")
+    def __init__(self) -> None:
+        """Java: Immunizations#Immunizations.
 
-    def perform_encounter(self, *args: object, **kwargs: object) -> object:
-        """Java: Immunizations#performEncounter."""
-        raise NotImplementedError("Java: performEncounter — pending T22")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Immunizations#Immunizations — pending T22")
 
-    def immunization_due(self, *args: object, **kwargs: object) -> object:
-        """Java: Immunizations#immunizationDue."""
-        raise NotImplementedError("Java: immunizationDue — pending T22")
+    @staticmethod
+    def load_immunization_schedule() -> dict[object, object]:
+        """Java: Immunizations#loadImmunizationSchedule.
 
-    def get_all_codes(self, *args: object, **kwargs: object) -> object:
-        """Java: Immunizations#getAllCodes."""
-        raise NotImplementedError("Java: getAllCodes — pending T22")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Immunizations#loadImmunizationSchedule — pending T22")
 
-    def get_maximum_doses(self, *args: object, **kwargs: object) -> object:
-        """Java: Immunizations#getMaximumDoses."""
-        raise NotImplementedError("Java: getMaximumDoses — pending T22")
+    @staticmethod
+    def perform_encounter(person: Person, time: int) -> None:
+        """Java: Immunizations#performEncounter.
 
-    def inventory_attributes(self, *args: object, **kwargs: object) -> object:
-        """Java: Immunizations#inventoryAttributes."""
-        raise NotImplementedError("Java: inventoryAttributes — pending T22")
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Immunizations#performEncounter — pending T22")
+
+    @staticmethod
+    def immunization_due(
+        immunization: str, person: Person, time: int, immunizations_given: dict[str, list[int]]
+    ) -> int:
+        """Java: Immunizations#immunizationDue.
+
+        Java overloads:
+        (String immunization, Person person, long time, Map immunizationsGiven)
+        """
+        raise NotImplementedError("Java: Immunizations#immunizationDue — pending T22")
+
+    @staticmethod
+    def get_all_codes() -> list[Code]:
+        """Java: Immunizations#getAllCodes.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Immunizations#getAllCodes — pending T22")
+
+    @staticmethod
+    def get_maximum_doses(code: str) -> int:
+        """Java: Immunizations#getMaximumDoses.
+
+        Java overloads:
+        (String code)
+        """
+        raise NotImplementedError("Java: Immunizations#getMaximumDoses — pending T22")
+
+    @staticmethod
+    def inventory_attributes(attributes: dict[str, Inventory]) -> None:
+        """Java: Immunizations#inventoryAttributes.
+
+        Java overloads:
+        (Map attributes)
+        """
+        raise NotImplementedError("Java: Immunizations#inventoryAttributes — pending T22")

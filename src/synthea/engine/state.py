@@ -1,554 +1,1541 @@
-"""Java API skeleton for state.py.
-Java: org.mitre.synthea.engine.State.
-"""
+"""Java API skeleton: State.java."""
 
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import IO, TYPE_CHECKING, ClassVar, Protocol
+
+from synthea.world.concepts.health_record import Code
+
+if TYPE_CHECKING:
+    from synthea.engine.components import (
+        Attachment,
+        Exact,
+        ExactWithUnit,
+        Range,
+        RangeWithUnit,
+        SampledData,
+    )
+    from synthea.engine.distribution import Distribution
+    from synthea.engine.logic import Logic
+    from synthea.engine.module import Module
+    from synthea.engine.reaction_probabilities import ReactionProbabilities
+    from synthea.engine.transition import (
+        ComplexTransitionOption,
+        ConditionalTransitionOption,
+        DistributedTransitionOption,
+        LookupTableTransitionOption,
+        Transition,
+        TypeOfCareTransitionOptions,
+    )
+    from synthea.helpers.random_number_generator import RandomNumberGenerator
+    from synthea.world.agents.person import Person
+    from synthea.world.concepts.health_record import Code, Entry, Medication
+    from synthea.world.concepts.health_record import Code as HealthRecordCode
+    from synthea.world.concepts.health_record import Series as HealthRecordSeries
+    from synthea.world.concepts.vital_sign import VitalSign as ConceptVitalSign
+
+    class IoMapper(Protocol):
+        """Java boundary type: IoMapper; external to the mapped Python port."""
+
+    class PhysiologySimulator(Protocol):
+        """Java boundary type: PhysiologySimulator; external to the mapped Python port."""
+
+    class ThreadLocal(Protocol):
+        """Java boundary type: ThreadLocal; external to the mapped Python port."""
 
 
 class State:
-    """Java: State; pending T19."""
+    """Java: State; pending T19/T20."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: State constructor; pending T19."""
-        self.module: object | None = None
-        self.name: str | None = None
-        self.entered: object | None = None
-        self.entry: object | None = None
-        self.exited: object | None = None
-        self._transition: object | None = None
-        self.directTransition: str | None = None
-        self.conditionalTransition: list[object] = []
-        self.distributedTransition: list[object] = []
-        self.complexTransition: list[object] = []
-        self.lookupTableTransition: list[object] = []
-        self.typeOfCareTransition: object | None = None
-        self.remarks: list[object] = []
-        raise NotImplementedError("Java: State — pending T19")
+    ENABLE_PHYSIOLOGY_STATE: ClassVar[bool]  # Java initialization deferred to T19/T20.
 
-    def initialize(self, *args: object, **kwargs: object) -> object:
-        """Java: State#initialize."""
-        raise NotImplementedError("Java: initialize — pending T19")
+    def __init__(self) -> None:
+        """Java: State#State.
 
-    def build(self, *args: object, **kwargs: object) -> object:
-        """Java: State#build."""
-        raise NotImplementedError("Java: build — pending T19")
+        Java overloads:
+        ()
+        """
+        self.module: Module
+        self.name: str
+        self.entered: int
+        self.entry: Entry
+        self.exited: int
+        self._transition: Transition
+        self.direct_transition: str
+        self.conditional_transition: list[ConditionalTransitionOption]
+        self.distributed_transition: list[DistributedTransitionOption]
+        self.complex_transition: list[ComplexTransitionOption]
+        self.lookup_table_transition: list[LookupTableTransitionOption]
+        self.type_of_care_transition: TypeOfCareTransitionOptions
+        self.remarks: list[str]
+        raise NotImplementedError("Java: State#State — pending T19/T20")
 
-    def clone(self, *args: object, **kwargs: object) -> object:
-        """Java: State#clone."""
-        raise NotImplementedError("Java: clone — pending T19")
+    def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
+        """Java: State#initialize.
 
-    def transition(self, *args: object, **kwargs: object) -> object:
-        """Java: State#transition."""
-        raise NotImplementedError("Java: transition — pending T19")
+        Java overloads:
+        (Module module, String name, JsonObject definition)
+        """
+        raise NotImplementedError("Java: State#initialize — pending T19/T20")
 
-    def get_transition(self, *args: object, **kwargs: object) -> object:
-        """Java: State#getTransition."""
-        raise NotImplementedError("Java: getTransition — pending T19")
+    @staticmethod
+    def build(module: Module, name: str, definition: dict[str, object]) -> State:
+        """Java: State#build.
 
-    def process(self, *args: object, **kwargs: object) -> object:
-        """Java: State#process."""
-        raise NotImplementedError("Java: process — pending T19")
+        Java overloads:
+        (Module module, String name, JsonObject definition)
+        """
+        raise NotImplementedError("Java: State#build — pending T19/T20")
 
-    def run(self, *args: object, **kwargs: object) -> object:
-        """Java: State#run."""
-        raise NotImplementedError("Java: run — pending T19")
+    def clone(self) -> State:
+        """Java: State#clone.
 
-    def to_string(self, *args: object, **kwargs: object) -> object:
-        """Java: State#toString."""
-        raise NotImplementedError("Java: toString — pending T19")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: State#clone — pending T19/T20")
 
-    def setup(self, *args: object, **kwargs: object) -> object:
-        """Java: State#setup."""
-        raise NotImplementedError("Java: setup — pending T19")
+    def transition(self, person: Person, time: int) -> str:
+        """Java: State#transition.
 
-    def end_of_delay(self, *args: object, **kwargs: object) -> object:
-        """Java: State#endOfDelay."""
-        raise NotImplementedError("Java: endOfDelay — pending T19")
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: State#transition — pending T19/T20")
 
-    def process_once(self, *args: object, **kwargs: object) -> object:
-        """Java: State#processOnce."""
-        raise NotImplementedError("Java: processOnce — pending T19")
+    def get_transition(self) -> Transition:
+        """Java: State#getTransition.
 
-    def is_legacy_gmf(self, *args: object, **kwargs: object) -> object:
-        """Java: State#isLegacyGmf."""
-        raise NotImplementedError("Java: isLegacyGmf — pending T19")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: State#getTransition — pending T19/T20")
 
-    def get_exp_processor(self, *args: object, **kwargs: object) -> object:
-        """Java: State#getExpProcessor."""
-        raise NotImplementedError("Java: getExpProcessor — pending T19")
+    def process(self, person: Person, time: int) -> bool:
+        """Java: State#process.
 
-    def diagnose_past_conditions(self, *args: object, **kwargs: object) -> object:
-        """Java: State#diagnosePastConditions."""
-        raise NotImplementedError("Java: diagnosePastConditions — pending T19")
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: State#process — pending T19/T20")
 
-    def renew_chronic_medications_at_wellness(self, *args: object, **kwargs: object) -> object:
-        """Java: State#renewChronicMedicationsAtWellness."""
-        raise NotImplementedError("Java: renewChronicMedicationsAtWellness — pending T19")
+    def run(self, person: Person, time: int, terminate_on_death: bool) -> bool:
+        """Java: State#run.
 
-    def is_wellness(self, *args: object, **kwargs: object) -> object:
-        """Java: State#isWellness."""
-        raise NotImplementedError("Java: isWellness — pending T19")
+        Java overloads:
+        (Person person, long time, boolean terminateOnDeath)
+        """
+        raise NotImplementedError("Java: State#run — pending T19/T20")
 
-    def should_assign_attribute(self, *args: object, **kwargs: object) -> object:
-        """Java: State#shouldAssignAttribute."""
-        raise NotImplementedError("Java: shouldAssignAttribute — pending T19")
+    def to_string(self) -> str:
+        """Java: State#toString.
 
-    def update_onset_info(self, *args: object, **kwargs: object) -> object:
-        """Java: State#updateOnsetInfo."""
-        raise NotImplementedError("Java: updateOnsetInfo — pending T19")
-
-    def diagnose(self, *args: object, **kwargs: object) -> object:
-        """Java: State#diagnose."""
-        raise NotImplementedError("Java: diagnose — pending T19")
-
-    def write_object(self, *args: object, **kwargs: object) -> object:
-        """Java: State#writeObject."""
-        raise NotImplementedError("Java: writeObject — pending T19")
-
-    def read_object(self, *args: object, **kwargs: object) -> object:
-        """Java: State#readObject."""
-        raise NotImplementedError("Java: readObject — pending T19")
-
-    def apply_features(self, *args: object, **kwargs: object) -> object:
-        """Java: State#applyFeatures."""
-        raise NotImplementedError("Java: applyFeatures — pending T19")
-
-    def validate(self, *args: object, **kwargs: object) -> object:
-        """Java: State#validate."""
-        raise NotImplementedError("Java: validate — pending T19")
-
-    def panel_already_recorded_at_this_time(self, *args: object, **kwargs: object) -> object:
-        """Java: State#panelAlreadyRecordedAtThisTime."""
-        raise NotImplementedError("Java: panelAlreadyRecordedAtThisTime — pending T19")
-
-    def duplicate_series(self, *args: object, **kwargs: object) -> object:
-        """Java: State#duplicateSeries."""
-        raise NotImplementedError("Java: duplicateSeries — pending T19")
-
-    def duplicate_instances(self, *args: object, **kwargs: object) -> object:
-        """Java: State#duplicateInstances."""
-        raise NotImplementedError("Java: duplicateInstances — pending T19")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: State#toString — pending T19/T20")
 
 
-class Initial:
-    """Java: Initial; pending T19."""
+class Initial(State):
+    """Java: Initial; pending T19/T20."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Initial constructor; pending T19."""
-        raise NotImplementedError("Java: Initial — pending T19")
+    def __init__(self) -> None:
+        """Java: Initial#Initial.
 
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Initial#Initial — pending T19/T20")
 
-class Simple:
-    """Java: Simple; pending T19."""
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Initial#process.
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Simple constructor; pending T19."""
-        raise NotImplementedError("Java: Simple — pending T19")
-
-
-class CallSubmodule:
-    """Java: CallSubmodule; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: CallSubmodule constructor; pending T19."""
-        self.submodule: str | None = None
-        self.submoduleExited: int = 0
-        raise NotImplementedError("Java: CallSubmodule — pending T19")
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Initial#process — pending T19/T20")
 
 
-class Physiology:
-    """Java: Physiology; pending T19."""
+class Simple(State):
+    """Java: Simple; pending T19/T20."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Physiology constructor; pending T19."""
-        self.model: str | None = None
-        self.solver: str | None = None
-        self.stepSize: float = 0.0
-        self.simDuration: float = 0.0
-        self.leadTime: float = 0.0
-        self.altDirectTransition: str | None = None
-        self.inputs: list[object] = []
-        self.outputs: list[object] = []
-        self.altTransition: object | None = None
-        self.simulator: object | None = None
-        self.paramTypes: dict[object, object] = {}
-        raise NotImplementedError("Java: Physiology — pending T19")
+    def __init__(self) -> None:
+        """Java: Simple#Simple.
 
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Simple#Simple — pending T19/T20")
 
-class Terminal:
-    """Java: Terminal; pending T19."""
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Simple#process.
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Terminal constructor; pending T19."""
-        raise NotImplementedError("Java: Terminal — pending T19")
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Simple#process — pending T19/T20")
 
 
-class Delayable:
-    """Java: Delayable; pending T19."""
+class CallSubmodule(State):
+    """Java: CallSubmodule; pending T19/T20."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Delayable constructor; pending T19."""
-        self.next: object | None = None
-        raise NotImplementedError("Java: Delayable — pending T19")
+    def __init__(self) -> None:
+        """Java: CallSubmodule#CallSubmodule.
 
+        Java overloads:
+        ()
+        """
+        self.submodule: str
+        self.submodule_exited: int
+        raise NotImplementedError("Java: CallSubmodule#CallSubmodule — pending T19/T20")
 
-class LegacyStateWithUnitlessRV:
-    """Java: LegacyStateWithUnitlessRV; pending T19."""
+    def clone(self) -> CallSubmodule:
+        """Java: CallSubmodule#clone.
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: LegacyStateWithUnitlessRV constructor; pending T19."""
-        self.range: object | None = None
-        self.exact: object | None = None
-        raise NotImplementedError("Java: LegacyStateWithUnitlessRV — pending T19")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: CallSubmodule#clone — pending T19/T20")
 
+    def process(self, person: Person, time: int) -> bool:
+        """Java: CallSubmodule#process.
 
-class Delay:
-    """Java: Delay; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Delay constructor; pending T19."""
-        self.range: object | None = None
-        self.exact: object | None = None
-        self.distribution: object | None = None
-        self.unit: str | None = None
-        raise NotImplementedError("Java: Delay — pending T19")
-
-
-class Guard:
-    """Java: Guard; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Guard constructor; pending T19."""
-        self.allow: object | None = None
-        raise NotImplementedError("Java: Guard — pending T19")
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: CallSubmodule#process — pending T19/T20")
 
 
-class SetAttribute:
-    """Java: SetAttribute; pending T19."""
+class Physiology(State):
+    """Java: Physiology; pending T19/T20."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: SetAttribute constructor; pending T19."""
-        self.attribute: str | None = None
-        self.value: object | None = None
-        self.valueCode: object | None = None
-        self.valueAttribute: str | None = None
-        self.range: object | None = None
-        self.expression: str | None = None
-        self.threadExpProcessor: object | None = None
-        self.seriesData: str | None = None
-        self.period: float = 0.0
-        self.distribution: object | None = None
-        raise NotImplementedError("Java: SetAttribute — pending T19")
+    def __init__(self) -> None:
+        """Java: Physiology#Physiology.
+
+        Java overloads:
+        ()
+        """
+        self.model: str
+        self.solver: str
+        self.step_size: float
+        self.sim_duration: float
+        self.lead_time: float
+        self.alt_direct_transition: str
+        self.inputs: list[IoMapper]
+        self.outputs: list[IoMapper]
+        self.alt_transition: Transition
+        self.simulator: PhysiologySimulator
+        self.param_types: dict[str, str]
+        raise NotImplementedError("Java: Physiology#Physiology — pending T19/T20")
+
+    def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
+        """Java: Physiology#initialize.
+
+        Java overloads:
+        (Module module, String name, JsonObject definition)
+        """
+        raise NotImplementedError("Java: Physiology#initialize — pending T19/T20")
+
+    def setup(self) -> None:
+        """Java: Physiology#setup.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Physiology#setup — pending T19/T20")
+
+    def clone(self) -> Physiology:
+        """Java: Physiology#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Physiology#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Physiology#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Physiology#process — pending T19/T20")
+
+    def transition(self, person: Person, time: int) -> str:
+        """Java: Physiology#transition.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Physiology#transition — pending T19/T20")
 
 
-class Counter:
-    """Java: Counter; pending T19."""
+class Terminal(State):
+    """Java: Terminal; pending T19/T20."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Counter constructor; pending T19."""
-        self.attribute: str | None = None
-        self.action: str | None = None
-        self.increment: bool = False
-        self.amount: int = 0
-        raise NotImplementedError("Java: Counter — pending T19")
+    def __init__(self) -> None:
+        """Java: Terminal#Terminal.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Terminal#Terminal — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Terminal#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Terminal#process — pending T19/T20")
+
+
+class Delayable(State):
+    """Java: Delayable; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: Delayable#Delayable.
+
+        Java overloads:
+        ()
+        """
+        self.next: int
+        raise NotImplementedError("Java: Delayable#Delayable — pending T19/T20")
+
+    def clone(self) -> Delayable:
+        """Java: Delayable#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Delayable#clone — pending T19/T20")
+
+    def end_of_delay(self, time: int, person: Person) -> int:
+        """Java: Delayable#endOfDelay.
+
+        Java overloads:
+        (long time, Person person)
+        """
+        raise NotImplementedError("Java: Delayable#endOfDelay — pending T19/T20")
+
+    def process_once(self, person: Person, time: int) -> None:
+        """Java: Delayable#processOnce.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Delayable#processOnce — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Delayable#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Delayable#process — pending T19/T20")
+
+
+class LegacyStateWithUnitlessRV(State):
+    """Java: LegacyStateWithUnitlessRV; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: LegacyStateWithUnitlessRV#LegacyStateWithUnitlessRV.
+
+        Java overloads:
+        ()
+        """
+        self.range: Range
+        self.exact: Exact
+        raise NotImplementedError(
+            "Java: LegacyStateWithUnitlessRV#LegacyStateWithUnitlessRV — pending T19/T20"
+        )
+
+    def clone(self) -> State:
+        """Java: LegacyStateWithUnitlessRV#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: LegacyStateWithUnitlessRV#clone — pending T19/T20")
+
+    def is_legacy_gmf(self) -> bool:
+        """Java: LegacyStateWithUnitlessRV#isLegacyGmf.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: LegacyStateWithUnitlessRV#isLegacyGmf — pending T19/T20")
+
+
+class Delay(Delayable):
+    """Java: Delay; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: Delay#Delay.
+
+        Java overloads:
+        ()
+        """
+        self.range: RangeWithUnit[float]
+        self.exact: ExactWithUnit[float]
+        self.distribution: Distribution
+        self.unit: str
+        raise NotImplementedError("Java: Delay#Delay — pending T19/T20")
+
+    def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
+        """Java: Delay#initialize.
+
+        Java overloads:
+        (Module module, String name, JsonObject definition)
+        """
+        raise NotImplementedError("Java: Delay#initialize — pending T19/T20")
+
+    def clone(self) -> Delay:
+        """Java: Delay#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Delay#clone — pending T19/T20")
+
+    def end_of_delay(self, time: int, person: Person) -> int:
+        """Java: Delay#endOfDelay.
+
+        Java overloads:
+        (long time, Person person)
+        """
+        raise NotImplementedError("Java: Delay#endOfDelay — pending T19/T20")
+
+    def is_legacy_gmf(self) -> bool:
+        """Java: Delay#isLegacyGmf.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Delay#isLegacyGmf — pending T19/T20")
+
+
+class Guard(State):
+    """Java: Guard; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: Guard#Guard.
+
+        Java overloads:
+        ()
+        """
+        self.allow: Logic
+        raise NotImplementedError("Java: Guard#Guard — pending T19/T20")
+
+    def clone(self) -> Guard:
+        """Java: Guard#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Guard#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Guard#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Guard#process — pending T19/T20")
+
+
+class SetAttribute(State):
+    """Java: SetAttribute; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: SetAttribute#SetAttribute.
+
+        Java overloads:
+        ()
+        """
+        self.attribute: str
+        self.value: object
+        self.value_code: Code
+        self.value_attribute: str
+        self.range: Range[float]
+        self.expression: str
+        self.thread_exp_processor: ThreadLocal
+        self.series_data: str
+        self.period: float
+        self.distribution: Distribution
+        raise NotImplementedError("Java: SetAttribute#SetAttribute — pending T19/T20")
+
+    def get_exp_processor(self) -> ThreadLocal:
+        """Java: SetAttribute#getExpProcessor.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: SetAttribute#getExpProcessor — pending T19/T20")
+
+    def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
+        """Java: SetAttribute#initialize.
+
+        Java overloads:
+        (Module module, String name, JsonObject definition)
+        """
+        raise NotImplementedError("Java: SetAttribute#initialize — pending T19/T20")
+
+    def clone(self) -> SetAttribute:
+        """Java: SetAttribute#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: SetAttribute#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: SetAttribute#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: SetAttribute#process — pending T19/T20")
+
+
+class Counter(State):
+    """Java: Counter; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: Counter#Counter.
+
+        Java overloads:
+        ()
+        """
+        self.attribute: str
+        self.action: str
+        self.increment: bool
+        self.amount: int
+        raise NotImplementedError("Java: Counter#Counter — pending T19/T20")
+
+    def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
+        """Java: Counter#initialize.
+
+        Java overloads:
+        (Module module, String name, JsonObject definition)
+        """
+        raise NotImplementedError("Java: Counter#initialize — pending T19/T20")
+
+    def clone(self) -> Counter:
+        """Java: Counter#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Counter#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Counter#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Counter#process — pending T19/T20")
 
 
 class TelemedicinePossibility(StrEnum):
-    """Java: State.TelemedicinePossibility; pending T19."""
+    """Java: TelemedicinePossibility; pending T19/T20."""
 
     NONE = "NONE"
     POSSIBLE = "POSSIBLE"
     ALWAYS = "ALWAYS"
 
 
-class Encounter:
-    """Java: Encounter; pending T19."""
+class Encounter(State):
+    """Java: Encounter; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: Encounter#Encounter.
+
+        Java overloads:
+        ()
+        """
+        self.wellness: bool
+        self.encounter_class: str
+        self.codes: list[Code]
+        self.reason: str
+        self.telemedicine_possibility: str
+        raise NotImplementedError("Java: Encounter#Encounter — pending T19/T20")
+
+    def clone(self) -> Encounter:
+        """Java: Encounter#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Encounter#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Encounter#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Encounter#process — pending T19/T20")
+
+    def diagnose_past_conditions(self, person: Person, time: int) -> None:
+        """Java: Encounter#diagnosePastConditions.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Encounter#diagnosePastConditions — pending T19/T20")
+
+    def renew_chronic_medications_at_wellness(self, person: Person, time: int) -> None:
+        """Java: Encounter#renewChronicMedicationsAtWellness.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError(
+            "Java: Encounter#renewChronicMedicationsAtWellness — pending T19/T20"
+        )
+
+    def is_wellness(self) -> bool:
+        """Java: Encounter#isWellness.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Encounter#isWellness — pending T19/T20")
+
+
+class EncounterEnd(State):
+    """Java: EncounterEnd; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: EncounterEnd#EncounterEnd.
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Encounter constructor; pending T19."""
-        self.wellness: bool = False
-        self.encounterClass: str | None = None
-        self.codes: list[object] = []
-        self.reason: str | None = None
-        self.telemedicinePossibility: str | None = None
-        raise NotImplementedError("Java: Encounter — pending T19")
+        Java overloads:
+        ()
+        """
+        self.discharge_disposition: Code
+        raise NotImplementedError("Java: EncounterEnd#EncounterEnd — pending T19/T20")
+
+    def clone(self) -> EncounterEnd:
+        """Java: EncounterEnd#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: EncounterEnd#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: EncounterEnd#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: EncounterEnd#process — pending T19/T20")
+
 
+class AttributeAssignableState(State):
+    """Java: AttributeAssignableState; pending T19/T20."""
 
-class EncounterEnd:
-    """Java: EncounterEnd; pending T19."""
+    def __init__(self) -> None:
+        """Java: AttributeAssignableState#AttributeAssignableState.
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: EncounterEnd constructor; pending T19."""
-        self.dischargeDisposition: object | None = None
-        raise NotImplementedError("Java: EncounterEnd — pending T19")
+        Java overloads:
+        ()
+        """
+        self.assign_to_attribute: str
+        raise NotImplementedError(
+            "Java: AttributeAssignableState#AttributeAssignableState — pending T19/T20"
+        )
 
+    def should_assign_attribute(self) -> bool:
+        """Java: AttributeAssignableState#shouldAssignAttribute.
 
-class AttributeAssignableState:
-    """Java: AttributeAssignableState; pending T19."""
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError(
+            "Java: AttributeAssignableState#shouldAssignAttribute — pending T19/T20"
+        )
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: AttributeAssignableState constructor; pending T19."""
-        self.assignToAttribute: str | None = None
-        raise NotImplementedError("Java: AttributeAssignableState — pending T19")
 
+class OnsetState(AttributeAssignableState):
+    """Java: OnsetState; pending T19/T20."""
 
-class OnsetState:
-    """Java: OnsetState; pending T19."""
+    def __init__(self) -> None:
+        """Java: OnsetState#OnsetState.
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: OnsetState constructor; pending T19."""
-        self.diagnosed: bool = False
-        self.codes: list[object] = []
-        self.targetEncounter: str | None = None
-        raise NotImplementedError("Java: OnsetState — pending T19")
+        Java overloads:
+        ()
+        """
+        self.diagnosed: bool
+        self.codes: list[Code]
+        self.target_encounter: str
+        raise NotImplementedError("Java: OnsetState#OnsetState — pending T19/T20")
 
+    def clone(self) -> OnsetState:
+        """Java: OnsetState#clone.
 
-class ConditionOnset:
-    """Java: ConditionOnset; pending T19."""
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: OnsetState#clone — pending T19/T20")
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: ConditionOnset constructor; pending T19."""
-        raise NotImplementedError("Java: ConditionOnset — pending T19")
+    def process(self, person: Person, time: int) -> bool:
+        """Java: OnsetState#process.
 
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: OnsetState#process — pending T19/T20")
 
-class ConditionEnd:
-    """Java: ConditionEnd; pending T19."""
+    def update_onset_info(self, person: Person, time: int) -> None:
+        """Java: OnsetState#updateOnsetInfo.
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: ConditionEnd constructor; pending T19."""
-        self.codes: list[object] = []
-        self.conditionOnset: str | None = None
-        self.referencedByAttribute: str | None = None
-        raise NotImplementedError("Java: ConditionEnd — pending T19")
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: OnsetState#updateOnsetInfo — pending T19/T20")
 
+    def diagnose(self, person: Person, time: int) -> None:
+        """Java: OnsetState#diagnose.
 
-class AllergyOnset:
-    """Java: AllergyOnset; pending T19."""
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: OnsetState#diagnose — pending T19/T20")
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: AllergyOnset constructor; pending T19."""
-        self.allergyType: str | None = None
-        self.category: str | None = None
-        self.reactions: list[object] = []
-        raise NotImplementedError("Java: AllergyOnset — pending T19")
 
+class ConditionOnset(OnsetState):
+    """Java: ConditionOnset; pending T19/T20."""
 
-class AllergyEnd:
-    """Java: AllergyEnd; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: AllergyEnd constructor; pending T19."""
-        self.codes: list[object] = []
-        self.allergyOnset: str | None = None
-        self.referencedByAttribute: str | None = None
-        raise NotImplementedError("Java: AllergyEnd — pending T19")
+    def __init__(self) -> None:
+        """Java: ConditionOnset#ConditionOnset.
 
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: ConditionOnset#ConditionOnset — pending T19/T20")
 
-class MedicationOrder:
-    """Java: MedicationOrder; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: MedicationOrder constructor; pending T19."""
-        self.codes: list[object] = []
-        self.reason: str | None = None
-        self.prescription: object | None = None
-        self.administration: bool = False
-        self.chronic: bool = False
-        raise NotImplementedError("Java: MedicationOrder — pending T19")
+    def update_onset_info(self, person: Person, time: int) -> None:
+        """Java: ConditionOnset#updateOnsetInfo.
 
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: ConditionOnset#updateOnsetInfo — pending T19/T20")
 
-class MedicationEnd:
-    """Java: MedicationEnd; pending T19."""
+    def diagnose(self, person: Person, time: int) -> None:
+        """Java: ConditionOnset#diagnose.
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: MedicationEnd constructor; pending T19."""
-        self.codes: list[object] = []
-        self.medicationOrder: str | None = None
-        self.referencedByAttribute: str | None = None
-        raise NotImplementedError("Java: MedicationEnd — pending T19")
-
-
-class CarePlanStart:
-    """Java: CarePlanStart; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: CarePlanStart constructor; pending T19."""
-        self.codes: list[object] = []
-        self.activities: list[object] = []
-        self.goals: list[object] = []
-        self.reason: str | None = None
-        raise NotImplementedError("Java: CarePlanStart — pending T19")
-
-
-class CarePlanEnd:
-    """Java: CarePlanEnd; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: CarePlanEnd constructor; pending T19."""
-        self.codes: list[object] = []
-        self.careplan: str | None = None
-        self.referencedByAttribute: str | None = None
-        raise NotImplementedError("Java: CarePlanEnd — pending T19")
-
-
-class Procedure:
-    """Java: Procedure; pending T19."""
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: ConditionOnset#diagnose — pending T19/T20")
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Procedure constructor; pending T19."""
-        self.codes: list[object] = []
-        self.reason: str | None = None
-        self.duration: object | None = None
-        self.assignToAttribute: str | None = None
-        self.stop: object | None = None
-        self.distribution: object | None = None
-        self.unit: str | None = None
-        raise NotImplementedError("Java: Procedure — pending T19")
 
+class ConditionEnd(State):
+    """Java: ConditionEnd; pending T19/T20."""
 
-class VitalSign:
-    """Java: VitalSign; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: VitalSign constructor; pending T19."""
-        self.vitalSign: object | None = None
-        self.unit: str | None = None
-        self.expression: str | None = None
-        self.distribution: object | None = None
-        self.threadExpProcessor: object | None = None
-        raise NotImplementedError("Java: VitalSign — pending T19")
+    def __init__(self) -> None:
+        """Java: ConditionEnd#ConditionEnd.
 
-
-class Observation:
-    """Java: Observation; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Observation constructor; pending T19."""
-        self.codes: list[object] = []
-        self.valueCode: object | None = None
-        self.attribute: str | None = None
-        self.vitalSign: object | None = None
-        self.sampledData: object | None = None
-        self.attachment: object | None = None
-        self.category: str | None = None
-        self.unit: str | None = None
-        self.expression: str | None = None
-        self.distribution: object | None = None
-        self.threadExpProcessor: object | None = None
-        raise NotImplementedError("Java: Observation — pending T19")
-
-
-class ObservationGroup:
-    """Java: ObservationGroup; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: ObservationGroup constructor; pending T19."""
-        self.codes: list[object] = []
-        self.observations: list[object] = []
-        raise NotImplementedError("Java: ObservationGroup — pending T19")
-
-
-class MultiObservation:
-    """Java: MultiObservation; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: MultiObservation constructor; pending T19."""
-        self.category: str | None = None
-        raise NotImplementedError("Java: MultiObservation — pending T19")
-
-
-class DiagnosticReport:
-    """Java: DiagnosticReport; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: DiagnosticReport constructor; pending T19."""
-        raise NotImplementedError("Java: DiagnosticReport — pending T19")
-
-
-class ImagingStudy:
-    """Java: ImagingStudy; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: ImagingStudy constructor; pending T19."""
-        self.procedureCode: object | None = None
-        self.series: list[object] = []
-        self.minNumberSeries: int = 0
-        self.maxNumberSeries: int = 0
-        raise NotImplementedError("Java: ImagingStudy — pending T19")
-
-
-class Symptom:
-    """Java: Symptom; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Symptom constructor; pending T19."""
-        self.symptom: str | None = None
-        self.cause: str | None = None
-        self.probability: object | None = None
-        self.addressed: bool = False
-        self.distribution: object | None = None
-        raise NotImplementedError("Java: Symptom — pending T19")
-
-
-class Device:
-    """Java: Device; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Device constructor; pending T19."""
-        self.code: object | None = None
-        self.manufacturer: str | None = None
-        self.model: str | None = None
-        raise NotImplementedError("Java: Device — pending T19")
-
-
-class DeviceEnd:
-    """Java: DeviceEnd; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: DeviceEnd constructor; pending T19."""
-        self.codes: list[object] = []
-        self.device: str | None = None
-        self.referencedByAttribute: str | None = None
-        raise NotImplementedError("Java: DeviceEnd — pending T19")
-
-
-class SupplyList:
-    """Java: SupplyList; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: SupplyList constructor; pending T19."""
-        self.supplies: list[object] = []
-        raise NotImplementedError("Java: SupplyList — pending T19")
+        Java overloads:
+        ()
+        """
+        self.codes: list[Code]
+        self.condition_onset: str
+        self.referenced_by_attribute: str
+        raise NotImplementedError("Java: ConditionEnd#ConditionEnd — pending T19/T20")
+
+    def clone(self) -> ConditionEnd:
+        """Java: ConditionEnd#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: ConditionEnd#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: ConditionEnd#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: ConditionEnd#process — pending T19/T20")
+
+
+class AllergyOnset(OnsetState):
+    """Java: AllergyOnset; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: AllergyOnset#AllergyOnset.
+
+        Java overloads:
+        ()
+        """
+        self.allergy_type: str
+        self.category: str
+        self.reactions: list[ReactionProbabilities]
+        raise NotImplementedError("Java: AllergyOnset#AllergyOnset — pending T19/T20")
+
+    def diagnose(self, person: Person, time: int) -> None:
+        """Java: AllergyOnset#diagnose.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: AllergyOnset#diagnose — pending T19/T20")
+
+
+class AllergyEnd(State):
+    """Java: AllergyEnd; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: AllergyEnd#AllergyEnd.
+
+        Java overloads:
+        ()
+        """
+        self.codes: list[Code]
+        self.allergy_onset: str
+        self.referenced_by_attribute: str
+        raise NotImplementedError("Java: AllergyEnd#AllergyEnd — pending T19/T20")
+
+    def clone(self) -> AllergyEnd:
+        """Java: AllergyEnd#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: AllergyEnd#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: AllergyEnd#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: AllergyEnd#process — pending T19/T20")
+
+
+class MedicationOrder(AttributeAssignableState):
+    """Java: MedicationOrder; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: MedicationOrder#MedicationOrder.
+
+        Java overloads:
+        ()
+        """
+        self.codes: list[Code]
+        self.reason: str
+        self.prescription: dict[str, object]
+        self.administration: bool
+        self.chronic: bool
+        raise NotImplementedError("Java: MedicationOrder#MedicationOrder — pending T19/T20")
+
+    def write_object(self, oos: IO[bytes]) -> None:
+        """Java: MedicationOrder#writeObject.
+
+        Java overloads:
+        (ObjectOutputStream oos)
+        """
+        raise NotImplementedError("Java: MedicationOrder#writeObject — pending T19/T20")
+
+    def read_object(self, ois: IO[bytes]) -> None:
+        """Java: MedicationOrder#readObject.
+
+        Java overloads:
+        (ObjectInputStream ois)
+        """
+        raise NotImplementedError("Java: MedicationOrder#readObject — pending T19/T20")
+
+    def clone(self) -> MedicationOrder:
+        """Java: MedicationOrder#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: MedicationOrder#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: MedicationOrder#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: MedicationOrder#process — pending T19/T20")
+
+    def apply_features(self, person: Person, medication: Medication) -> None:
+        """Java: MedicationOrder#applyFeatures.
+
+        Java overloads:
+        (Person person, Medication medication)
+        """
+        raise NotImplementedError("Java: MedicationOrder#applyFeatures — pending T19/T20")
+
+
+class MedicationEnd(State):
+    """Java: MedicationEnd; pending T19/T20."""
+
+    EXPIRED: ClassVar[Code]  # Java initialization deferred to T19/T20.
+
+    def __init__(self) -> None:
+        """Java: MedicationEnd#MedicationEnd.
+
+        Java overloads:
+        ()
+        """
+        self.codes: list[Code]
+        self.medication_order: str
+        self.referenced_by_attribute: str
+        raise NotImplementedError("Java: MedicationEnd#MedicationEnd — pending T19/T20")
+
+    def clone(self) -> MedicationEnd:
+        """Java: MedicationEnd#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: MedicationEnd#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: MedicationEnd#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: MedicationEnd#process — pending T19/T20")
+
+
+class CarePlanStart(AttributeAssignableState):
+    """Java: CarePlanStart; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: CarePlanStart#CarePlanStart.
+
+        Java overloads:
+        ()
+        """
+        self.codes: list[Code]
+        self.activities: list[Code]
+        self.goals: list[dict[str, object]]
+        self.reason: str
+        raise NotImplementedError("Java: CarePlanStart#CarePlanStart — pending T19/T20")
+
+    def clone(self) -> CarePlanStart:
+        """Java: CarePlanStart#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: CarePlanStart#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: CarePlanStart#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: CarePlanStart#process — pending T19/T20")
+
+
+class CarePlanEnd(State):
+    """Java: CarePlanEnd; pending T19/T20."""
+
+    FINISHED: ClassVar[Code]  # Java initialization deferred to T19/T20.
+
+    def __init__(self) -> None:
+        """Java: CarePlanEnd#CarePlanEnd.
+
+        Java overloads:
+        ()
+        """
+        self.codes: list[Code]
+        self.careplan: str
+        self.referenced_by_attribute: str
+        raise NotImplementedError("Java: CarePlanEnd#CarePlanEnd — pending T19/T20")
+
+    def clone(self) -> CarePlanEnd:
+        """Java: CarePlanEnd#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: CarePlanEnd#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: CarePlanEnd#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: CarePlanEnd#process — pending T19/T20")
+
+
+class Procedure(Delayable):
+    """Java: Procedure; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: Procedure#Procedure.
+
+        Java overloads:
+        ()
+        """
+        self.codes: list[Code]
+        self.reason: str
+        self.duration: RangeWithUnit[int]
+        self.assign_to_attribute: str
+        self.stop: int
+        self.distribution: Distribution
+        self.unit: str
+        raise NotImplementedError("Java: Procedure#Procedure — pending T19/T20")
+
+    def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
+        """Java: Procedure#initialize.
+
+        Java overloads:
+        (Module module, String name, JsonObject definition)
+        """
+        raise NotImplementedError("Java: Procedure#initialize — pending T19/T20")
+
+    def clone(self) -> Procedure:
+        """Java: Procedure#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Procedure#clone — pending T19/T20")
+
+    def end_of_delay(self, time: int, person: Person) -> int:
+        """Java: Procedure#endOfDelay.
+
+        Java overloads:
+        (long time, Person person)
+        """
+        raise NotImplementedError("Java: Procedure#endOfDelay — pending T19/T20")
+
+    def process_once(self, person: Person, time: int) -> None:
+        """Java: Procedure#processOnce.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Procedure#processOnce — pending T19/T20")
+
+
+class VitalSign(LegacyStateWithUnitlessRV):
+    """Java: VitalSign; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: VitalSign#VitalSign.
+
+        Java overloads:
+        ()
+        """
+        self.vital_sign: ConceptVitalSign
+        self.unit: str
+        self.expression: str
+        self.distribution: Distribution
+        self.thread_exp_processor: ThreadLocal
+        raise NotImplementedError("Java: VitalSign#VitalSign — pending T19/T20")
+
+    def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
+        """Java: VitalSign#initialize.
+
+        Java overloads:
+        (Module module, String name, JsonObject definition)
+        """
+        raise NotImplementedError("Java: VitalSign#initialize — pending T19/T20")
+
+    def get_exp_processor(self) -> ThreadLocal:
+        """Java: VitalSign#getExpProcessor.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: VitalSign#getExpProcessor — pending T19/T20")
+
+    def clone(self) -> VitalSign:
+        """Java: VitalSign#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: VitalSign#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: VitalSign#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: VitalSign#process — pending T19/T20")
+
+
+class Observation(LegacyStateWithUnitlessRV):
+    """Java: Observation; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: Observation#Observation.
+
+        Java overloads:
+        ()
+        """
+        self.codes: list[Code]
+        self.value_code: Code
+        self.attribute: str
+        self.vital_sign: ConceptVitalSign
+        self.sampled_data: SampledData
+        self.attachment: Attachment
+        self.category: str
+        self.unit: str
+        self.expression: str
+        self.distribution: Distribution
+        self.thread_exp_processor: ThreadLocal
+        raise NotImplementedError("Java: Observation#Observation — pending T19/T20")
+
+    def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
+        """Java: Observation#initialize.
+
+        Java overloads:
+        (Module module, String name, JsonObject definition)
+        """
+        raise NotImplementedError("Java: Observation#initialize — pending T19/T20")
+
+    def validate(self, module: Module, name: str) -> None:
+        """Java: Observation#validate.
+
+        Java overloads:
+        (Module module, String name)
+        """
+        raise NotImplementedError("Java: Observation#validate — pending T19/T20")
+
+    def get_exp_processor(self) -> ThreadLocal:
+        """Java: Observation#getExpProcessor.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Observation#getExpProcessor — pending T19/T20")
+
+    def clone(self) -> Observation:
+        """Java: Observation#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Observation#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Observation#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Observation#process — pending T19/T20")
+
+
+class ObservationGroup(State):
+    """Java: ObservationGroup; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: ObservationGroup#ObservationGroup.
+
+        Java overloads:
+        ()
+        """
+        self.codes: list[Code]
+        self.observations: list[Observation]
+        raise NotImplementedError("Java: ObservationGroup#ObservationGroup — pending T19/T20")
+
+    def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
+        """Java: ObservationGroup#initialize.
+
+        Java overloads:
+        (Module module, String name, JsonObject definition)
+        """
+        raise NotImplementedError("Java: ObservationGroup#initialize — pending T19/T20")
+
+    def clone(self) -> ObservationGroup:
+        """Java: ObservationGroup#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: ObservationGroup#clone — pending T19/T20")
+
+
+class MultiObservation(ObservationGroup):
+    """Java: MultiObservation; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: MultiObservation#MultiObservation.
+
+        Java overloads:
+        ()
+        """
+        self.category: str
+        raise NotImplementedError("Java: MultiObservation#MultiObservation — pending T19/T20")
+
+    def clone(self) -> MultiObservation:
+        """Java: MultiObservation#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: MultiObservation#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: MultiObservation#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: MultiObservation#process — pending T19/T20")
+
+
+class DiagnosticReport(ObservationGroup):
+    """Java: DiagnosticReport; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: DiagnosticReport#DiagnosticReport.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: DiagnosticReport#DiagnosticReport — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: DiagnosticReport#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: DiagnosticReport#process — pending T19/T20")
+
+    def panel_already_recorded_at_this_time(self, person: Person, time: int) -> bool:
+        """Java: DiagnosticReport#panelAlreadyRecordedAtThisTime.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError(
+            "Java: DiagnosticReport#panelAlreadyRecordedAtThisTime — pending T19/T20"
+        )
+
+
+class ImagingStudy(State):
+    """Java: ImagingStudy; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: ImagingStudy#ImagingStudy.
+
+        Java overloads:
+        ()
+        """
+        self.procedure_code: Code
+        self.series: list[HealthRecordSeries]
+        self.min_number_series: int
+        self.max_number_series: int
+        raise NotImplementedError("Java: ImagingStudy#ImagingStudy — pending T19/T20")
+
+    def clone(self) -> ImagingStudy:
+        """Java: ImagingStudy#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: ImagingStudy#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: ImagingStudy#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: ImagingStudy#process — pending T19/T20")
+
+    def duplicate_series(
+        self, random: RandomNumberGenerator, time: int
+    ) -> list[HealthRecordSeries]:
+        """Java: ImagingStudy#duplicateSeries.
+
+        Java overloads:
+        (RandomNumberGenerator random, long time)
+        """
+        raise NotImplementedError("Java: ImagingStudy#duplicateSeries — pending T19/T20")
+
+    def duplicate_instances(
+        self, random: RandomNumberGenerator, time: int, my_series: list[HealthRecordSeries]
+    ) -> None:
+        """Java: ImagingStudy#duplicateInstances.
+
+        Java overloads:
+        (RandomNumberGenerator random, long time, List mySeries)
+        """
+        raise NotImplementedError("Java: ImagingStudy#duplicateInstances — pending T19/T20")
+
+
+class Symptom(LegacyStateWithUnitlessRV):
+    """Java: Symptom; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: Symptom#Symptom.
+
+        Java overloads:
+        ()
+        """
+        self.symptom: str
+        self.cause: str
+        self.probability: float
+        self.addressed: bool
+        self.distribution: Distribution
+        raise NotImplementedError("Java: Symptom#Symptom — pending T19/T20")
+
+    def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
+        """Java: Symptom#initialize.
+
+        Java overloads:
+        (Module module, String name, JsonObject definition)
+        """
+        raise NotImplementedError("Java: Symptom#initialize — pending T19/T20")
+
+    def clone(self) -> Symptom:
+        """Java: Symptom#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Symptom#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Symptom#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Symptom#process — pending T19/T20")
+
+
+class Device(AttributeAssignableState):
+    """Java: Device; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: Device#Device.
+
+        Java overloads:
+        ()
+        """
+        self.code: Code
+        self.manufacturer: str
+        self.model: str
+        raise NotImplementedError("Java: Device#Device — pending T19/T20")
+
+    def clone(self) -> Device:
+        """Java: Device#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Device#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Device#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Device#process — pending T19/T20")
+
+
+class DeviceEnd(State):
+    """Java: DeviceEnd; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: DeviceEnd#DeviceEnd.
+
+        Java overloads:
+        ()
+        """
+        self.codes: list[Code]
+        self.device: str
+        self.referenced_by_attribute: str
+        raise NotImplementedError("Java: DeviceEnd#DeviceEnd — pending T19/T20")
+
+    def clone(self) -> DeviceEnd:
+        """Java: DeviceEnd#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: DeviceEnd#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: DeviceEnd#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: DeviceEnd#process — pending T19/T20")
+
+
+class SupplyList(State):
+    """Java: SupplyList; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: SupplyList#SupplyList.
+
+        Java overloads:
+        ()
+        """
+        self.supplies: list[SupplyComponent]
+        raise NotImplementedError("Java: SupplyList#SupplyList — pending T19/T20")
+
+    def clone(self) -> SupplyList:
+        """Java: SupplyList#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: SupplyList#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: SupplyList#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: SupplyList#process — pending T19/T20")
 
 
 class SupplyComponent:
-    """Java: SupplyComponent; pending T19."""
+    """Java: SupplyComponent; pending T19/T20."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: SupplyComponent constructor; pending T19."""
-        raise NotImplementedError("Java: SupplyComponent — pending T19")
+    def __init__(self) -> None:
+        """Java: SupplyComponent#SupplyComponent.
 
-
-class Death:
-    """Java: Death; pending T19."""
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Death constructor; pending T19."""
-        self.codes: list[object] = []
-        self.conditionOnset: str | None = None
-        self.referencedByAttribute: str | None = None
-        self.range: object | None = None
-        self.exact: object | None = None
-        raise NotImplementedError("Java: Death — pending T19")
+        Java overloads:
+        ()
+        """
+        self.code: HealthRecordCode
+        self.quantity: int
+        raise NotImplementedError("Java: SupplyComponent#SupplyComponent — pending T19/T20")
 
 
-class Vaccine:
-    """Java: Vaccine; pending T19."""
+class Death(State):
+    """Java: Death; pending T19/T20."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: Vaccine constructor; pending T19."""
-        self.series: int = 0
-        self.codes: list[object] = []
-        raise NotImplementedError("Java: Vaccine — pending T19")
+    def __init__(self) -> None:
+        """Java: Death#Death.
+
+        Java overloads:
+        ()
+        """
+        self.codes: list[Code]
+        self.condition_onset: str
+        self.referenced_by_attribute: str
+        self.range: RangeWithUnit[float]
+        self.exact: ExactWithUnit[float]
+        raise NotImplementedError("Java: Death#Death — pending T19/T20")
+
+    def clone(self) -> Death:
+        """Java: Death#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Death#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Death#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Death#process — pending T19/T20")
+
+
+class Vaccine(State):
+    """Java: Vaccine; pending T19/T20."""
+
+    def __init__(self) -> None:
+        """Java: Vaccine#Vaccine.
+
+        Java overloads:
+        ()
+        """
+        self.series: int
+        self.codes: list[Code]
+        raise NotImplementedError("Java: Vaccine#Vaccine — pending T19/T20")
+
+    def clone(self) -> Vaccine:
+        """Java: Vaccine#clone.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: Vaccine#clone — pending T19/T20")
+
+    def process(self, person: Person, time: int) -> bool:
+        """Java: Vaccine#process.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: Vaccine#process — pending T19/T20")
+
+
+setattr(State, "Initial", Initial)  # noqa: B010
+setattr(State, "Simple", Simple)  # noqa: B010
+setattr(State, "CallSubmodule", CallSubmodule)  # noqa: B010
+setattr(State, "Physiology", Physiology)  # noqa: B010
+setattr(State, "Terminal", Terminal)  # noqa: B010
+setattr(State, "Delayable", Delayable)  # noqa: B010
+setattr(State, "LegacyStateWithUnitlessRV", LegacyStateWithUnitlessRV)  # noqa: B010
+setattr(State, "Delay", Delay)  # noqa: B010
+setattr(State, "Guard", Guard)  # noqa: B010
+setattr(State, "SetAttribute", SetAttribute)  # noqa: B010
+setattr(State, "Counter", Counter)  # noqa: B010
+setattr(State, "TelemedicinePossibility", TelemedicinePossibility)  # noqa: B010
+setattr(State, "Encounter", Encounter)  # noqa: B010
+setattr(State, "EncounterEnd", EncounterEnd)  # noqa: B010
+setattr(State, "AttributeAssignableState", AttributeAssignableState)  # noqa: B010
+setattr(State, "OnsetState", OnsetState)  # noqa: B010
+setattr(State, "ConditionOnset", ConditionOnset)  # noqa: B010
+setattr(State, "ConditionEnd", ConditionEnd)  # noqa: B010
+setattr(State, "AllergyOnset", AllergyOnset)  # noqa: B010
+setattr(State, "AllergyEnd", AllergyEnd)  # noqa: B010
+setattr(State, "MedicationOrder", MedicationOrder)  # noqa: B010
+setattr(State, "MedicationEnd", MedicationEnd)  # noqa: B010
+setattr(State, "CarePlanStart", CarePlanStart)  # noqa: B010
+setattr(State, "CarePlanEnd", CarePlanEnd)  # noqa: B010
+setattr(State, "Procedure", Procedure)  # noqa: B010
+setattr(State, "VitalSign", VitalSign)  # noqa: B010
+setattr(State, "Observation", Observation)  # noqa: B010
+setattr(State, "ObservationGroup", ObservationGroup)  # noqa: B010
+setattr(State, "MultiObservation", MultiObservation)  # noqa: B010
+setattr(State, "DiagnosticReport", DiagnosticReport)  # noqa: B010
+setattr(State, "ImagingStudy", ImagingStudy)  # noqa: B010
+setattr(State, "Symptom", Symptom)  # noqa: B010
+setattr(State, "Device", Device)  # noqa: B010
+setattr(State, "DeviceEnd", DeviceEnd)  # noqa: B010
+setattr(State, "SupplyList", SupplyList)  # noqa: B010
+setattr(State, "Death", Death)  # noqa: B010
+setattr(State, "Vaccine", Vaccine)  # noqa: B010
+setattr(SupplyList, "SupplyComponent", SupplyComponent)  # noqa: B010
+
+# Java static data initialization; constructors remain stubs.
+MedicationEnd.EXPIRED = object.__new__(Code)
+MedicationEnd.EXPIRED.system = "SNOMED-CT"
+MedicationEnd.EXPIRED.code = "182840001"
+MedicationEnd.EXPIRED.display = "Drug treatment stopped - medical advice"
+MedicationEnd.EXPIRED.version = None
+MedicationEnd.EXPIRED.value_set = None
+CarePlanEnd.FINISHED = object.__new__(Code)
+CarePlanEnd.FINISHED.system = "SNOMED-CT"
+CarePlanEnd.FINISHED.code = "385658003"
+CarePlanEnd.FINISHED.display = "Done"
+CarePlanEnd.FINISHED.version = None
+CarePlanEnd.FINISHED.value_set = None

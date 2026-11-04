@@ -1,25 +1,33 @@
-"""Java port skeleton: java/src/main/java/org/mitre/synthea/helpers/RandomValueGenerator.java."""
+"""Java API skeleton: RandomValueGenerator.java."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from synthea.helpers.value_generator import ValueGenerator
-
 if TYPE_CHECKING:
     from synthea.engine.distribution import Distribution
+    from synthea.world.agents.person import Person
 
 
-class RandomValueGenerator(ValueGenerator):
+class RandomValueGenerator:
     """Java: RandomValueGenerator; pending T07."""
 
     def __init__(
-        self, person: object, low_or_distribution: float | Distribution, high: float | None = None
+        self, person: Person, low_or_distribution: float | Distribution, high: float | None = None
     ) -> None:
-        """Java: RandomValueGenerator#RandomValueGenerator(Person,double,double|Distribution)."""
-        self.distribution: Distribution | None = None
-        raise NotImplementedError("Java: RandomValueGenerator#constructor — pending T07")
+        """Java: RandomValueGenerator#RandomValueGenerator.
+
+        Java overloads:
+        (Person person, double low, double high)
+        (Person person, Distribution distribution)
+        """
+        self.distribution: Distribution
+        raise NotImplementedError("Java: RandomValueGenerator#RandomValueGenerator — pending T07")
 
     def get_value(self, time: int) -> float:
-        """Java: RandomValueGenerator#getValue; pending T07."""
+        """Java: RandomValueGenerator#getValue.
+
+        Java overloads:
+        (long time)
+        """
         raise NotImplementedError("Java: RandomValueGenerator#getValue — pending T07")

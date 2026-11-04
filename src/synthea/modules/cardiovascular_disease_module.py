@@ -1,45 +1,111 @@
-"""Java API skeleton for cardiovascular_disease_module.py.
-Java: org.mitre.synthea.modules.CardiovascularDiseaseModule.
-"""
+"""Java API skeleton: CardiovascularDiseaseModule.java."""
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING, ClassVar, Protocol
+
+if TYPE_CHECKING:
+    from synthea.engine.module import Module
+    from synthea.world.agents.person import Person
+    from synthea.world.concepts.health_record import Code
+
+    class Inventory(Protocol):
+        """Java boundary type: Inventory; external to the mapped Python port."""
 
 
 class CardiovascularDiseaseModule:
     """Java: CardiovascularDiseaseModule; pending T23."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: CardiovascularDiseaseModule constructor; pending T23."""
-        raise NotImplementedError("Java: CardiovascularDiseaseModule — pending T23")
+    useFramingham: ClassVar[bool] = False
+    tenYearsInMS: ClassVar[int] = 315360000000
+    oneMonthInMS: ClassVar[int] = 2592000000
 
-    def clone(self, *args: object, **kwargs: object) -> object:
-        """Java: CardiovascularDiseaseModule#clone."""
-        raise NotImplementedError("Java: clone — pending T23")
+    def __init__(self) -> None:
+        """Java: CardiovascularDiseaseModule#CardiovascularDiseaseModule.
 
-    def process(self, *args: object, **kwargs: object) -> object:
-        """Java: CardiovascularDiseaseModule#process."""
-        raise NotImplementedError("Java: process — pending T23")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError(
+            "Java: CardiovascularDiseaseModule#CardiovascularDiseaseModule — pending T23"
+        )
 
-    def calculate_cardio_risk(self, *args: object, **kwargs: object) -> object:
-        """Java: CardiovascularDiseaseModule#calculateCardioRisk."""
-        raise NotImplementedError("Java: calculateCardioRisk — pending T23")
+    def clone(self) -> Module:
+        """Java: CardiovascularDiseaseModule#clone.
 
-    def calculate_ascvd_risk(self, *args: object, **kwargs: object) -> object:
-        """Java: CardiovascularDiseaseModule#calculateAscvdRisk."""
-        raise NotImplementedError("Java: calculateAscvdRisk — pending T23")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: CardiovascularDiseaseModule#clone — pending T23")
 
-    def calculate_atrial_fibrillation_risk(self, *args: object, **kwargs: object) -> object:
-        """Java: CardiovascularDiseaseModule#calculateAtrialFibrillationRisk."""
-        raise NotImplementedError("Java: calculateAtrialFibrillationRisk — pending T23")
+    def process(self, person: Person, time: int) -> bool:
+        """Java: CardiovascularDiseaseModule#process.
 
-    def calculate_stroke_risk(self, *args: object, **kwargs: object) -> object:
-        """Java: CardiovascularDiseaseModule#calculateStrokeRisk."""
-        raise NotImplementedError("Java: calculateStrokeRisk — pending T23")
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError("Java: CardiovascularDiseaseModule#process — pending T23")
 
-    def get_all_codes(self, *args: object, **kwargs: object) -> object:
-        """Java: CardiovascularDiseaseModule#getAllCodes."""
-        raise NotImplementedError("Java: getAllCodes — pending T23")
+    @staticmethod
+    def calculate_cardio_risk(person: Person, time: int) -> None:
+        """Java: CardiovascularDiseaseModule#calculateCardioRisk.
 
-    def inventory_attributes(self, *args: object, **kwargs: object) -> object:
-        """Java: CardiovascularDiseaseModule#inventoryAttributes."""
-        raise NotImplementedError("Java: inventoryAttributes — pending T23")
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError(
+            "Java: CardiovascularDiseaseModule#calculateCardioRisk — pending T23"
+        )
+
+    @staticmethod
+    def calculate_ascvd_risk(person: Person, time: int) -> None:
+        """Java: CardiovascularDiseaseModule#calculateAscvdRisk.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError(
+            "Java: CardiovascularDiseaseModule#calculateAscvdRisk — pending T23"
+        )
+
+    @staticmethod
+    def calculate_atrial_fibrillation_risk(person: Person, time: int) -> None:
+        """Java: CardiovascularDiseaseModule#calculateAtrialFibrillationRisk.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError(
+            "Java: CardiovascularDiseaseModule#calculateAtrialFibrillationRisk — pending T23"
+        )
+
+    @staticmethod
+    def calculate_stroke_risk(person: Person, time: int) -> None:
+        """Java: CardiovascularDiseaseModule#calculateStrokeRisk.
+
+        Java overloads:
+        (Person person, long time)
+        """
+        raise NotImplementedError(
+            "Java: CardiovascularDiseaseModule#calculateStrokeRisk — pending T23"
+        )
+
+    @staticmethod
+    def get_all_codes() -> list[Code]:
+        """Java: CardiovascularDiseaseModule#getAllCodes.
+
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: CardiovascularDiseaseModule#getAllCodes — pending T23")
+
+    @staticmethod
+    def inventory_attributes(attributes: dict[str, Inventory]) -> None:
+        """Java: CardiovascularDiseaseModule#inventoryAttributes.
+
+        Java overloads:
+        (Map attributes)
+        """
+        raise NotImplementedError(
+            "Java: CardiovascularDiseaseModule#inventoryAttributes — pending T23"
+        )

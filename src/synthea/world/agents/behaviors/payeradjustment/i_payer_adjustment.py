@@ -1,17 +1,33 @@
-"""Java API skeleton for i_payer_adjustment.py.
-Java: org.mitre.synthea.world.agents.behaviors.payeradjustment.IPayerAdjustment.
+"""Java API skeleton:
+java/src/main/java/org/mitre/synthea/world/agents/behaviors/payeradjustment/I
+PayerAdjustment.java.
 """
 
 from __future__ import annotations
 
+from decimal import Decimal
+from typing import TYPE_CHECKING, Protocol
 
-class IPayerAdjustment:
+if TYPE_CHECKING:
+    from synthea.world.agents.person import Person
+    from synthea.world.concepts.claim import ClaimEntry
+
+
+class IPayerAdjustment(Protocol):
     """Java: IPayerAdjustment; pending T15."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: IPayerAdjustment constructor; pending T15."""
-        raise NotImplementedError("Java: IPayerAdjustment — pending T15")
+    def __init__(self) -> None:
+        """Java: IPayerAdjustment#IPayerAdjustment.
 
-    def adjust_claim(self, *args: object, **kwargs: object) -> object:
-        """Java: IPayerAdjustment#adjustClaim."""
-        raise NotImplementedError("Java: adjustClaim — pending T15")
+        Java overloads:
+        ()
+        """
+        raise NotImplementedError("Java: IPayerAdjustment#IPayerAdjustment — pending T15")
+
+    def adjust_claim(self, claim_entry: ClaimEntry, person: Person) -> Decimal:
+        """Java: IPayerAdjustment#adjustClaim.
+
+        Java overloads:
+        (ClaimEntry claimEntry, Person person)
+        """
+        raise NotImplementedError("Java: IPayerAdjustment#adjustClaim — pending T15")
