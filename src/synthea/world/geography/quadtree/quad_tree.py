@@ -1,4 +1,4 @@
-"""Java port skeleton: java/src/main/java/org/mitre/synthea/world/geography/quadtree/QuadTree.java."""
+"""Java: quad_tree skeleton (pending implementation)."""
 from __future__ import annotations
 
 

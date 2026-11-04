@@ -1,4 +1,4 @@
-"""Java port skeleton: java/src/main/java/org/mitre/synthea/world/concepts/ClinicianSpecialty.java."""
+"""Java: clinician_specialty skeleton (pending implementation)."""
 from __future__ import annotations
 
 

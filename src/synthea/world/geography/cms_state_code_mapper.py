@@ -1,4 +1,4 @@
-"""Java port skeleton: java/src/main/java/org/mitre/synthea/world/geography/CMSStateCodeMapper.java."""
+"""Java: cms_state_code_mapper skeleton (pending implementation)."""
 from __future__ import annotations
 
 

@@ -1,4 +1,4 @@
-"""Java port skeleton: java/src/main/java/org/mitre/synthea/world/concepts/TelemedicineConfig.java."""
+"""Java: telemedicine_config skeleton (pending implementation)."""
 from __future__ import annotations
 
 
