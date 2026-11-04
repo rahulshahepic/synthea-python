@@ -49,9 +49,9 @@ Phases 1–2 are foundations, 3–4 the world model, 5 the engine, 6 the Java mo
 | Task | Issue | Phase | Title | Depends on |
 |---|---|---|---|---|
 | T01 | #1 | 1 | javacompat: java.util.Random, UUID, RandomNumberGenerator | — |
-| T02 | #2 | 1 | javacompat: hashCode, String.compareTo, HashMap/HashSet/ConcurrentHashMap iteration order | — |
-| T03 | #3 | 1 | javacompat: numerics, Double.toString, String.format, BigDecimal | — |
-| T04 | #4 | 1 | Port skeleton: stub every in-scope class with signatures | — |
+| T02 | #4 | 1 | javacompat: hashCode, String.compareTo, HashMap/HashSet/ConcurrentHashMap iteration order | — |
+| T03 | #2 | 1 | javacompat: numerics, Double.toString, String.format, BigDecimal | — |
+| T04 | #3 | 1 | Port skeleton: stub every in-scope class with signatures | — |
 | T05 | #5 | 2 | helpers: Config, SimpleCSV, SimpleYML | T03, T04 |
 | T06 | #6 | 2 | helpers: Utilities, TimeSeriesData, Telemedicine | T01, T03, T05 |
 | T07 | #7 | 2 | helpers/engine: RandomCollection, Distribution, ValueGenerators, RandomCodeGenerator, ExpressionProcessor | T01, T02, T06 |
@@ -69,7 +69,7 @@ Phases 1–2 are foundations, 3–4 the world model, 5 the engine, 6 the Java mo
 | T19 | #19 | 5 | engine: Module loading/processing + control-flow States | T18 |
 | T20 | #20 | 5 | engine: clinical States (Encounter, Condition, Medication, Procedure, Observation, …) | T13, T14, T19 |
 | T21 | #21 | 6 | modules: LifecycleModule, BloodPressureValueGenerator | T10, T11, T12, T19 |
-| T22 | #22 | 6 | modules: EncounterModule, DeathModule, Immunizations | T13, T20 |
+| T22 | #22 | 6 | modules: EncounterModule, DeathModule, Immunizations | T13, T20, T21 |
 | T23 | #23 | 6 | modules: CardiovascularDisease, ASCVD, Framingham, QualityOfLife, WeightLoss | T20, T21 |
 | T24 | #24 | 6 | modules: COVID-19 immunization | T22 |
 | T25 | #25 | 7 | export core: Exporter (CSV path), ExportHelper, CSVFileManager, CSVConstants | T08, T09 |
