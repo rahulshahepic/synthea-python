@@ -10,6 +10,7 @@ class QualifyingConditionCodesEligibility:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: QualifyingConditionCodesEligibility constructor; pending T16."""
+        self.qualifyingCodes: list[object] = []
         raise NotImplementedError("Java: QualifyingConditionCodesEligibility — pending T16")
 
     def is_person_eligible(self, *args: object, **kwargs: object) -> object:
