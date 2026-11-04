@@ -35,7 +35,12 @@ jobs:
         run: |
           read -r sha labels < <(gh pr view "$PR" --repo "$REPO" \
             --json headRefOid,labels --jq '[.headRefOid, ([.labels[].name] | join(","))] | @tsv')
-          if [[ "$ACTION" == "synchronize" && ",$labels," == *",review:approved,"* ]]; then
+          # An auto-sync merge of main (by the sync bot) keeps the approval; anything else revokes it.
+          head_msg="$(gh api "repos/$REPO/commits/$sha" --jq '.commit.message | split("\n")[0]')"
+          head_author="$(gh api "repos/$REPO/commits/$sha" --jq '.commit.author.name')"
+          auto_sync=false
+          if [[ "$head_author" == "github-actions[bot]" && "$head_msg" == *"(auto-sync)" ]]; then auto_sync=true; fi
+          if [[ "$ACTION" == "synchronize" && "$auto_sync" != "true" && ",$labels," == *",review:approved,"* ]]; then
             gh pr edit "$PR" --repo "$REPO" --remove-label "review:approved" --add-label "review:needed"
             labels="${labels//review:approved/}"
             echo "New commits after approval: approval removed, re-review required."

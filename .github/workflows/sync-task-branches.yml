@@ -24,12 +24,16 @@ jobs:
     name: sync
     runs-on: ubuntu-latest
     steps:
+      # Push with SYNC_TOKEN (a fine-grained PAT) when available: unlike GITHUB_TOKEN pushes,
+      # those trigger the normal push CI, whose checks the branch rules count.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.SYNC_TOKEN || secrets.GITHUB_TOKEN }}
       - uses: astral-sh/setup-uv@v6
       - name: Merge main into open task branches
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
+          SYNC_WITH_PAT: ${{ secrets.SYNC_TOKEN != '' }}
         run: scripts/sync_task_branches.sh
