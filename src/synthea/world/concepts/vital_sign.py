@@ -1,4 +1,5 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/world/concepts/VitalSign.java."""
+
 from __future__ import annotations
 
 from enum import StrEnum
@@ -34,9 +35,11 @@ class VitalSign(StrEnum):
     LVEF = "LVEF"
     HEART_RATE = "HEART_RATE"
     RESPIRATION_RATE = "RESPIRATION_RATE"
+
     def from_string(self, *args: object, **kwargs: object) -> object:
         """Java: VitalSign#fromString; pending T11."""
         raise NotImplementedError("Java: VitalSign#fromString — pending T11")
+
     def to_string(self, *args: object, **kwargs: object) -> object:
         """Java: VitalSign#toString; pending T11."""
         raise NotImplementedError("Java: VitalSign#toString — pending T11")
