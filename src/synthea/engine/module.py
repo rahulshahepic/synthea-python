@@ -10,6 +10,13 @@ class Module:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Module constructor; pending T19."""
+        self.name: str | None = None
+        self.specialty: str | None = None
+        self.submodule: bool = False
+        self.submoduleName: str | None = None
+        self.gmfVersion: object | None = None
+        self.remarks: list[object] = []
+        self.states: dict[object, object] = {}
         raise NotImplementedError("Java: Module — pending T19")
 
     def load_modules(self, *args: object, **kwargs: object) -> object:
@@ -90,4 +97,11 @@ class ModuleSupplier:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ModuleSupplier constructor; pending T19."""
+        self.core: bool = False
+        self.submodule: bool = False
+        self.path: str | None = None
+        self.loaded: bool = False
+        self.loader: object | None = None
+        self.module: object | None = None
+        self.fault: object | None = None
         raise NotImplementedError("Java: ModuleSupplier — pending T19")
