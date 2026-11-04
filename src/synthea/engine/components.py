@@ -30,6 +30,9 @@ class Range:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Range constructor; pending T17."""
+        self.low: object | None = None
+        self.high: object | None = None
+        self.decimals: object | None = None
         raise NotImplementedError("Java: Range — pending T17")
 
 
@@ -38,6 +41,7 @@ class RangeWithUnit:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: RangeWithUnit constructor; pending T17."""
+        self.unit: str | None = None
         raise NotImplementedError("Java: RangeWithUnit — pending T17")
 
 
@@ -46,6 +50,7 @@ class Exact:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Exact constructor; pending T17."""
+        self.quantity: object | None = None
         raise NotImplementedError("Java: Exact — pending T17")
 
 
@@ -54,6 +59,7 @@ class ExactWithUnit:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ExactWithUnit constructor; pending T17."""
+        self.unit: str | None = None
         raise NotImplementedError("Java: ExactWithUnit — pending T17")
 
 
@@ -62,6 +68,13 @@ class DateInput:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: DateInput constructor; pending T17."""
+        self.year: int = 0
+        self.month: int = 0
+        self.day: int = 0
+        self.hour: int = 0
+        self.minute: int = 0
+        self.second: int = 0
+        self.millisecond: int = 0
         raise NotImplementedError("Java: DateInput — pending T17")
 
 
@@ -70,6 +83,13 @@ class SampledData:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: SampledData constructor; pending T17."""
+        self.originValue: float = 0.0
+        self.factor: object | None = None
+        self.lowerLimit: object | None = None
+        self.upperLimit: object | None = None
+        self.attributes: list[object] = []
+        self.series: list[object] = []
+        self.decimalFormat: str | None = None
         raise NotImplementedError("Java: SampledData — pending T17")
 
 
@@ -78,4 +98,19 @@ class Attachment:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Attachment constructor; pending T17."""
+        self.contentType: str | None = None
+        self.language: str | None = None
+        self.data: str | None = None
+        self.url: str | None = None
+        self.size: int = 0
+        self.hash: str | None = None
+        self.title: str | None = None
+        self.creation: str | None = None
+        self.height: int = 0
+        self.width: int = 0
+        self.frames: int = 0
+        self.duration: float = 0.0
+        self.pages: int = 0
+        self.chart: object | None = None
+        self.validated: object | None = None
         raise NotImplementedError("Java: Attachment — pending T17")
