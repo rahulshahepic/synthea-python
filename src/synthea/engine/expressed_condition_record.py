@@ -8,6 +8,7 @@ class ExpressedConditionRecord:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ExpressedConditionRecord constructor; pending T09."""
+        self.sources: dict[object, object] = {}
         raise NotImplementedError("Java: ExpressedConditionRecord#constructor — pending T09")
 
     def clone(self, *args: object, **kwargs: object) -> object:
@@ -128,6 +129,8 @@ class ConditionPeriod:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ConditionPeriod constructor; pending T09."""
+        self.endTime: object | None = None
+        self.onsetTime: object | None = None
         raise NotImplementedError("Java: ConditionPeriod#constructor — pending T09")
 
 
@@ -136,6 +139,8 @@ class OnsetCondition:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: OnsetCondition constructor; pending T09."""
+        self.name: str | None = None
+        self.timeInfos: list[object] = []
         raise NotImplementedError("Java: OnsetCondition#constructor — pending T09")
 
 
@@ -144,6 +149,9 @@ class ModuleConditions:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ModuleConditions constructor; pending T09."""
+        self.source: str | None = None
+        self.onsetConditions: dict[object, object] = {}
+        self.state2conditionMapping: dict[object, object] = {}
         raise NotImplementedError("Java: ModuleConditions#constructor — pending T09")
 
 
@@ -152,4 +160,8 @@ class ConditionWithSymptoms:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ConditionWithSymptoms constructor; pending T09."""
+        self.conditionName: str | None = None
+        self.onsetTime: object | None = None
+        self.endTime: object | None = None
+        self.symptoms: dict[object, object] = {}
         raise NotImplementedError("Java: ConditionWithSymptoms#constructor — pending T09")
