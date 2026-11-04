@@ -208,9 +208,11 @@ class Counter:
 
 
 class TelemedicinePossibility(StrEnum):
-    """Java: TelemedicinePossibility; pending T19."""
+    """Java: State.TelemedicinePossibility; pending T19."""
 
-    S = "S"
+    NONE = "NONE"
+    POSSIBLE = "POSSIBLE"
+    ALWAYS = "ALWAYS"
 
 
 class Encounter:
