@@ -68,8 +68,12 @@ required status check, and removes the label automatically when new commits arri
 * If the branch is behind `main` and conflicts, request changes ("merge `origin/main` in; never rebase"). If it
   is only behind, update it from `main`, let CI rerun, and merge if still green.
 
-## Housekeeping: conflicted PRs
+## Conflicts are handled automatically
 
-On every run, check each open `task/*` PR, draft or not, for `mergeable_state == dirty`.
-For each one, post a single comment (once per conflict): "This PR conflicts with `main`, so
-CI cannot run. Merge `origin/main` into `task/<N>` (AGENTS.md §4)."
+* `ci.yml` runs on every push, so CI results exist even while a PR conflicts.
+* `sync-task-branches.yml` merges `main` into every open `task/*` PR each time `main` changes
+  (resolving `uv.lock` by regenerating it), then dispatches `ci` and `review-gate` on the new
+  head. A sync merge does **not** revoke `review:approved`; the re-dispatched `review-gate`
+  re-checks the label. If CI on the synced head is green, merge.
+* A real code conflict gets the `needs:manual-merge` label and one comment. Treat it as
+  "waiting on the agent". Never resolve it yourself.

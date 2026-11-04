@@ -88,9 +88,10 @@ Immediately after the push succeeds:
     justify in the PR body,
   * your own notes file `docs/porting_notes/T<nn>.md` (create it), to record deviations or
     discoveries (see guide). Never edit another task's notes file or `docs/PORTING_NOTES.md`.
-  * the shared canonical dumpers `tests/parity/canonical.py` and
-    `parity/probes/org/synthea/parity/probes/support/Canonical.java` (created by T08):
-    **append-only**. You may add support for new types, but never change existing output.
+  * your own canonical dumpers for new types: `tests/parity/canonical/<area>.py` and
+    `parity/probes/org/synthea/parity/probes/support/Canonical<Area>.java`. T08 creates the base
+    ones (`tests/parity/canonical/__init__.py`, `support/Canonical.java`). Later tasks **add new
+    files** that build on them and never edit another task's file, so parallel PRs can't conflict.
 * Code owned by a task that hasn't merged yet is still a stub (from T04). Call it anyway; your
   dependencies guarantee that what you need is real. If you hit a stub that is *not* covered
   by your dependencies, report it under "Problems found". Don't implement it.
@@ -110,9 +111,16 @@ Immediately after the push succeeds:
   parity/gen_golden.sh <Area>Probe      # needs JDK 21; see "No JDK?" below
   PARITY_REQUIRED=1 uv run pytest
   ```
-* **Keep your branch mergeable: GitHub runs NO CI on a PR that has merge conflicts.** If the PR
-  page says "This branch has conflicts", or CI checks never appear after a push, bring in main
-  with a **merge** (never a rebase, never a force-push):
+* **A bot keeps your branch up to date.** Whenever `main` changes, the `sync-task-branches`
+  workflow merges `main` into your `task/<N>` branch (a merge commit by `github-actions[bot]`).
+  So **always pull before you work and before you push**:
+  ```bash
+  git pull --no-rebase origin task/<N>
+  ```
+  If a push is rejected as non-fast-forward, run that pull and then push again. Never force-push.
+* CI runs on **every push** to your branch, even while the PR has conflicts.
+* **If your PR gets the label `needs:manual-merge`**, the bot hit a real conflict in code. Resolve
+  it yourself with a **merge** (never a rebase, never a force-push), then remove the label:
   ```bash
   git fetch origin
   git merge origin/main          # resolve conflicts: keep both sides' content
@@ -121,8 +129,7 @@ Immediately after the push succeeds:
   git commit                     # the merge commit; message "#<N> merge main" + "Agent: <name>"
   git push origin task/<N>
   ```
-  Do this **before** asking for review as well, and whenever the reviewer asks. Merge
-  commits are fine; history rewriting is not.
+  Merge commits are fine; history rewriting is not.
 * **No JDK?** Push anyway. CI builds the Java and runs your parity tests. Read the failing
   CI job log (job `test`), fix, and push again. CI is the source of truth.
 

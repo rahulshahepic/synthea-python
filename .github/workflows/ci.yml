@@ -1,9 +1,11 @@
 name: CI
 
+# Runs on every push to any branch in this repo, so CI never waits on a PR being
+# mergeable (GitHub skips pull_request workflows while a PR has conflicts). The check runs
+# attach to the pushed commit, which is the PR head, so branch rules see them.
 on:
-  pull_request:
   push:
-    branches: [main]
+    branches: ['**']
   workflow_dispatch:
 
 concurrency:
