@@ -10,8 +10,34 @@ from enum import StrEnum
 class Provider:
     """Java: Provider; pending T13."""
 
+    ENCOUNTERS: str = "encounters"
+    PROCEDURES: str = "procedures"
+    LABS: str = "labs"
+    PRESCRIPTIONS: str = "prescriptions"
+    NEAREST: str = "nearest"
+    RANDOM: str = "random"
+    NETWORK: str = "network"
+    MEDICARE: str = "medicare"
+
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Provider constructor; pending T13."""
+        self.attributes: dict[str, object] = {}
+        self.uuid: str | None = None
+        self.locationUuid: str | None = None
+        self.id: str | None = None
+        self.npi: str | None = None
+        self.cmsProviderNum: str | None = None
+        self.cmsPin: str | None = None
+        self.cmsUpin: str | None = None
+        self.cmsCategory: str | None = None
+        self.cmsProviderType: str | None = None
+        self.cmsRegion: str | None = None
+        self.cliaNumber: str | None = None
+        self.bedCount: int | None = None
+        self.name: str | None = None
+        self.location: object | None = None
+        self.address: str | None = None
+        self.city: str | None = None
         raise NotImplementedError("Java: Provider — pending T13")
 
     def write_object(self, *args: object, **kwargs: object) -> object:
