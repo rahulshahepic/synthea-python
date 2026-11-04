@@ -3,6 +3,7 @@
 #   * CI red   -> bounce it back to the agent automatically (no reviewer involved)
 #   * CI green -> wake the reviewer routine (REVIEWER_TRIGGER_URL/TOKEN secrets)
 #   * CI still running -> do nothing; this workflow runs again when CI completes
+#   * already approved (review:approved) and CI green on a head the sync bot moved -> merge
 #
 # Security: this job holds the reviewer-trigger secret, so it always runs the workflow and
 # script from main (pull_request_target / workflow_run / explicit ref), never code from a PR.
@@ -25,7 +26,7 @@ on:
         default: 'false'
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   issues: write
   actions: read

@@ -81,6 +81,7 @@ push and come first. The reviewer only looks at PRs whose CI is green.
 * `sync-task-branches.yml` merges `main` into every open `task/*` PR each time `main` changes
   (resolving `uv.lock` by regenerating it), then dispatches `ci` and `review-gate` on the new
   head. A sync merge does **not** revoke `review:approved`; the re-dispatched `review-gate`
-  re-checks the label. If CI on the synced head is green, merge.
+  re-checks the label. `review-dispatch` merges an approved PR automatically once CI is green
+  on the synced head, so you never have to come back just to merge.
 * A real code conflict gets the `needs:manual-merge` label and one comment. Treat it as
   "waiting on the agent". Never resolve it yourself.
