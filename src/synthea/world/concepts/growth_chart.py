@@ -10,8 +10,11 @@ from enum import StrEnum
 class GrowthChart:
     """Java: GrowthChart; pending T12."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: GrowthChart constructor; pending T12."""
+    def __init__(self, chart_type: ChartType, raw_chart: dict[str, object]) -> None:
+        """Java: GrowthChart#GrowthChart(ChartType,Map); pending T12."""
+        self.chartType: ChartType | None = None
+        self.maleEntries: dict[int, object] = {}
+        self.femaleEntries: dict[int, object] = {}
         raise NotImplementedError("Java: GrowthChart — pending T12")
 
     def look_up(self, *args: object, **kwargs: object) -> object:
