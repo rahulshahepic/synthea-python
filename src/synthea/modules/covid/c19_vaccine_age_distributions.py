@@ -54,6 +54,9 @@ class AgeRange:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: AgeRange constructor; pending T24."""
+        self.min: int = 0
+        self.max: int = 0
+        self.display: str | None = None
         raise NotImplementedError("Java: AgeRange — pending T24")
 
 
