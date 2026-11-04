@@ -10,18 +10,22 @@ class SimpleCSV:
         """Java: SimpleCSV#SimpleCSV; pending T05."""
         raise NotImplementedError("Java: SimpleCSV#SimpleCSV — pending T05")
 
-    def parse(self, *args: object, **kwargs: object) -> object:
+    @staticmethod
+    def parse(csv_data: str, field_separator: str = ",") -> list[dict[str, str]]:
         """Java: SimpleCSV#parse; pending T05."""
         raise NotImplementedError("Java: SimpleCSV#parse — pending T05")
 
-    def parse_line_by_line(self, *args: object, **kwargs: object) -> object:
+    @staticmethod
+    def parse_line_by_line(csv_data: str) -> object:
         """Java: SimpleCSV#parseLineByLine; pending T05."""
         raise NotImplementedError("Java: SimpleCSV#parseLineByLine — pending T05")
 
-    def unparse(self, *args: object, **kwargs: object) -> object:
+    @staticmethod
+    def unparse(data: list[dict[str, str]], separator: str = ",") -> str:
         """Java: SimpleCSV#unparse; pending T05."""
         raise NotImplementedError("Java: SimpleCSV#unparse — pending T05")
 
-    def is_valid(self, *args: object, **kwargs: object) -> object:
+    @staticmethod
+    def is_valid(csv_data: str, separator: str = ",") -> bool:
         """Java: SimpleCSV#isValid; pending T05."""
         raise NotImplementedError("Java: SimpleCSV#isValid — pending T05")
