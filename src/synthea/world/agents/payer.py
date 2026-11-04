@@ -10,6 +10,13 @@ class Payer:
 
     def __init__(self, name: str, id: int, states_covered: set[str], ownership: str) -> None:
         """Java: Payer#Payer(String,int,Set<String>,String); pending T15."""
+        self.payerAdjustment: object | None = None
+        self.revenue: object | None = None
+        self.costsCovered: object | None = None
+        self.costsUncovered: object | None = None
+        self.totalQOLS: float = 0.0
+        self.customerUtilization: dict[object, object] = {}
+        self.entryUtilization: object | None = None
         self.attributes: dict[str, object] = {}
         self.name: str | None = None
         self.uuid: str | None = None
