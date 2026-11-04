@@ -10,6 +10,9 @@ class PediatricGrowthTrajectory:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: PediatricGrowthTrajectory constructor; pending T12."""
+        self.initialSample: object | None = None
+        self.trajectory: list[object] = []
+        self.seed: int = 0
         raise NotImplementedError("Java: PediatricGrowthTrajectory — pending T12")
 
     def to_string(self, *args: object, **kwargs: object) -> object:
@@ -86,6 +89,8 @@ class YearInformation:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: YearInformation constructor; pending T12."""
+        self.correlation: float = 0.0
+        self.diff: float = 0.0
         raise NotImplementedError("Java: YearInformation — pending T12")
 
 
@@ -94,4 +99,7 @@ class Point:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Point constructor; pending T12."""
+        self.ageInMonths: int = 0
+        self.bmi: float = 0.0
+        self.timeInSimulation: int = 0
         raise NotImplementedError("Java: Point — pending T12")
