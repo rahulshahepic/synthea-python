@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from synthea.helpers.value_generator import ValueGenerator
 
-class TrendingValueGenerator:
+
+class TrendingValueGenerator(ValueGenerator):
     """Java: TrendingValueGenerator; pending T07."""
 
     def __init__(self, *args: object, **kwargs: object) -> None:
