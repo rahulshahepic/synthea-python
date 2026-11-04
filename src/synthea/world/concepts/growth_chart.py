@@ -39,4 +39,9 @@ class GrowthChart:
 
 
 class ChartType(StrEnum):
-    """Java: ChartType; pending T12."""
+    """Java: GrowthChart.ChartType; pending T12."""
+
+    HEIGHT = "HEIGHT"
+    WEIGHT = "WEIGHT"
+    BMI = "BMI"
+    HEAD = "HEAD"
