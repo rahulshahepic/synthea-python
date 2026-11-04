@@ -8,6 +8,12 @@ class CMSStateCodeMapper:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: CMSStateCodeMapper constructor; pending T10."""
+        self.providerStateCodes: dict[object, object] = {}
+        self.stateToAbbrev: dict[object, object] = {}
+        self.abbrevToState: dict[object, object] = {}
+        self.ssaTable: dict[object, object] = {}
+        self.ssaStateCountyNameCountyCode: dict[object, object] = {}
+        self.fipsTable: dict[object, object] = {}
         raise NotImplementedError("Java: CMSStateCodeMapper#constructor — pending T10")
 
     def get_state_code(self, *args: object, **kwargs: object) -> object:
