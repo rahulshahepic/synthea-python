@@ -67,7 +67,7 @@ def _java_enums(source: str) -> dict[str, set[str]]:
         if end < 0:
             continue
         section = clean[start:end]
-        names = set(re.findall(r"(?:^|,)\s*([A-Z][A-Z0-9_]*)\s*(?:\(|,|$)", section))
+        names = set(re.findall(r"(?:^|,)\s*([A-Z][A-Z0-9_]*)\b", section))
         if names:
             result[match[1]] = names
     return result
