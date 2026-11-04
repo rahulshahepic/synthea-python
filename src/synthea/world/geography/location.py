@@ -8,6 +8,15 @@ class Location:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Location constructor; pending T10."""
+        self.totalPopulation: int = 0
+        self.populationByCity: dict[object, object] = {}
+        self.populationByCityId: dict[object, object] = {}
+        self.zipCodes: dict[object, object] = {}
+        self.city: str | None = None
+        self.fixedCity: object | None = None
+        self.state: str | None = None
+        self.demographics: dict[object, object] = {}
+        self.socialDeterminantsOfHealth: dict[object, object] = {}
         raise NotImplementedError("Java: Location#constructor — pending T10")
 
     def get_zip_code(self, *args: object, **kwargs: object) -> object:
