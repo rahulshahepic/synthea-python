@@ -8,6 +8,9 @@ class Employment:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Employment constructor; pending T10."""
+        self.chanceOfUnemployment: float = 0.0
+        self.nextTimeToCheck: int = 0
+        self.unemployed: bool = False
         raise NotImplementedError("Java: Employment#constructor — pending T10")
 
     def check_employment(self, *args: object, **kwargs: object) -> object:
