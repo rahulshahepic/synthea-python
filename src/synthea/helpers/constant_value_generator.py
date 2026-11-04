@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from synthea.helpers.value_generator import ValueGenerator
 
 
