@@ -19,7 +19,6 @@ class DefaultRandomNumberGenerator(RandomNumberGeneratorDefaults):
         self.random = JavaRandom(seed)
         self.count = 0
 
-
     @overload
     def rand(self) -> float: ...
 
