@@ -121,4 +121,10 @@ class ExporterRuntimeOptions:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ExporterRuntimeOptions constructor; pending T25."""
+        self.yearsOfHistory: int = 0
+        self.deferExports: bool = False
+        self.terminologyService: bool = False
+        self.recordQueue: object | None = None
+        self.fhirVersion: object | None = None
+        self.flexporterMappings: list[object] = []
         raise NotImplementedError("Java: ExporterRuntimeOptions — pending T25")
