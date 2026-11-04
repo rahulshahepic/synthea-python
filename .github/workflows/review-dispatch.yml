@@ -1,18 +1,27 @@
 # Automated checks come first. A PR labelled `review:needed` reaches the reviewer only after
 # CI is green on its head commit:
 #   * CI red   -> bounce it back to the agent automatically (no reviewer involved)
-#   * CI green -> wake the reviewer routine (if REVIEWER_TRIGGER_URL/TOKEN secrets are set)
+#   * CI green -> wake the reviewer routine (REVIEWER_TRIGGER_URL/TOKEN secrets)
 #   * CI still running -> do nothing; this workflow runs again when CI completes
+#
+# Security: this job holds the reviewer-trigger secret, so it always runs the workflow and
+# script from main (pull_request_target / workflow_run / explicit ref), never code from a PR.
 name: review-dispatch
 
 on:
   workflow_run:
     workflows: [CI]
     types: [completed]
-  pull_request:
+  pull_request_target:
     types: [labeled]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: PR head branch to route (e.g. task/2)
+        required: true
 
 permissions:
+  contents: read
   pull-requests: write
   issues: write
   actions: read
@@ -22,13 +31,16 @@ jobs:
   dispatch:
     name: review-dispatch
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_run' || github.event.label.name == 'review:needed'
+    if: github.event_name != 'pull_request_target' || github.event.label.name == 'review:needed'
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
       - name: Route PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          BRANCH: ${{ github.event.workflow_run.head_branch || github.event.pull_request.head.ref }}
+          BRANCH: ${{ inputs.branch || github.event.workflow_run.head_branch || github.event.pull_request.head.ref }}
           TRIGGER_URL: ${{ secrets.REVIEWER_TRIGGER_URL }}
           TRIGGER_TOKEN: ${{ secrets.REVIEWER_TRIGGER_TOKEN }}
         run: scripts/review_dispatch.sh
