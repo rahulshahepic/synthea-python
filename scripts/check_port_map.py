@@ -6,6 +6,7 @@ Usage:
     uv run python scripts/check_port_map.py --task T05 --no-stubs
                                                             # also fail if any stub remains
     uv run python scripts/check_port_map.py --stubs         # report remaining stubs per module
+    uv run python scripts/check_port_map.py --skip-owners T01,T02,T03  # ignore those tasks' modules
 
 Structure check, for every mapped module:
   * the file exists and imports cleanly;
@@ -209,6 +210,8 @@ def main() -> int:
     ap.add_argument("--task")
     ap.add_argument("--no-stubs", action="store_true")
     ap.add_argument("--stubs", action="store_true")
+    ap.add_argument("--existing-only", action="store_true", help="ignore modules not created yet")
+    ap.add_argument("--skip-owners", default="", help="comma-separated task IDs to ignore")
     args = ap.parse_args()
 
     entries = tomllib.loads((ROOT / "docs/port_map.toml").read_text())["module"]
@@ -217,10 +220,14 @@ def main() -> int:
         if not entries:
             print(f"no modules owned by {args.task}")
             return 1
+    skip = {x for x in args.skip_owners.split(",") if x}
+    entries = [e for e in entries if not (set(e["owners"]) & skip)]
     errors: list[str] = []
     for e in entries:
         py = ROOT / e["python"]
         if not py.is_file():
+            if args.existing_only:
+                continue
             errors.append(f"{e['python']}: missing")
             continue
         modname = e["python"].removeprefix("src/").removesuffix(".py").replace("/", ".")

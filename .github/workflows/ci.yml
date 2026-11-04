@@ -79,10 +79,8 @@ jobs:
         with:
           name: golden
           path: parity/golden
-      - name: Port-map structure check (enforced once the T04 skeleton has merged)
-        run: |
-          if [ -f src/synthea/engine/state.py ]; then uv run python scripts/check_port_map.py; \
-          else echo "skeleton not merged yet; skipping"; fi
+      - name: Port-map structure check (modules that exist must match their Java API)
+        run: uv run python scripts/check_port_map.py --existing-only
       - name: Unit + parity tests
         env:
           PARITY_REQUIRED: '1'
