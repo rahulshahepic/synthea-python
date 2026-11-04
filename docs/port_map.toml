@@ -1,0 +1,525 @@
+# Port map: every in-scope Java source -> its Python module -> the task that owns it.
+# Generated from the plan; edited only by the reviewer. Ownership = who may edit the file.
+# A module with java = "" is Python-only (Java runtime semantics). `owners` lists tasks in order;
+# a later owner may only start after the earlier one is merged.
+
+[[module]]
+python = "src/synthea/helpers/random_number_generator.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/RandomNumberGenerator.java"
+owners = ["T01"]
+
+[[module]]
+python = "src/synthea/helpers/default_random_number_generator.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/DefaultRandomNumberGenerator.java"
+owners = ["T01"]
+
+[[module]]
+python = "src/synthea/javacompat/random.py"
+java = ""
+owners = ["T01"]
+
+[[module]]
+python = "src/synthea/javacompat/uuid.py"
+java = ""
+owners = ["T01"]
+
+[[module]]
+python = "src/synthea/javacompat/hashing.py"
+java = ""
+owners = ["T02"]
+
+[[module]]
+python = "src/synthea/javacompat/collections.py"
+java = ""
+owners = ["T02"]
+
+[[module]]
+python = "src/synthea/javacompat/numbers.py"
+java = ""
+owners = ["T03"]
+
+[[module]]
+python = "src/synthea/javacompat/fmt.py"
+java = ""
+owners = ["T03"]
+
+[[module]]
+python = "src/synthea/javacompat/bigdecimal.py"
+java = ""
+owners = ["T03"]
+
+[[module]]
+python = "src/synthea/helpers/config.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/Config.java"
+owners = ["T05"]
+
+[[module]]
+python = "src/synthea/helpers/simple_csv.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/SimpleCSV.java"
+owners = ["T05"]
+
+[[module]]
+python = "src/synthea/helpers/simple_yml.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/SimpleYML.java"
+owners = ["T05"]
+
+[[module]]
+python = "src/synthea/helpers/utilities.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/Utilities.java"
+owners = ["T06"]
+
+[[module]]
+python = "src/synthea/helpers/time_series_data.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/TimeSeriesData.java"
+owners = ["T06"]
+
+[[module]]
+python = "src/synthea/helpers/telemedicine.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/Telemedicine.java"
+owners = ["T06"]
+
+[[module]]
+python = "src/synthea/helpers/random_collection.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/RandomCollection.java"
+owners = ["T07"]
+
+[[module]]
+python = "src/synthea/helpers/synced_enumerated_distro.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/SyncedEnumeratedDistro.java"
+owners = ["T07"]
+
+[[module]]
+python = "src/synthea/engine/distribution.py"
+java = "java/src/main/java/org/mitre/synthea/engine/Distribution.java"
+owners = ["T07"]
+
+[[module]]
+python = "src/synthea/helpers/value_generator.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/ValueGenerator.java"
+owners = ["T07"]
+
+[[module]]
+python = "src/synthea/helpers/constant_value_generator.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/ConstantValueGenerator.java"
+owners = ["T07"]
+
+[[module]]
+python = "src/synthea/helpers/random_value_generator.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/RandomValueGenerator.java"
+owners = ["T07"]
+
+[[module]]
+python = "src/synthea/helpers/trending_value_generator.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/TrendingValueGenerator.java"
+owners = ["T07"]
+
+[[module]]
+python = "src/synthea/helpers/random_code_generator.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/RandomCodeGenerator.java"
+owners = ["T07"]
+
+[[module]]
+python = "src/synthea/helpers/expression_processor.py"
+java = "java/src/main/java/org/mitre/synthea/helpers/ExpressionProcessor.java"
+owners = ["T07"]
+
+[[module]]
+python = "src/synthea/world/concepts/health_record.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/HealthRecord.java"
+owners = ["T08"]
+
+[[module]]
+python = "src/synthea/world/agents/person.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/Person.java"
+owners = ["T09"]
+
+[[module]]
+python = "src/synthea/engine/expressed_symptom.py"
+java = "java/src/main/java/org/mitre/synthea/engine/ExpressedSymptom.java"
+owners = ["T09"]
+
+[[module]]
+python = "src/synthea/engine/expressed_condition_record.py"
+java = "java/src/main/java/org/mitre/synthea/engine/ExpressedConditionRecord.java"
+owners = ["T09"]
+
+[[module]]
+python = "src/synthea/world/geography/place.py"
+java = "java/src/main/java/org/mitre/synthea/world/geography/Place.java"
+owners = ["T10"]
+
+[[module]]
+python = "src/synthea/world/geography/location.py"
+java = "java/src/main/java/org/mitre/synthea/world/geography/Location.java"
+owners = ["T10"]
+
+[[module]]
+python = "src/synthea/world/geography/demographics.py"
+java = "java/src/main/java/org/mitre/synthea/world/geography/Demographics.java"
+owners = ["T10"]
+
+[[module]]
+python = "src/synthea/world/geography/cms_state_code_mapper.py"
+java = "java/src/main/java/org/mitre/synthea/world/geography/CMSStateCodeMapper.java"
+owners = ["T10"]
+
+[[module]]
+python = "src/synthea/world/geography/quadtree/quad_tree.py"
+java = "java/src/main/java/org/mitre/synthea/world/geography/quadtree/QuadTree.java"
+owners = ["T10"]
+
+[[module]]
+python = "src/synthea/world/geography/quadtree/quad_tree_element.py"
+java = "java/src/main/java/org/mitre/synthea/world/geography/quadtree/QuadTreeElement.java"
+owners = ["T10"]
+
+[[module]]
+python = "src/synthea/world/concepts/employment.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/Employment.java"
+owners = ["T10"]
+
+[[module]]
+python = "src/synthea/world/concepts/names.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/Names.java"
+owners = ["T11"]
+
+[[module]]
+python = "src/synthea/world/concepts/race_and_ethnicity.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/RaceAndEthnicity.java"
+owners = ["T11"]
+
+[[module]]
+python = "src/synthea/world/concepts/clinician_specialty.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/ClinicianSpecialty.java"
+owners = ["T11"]
+
+[[module]]
+python = "src/synthea/world/concepts/vital_sign.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/VitalSign.java"
+owners = ["T11"]
+
+[[module]]
+python = "src/synthea/world/concepts/biometrics_config.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/BiometricsConfig.java"
+owners = ["T11"]
+
+[[module]]
+python = "src/synthea/world/concepts/telemedicine_config.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/TelemedicineConfig.java"
+owners = ["T11"]
+
+[[module]]
+python = "src/synthea/world/concepts/bmi.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/BMI.java"
+owners = ["T11"]
+
+[[module]]
+python = "src/synthea/world/concepts/birth_statistics.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/BirthStatistics.java"
+owners = ["T12"]
+
+[[module]]
+python = "src/synthea/world/concepts/growth_chart.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/GrowthChart.java"
+owners = ["T12"]
+
+[[module]]
+python = "src/synthea/world/concepts/growth_chart_entry.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/GrowthChartEntry.java"
+owners = ["T12"]
+
+[[module]]
+python = "src/synthea/world/concepts/nhanes_sample.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/NHANESSample.java"
+owners = ["T12"]
+
+[[module]]
+python = "src/synthea/world/concepts/pediatric_growth_trajectory.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/PediatricGrowthTrajectory.java"
+owners = ["T12"]
+
+[[module]]
+python = "src/synthea/world/agents/clinician.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/Clinician.java"
+owners = ["T13"]
+
+[[module]]
+python = "src/synthea/world/agents/provider.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/Provider.java"
+owners = ["T13"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/providerfinder/i_provider_finder.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/providerfinder/IProviderFinder.java"
+owners = ["T13"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/providerfinder/provider_finder_nearest.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/providerfinder/ProviderFinderNearest.java"
+owners = ["T13"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/providerfinder/provider_finder_nearest_medicare.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/providerfinder/ProviderFinderNearestMedicare.java"
+owners = ["T13"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/providerfinder/provider_finder_random.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/providerfinder/ProviderFinderRandom.java"
+owners = ["T13"]
+
+[[module]]
+python = "src/synthea/world/concepts/costs.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/Costs.java"
+owners = ["T14"]
+
+[[module]]
+python = "src/synthea/world/concepts/claim.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/Claim.java"
+owners = ["T14"]
+
+[[module]]
+python = "src/synthea/world/agents/payer.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/Payer.java"
+owners = ["T15"]
+
+[[module]]
+python = "src/synthea/world/agents/payer_manager.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/PayerManager.java"
+owners = ["T15"]
+
+[[module]]
+python = "src/synthea/world/concepts/healthinsurance/insurance_plan.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/healthinsurance/InsurancePlan.java"
+owners = ["T15"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/payeradjustment/i_payer_adjustment.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/payeradjustment/IPayerAdjustment.java"
+owners = ["T15"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/payeradjustment/payer_adjustment_fixed.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/payeradjustment/PayerAdjustmentFixed.java"
+owners = ["T15"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/payeradjustment/payer_adjustment_none.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/payeradjustment/PayerAdjustmentNone.java"
+owners = ["T15"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/payeradjustment/payer_adjustment_random.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/payeradjustment/PayerAdjustmentRandom.java"
+owners = ["T15"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/planfinder/i_plan_finder.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/planfinder/IPlanFinder.java"
+owners = ["T15"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/planfinder/plan_finder_best_rates.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/planfinder/PlanFinderBestRates.java"
+owners = ["T15"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/planfinder/plan_finder_priority.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/planfinder/PlanFinderPriority.java"
+owners = ["T15"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/planfinder/plan_finder_random.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/planfinder/PlanFinderRandom.java"
+owners = ["T15"]
+
+[[module]]
+python = "src/synthea/world/concepts/healthinsurance/plan_record.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/healthinsurance/PlanRecord.java"
+owners = ["T16"]
+
+[[module]]
+python = "src/synthea/world/concepts/healthinsurance/coverage_record.py"
+java = "java/src/main/java/org/mitre/synthea/world/concepts/healthinsurance/CoverageRecord.java"
+owners = ["T16"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/planeligibility/i_plan_eligibility.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/planeligibility/IPlanEligibility.java"
+owners = ["T16"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/planeligibility/default_plan_eligibility.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/planeligibility/DefaultPlanEligibility.java"
+owners = ["T16"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/planeligibility/plan_eligibility_finder.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/planeligibility/PlanEligibilityFinder.java"
+owners = ["T16"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/planeligibility/csv_eligibility.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/planeligibility/CSVEligibility.java"
+owners = ["T16"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/planeligibility/income_spenddown_eligibility.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/planeligibility/IncomeSpenddownEligibility.java"
+owners = ["T16"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/planeligibility/poverty_multiplier_file_eligibility.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/planeligibility/PovertyMultiplierFileEligibility.java"
+owners = ["T16"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/planeligibility/qualifying_attributes_eligibility.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/planeligibility/QualifyingAttributesEligibility.java"
+owners = ["T16"]
+
+[[module]]
+python = "src/synthea/world/agents/behaviors/planeligibility/qualifying_condition_codes_eligibility.py"
+java = "java/src/main/java/org/mitre/synthea/world/agents/behaviors/planeligibility/QualifyingConditionCodesEligibility.java"
+owners = ["T16"]
+
+[[module]]
+python = "src/synthea/modules/health_insurance_module.py"
+java = "java/src/main/java/org/mitre/synthea/modules/HealthInsuranceModule.java"
+owners = ["T16"]
+
+[[module]]
+python = "src/synthea/engine/components.py"
+java = "java/src/main/java/org/mitre/synthea/engine/Components.java"
+owners = ["T17"]
+
+[[module]]
+python = "src/synthea/engine/logic.py"
+java = "java/src/main/java/org/mitre/synthea/engine/Logic.java"
+owners = ["T17"]
+
+[[module]]
+python = "src/synthea/engine/transition.py"
+java = "java/src/main/java/org/mitre/synthea/engine/Transition.java"
+owners = ["T18"]
+
+[[module]]
+python = "src/synthea/engine/module.py"
+java = "java/src/main/java/org/mitre/synthea/engine/Module.java"
+owners = ["T19"]
+
+[[module]]
+python = "src/synthea/engine/state.py"
+java = "java/src/main/java/org/mitre/synthea/engine/State.java"
+owners = ["T19", "T20"]
+
+[[module]]
+python = "src/synthea/engine/reaction_probabilities.py"
+java = "java/src/main/java/org/mitre/synthea/engine/ReactionProbabilities.java"
+owners = ["T20"]
+
+[[module]]
+python = "src/synthea/modules/lifecycle_module.py"
+java = "java/src/main/java/org/mitre/synthea/modules/LifecycleModule.java"
+owners = ["T21"]
+
+[[module]]
+python = "src/synthea/modules/blood_pressure_value_generator.py"
+java = "java/src/main/java/org/mitre/synthea/modules/BloodPressureValueGenerator.java"
+owners = ["T21"]
+
+[[module]]
+python = "src/synthea/modules/encounter_module.py"
+java = "java/src/main/java/org/mitre/synthea/modules/EncounterModule.java"
+owners = ["T22"]
+
+[[module]]
+python = "src/synthea/modules/death_module.py"
+java = "java/src/main/java/org/mitre/synthea/modules/DeathModule.java"
+owners = ["T22"]
+
+[[module]]
+python = "src/synthea/modules/immunizations.py"
+java = "java/src/main/java/org/mitre/synthea/modules/Immunizations.java"
+owners = ["T22"]
+
+[[module]]
+python = "src/synthea/modules/cardiovascular_disease_module.py"
+java = "java/src/main/java/org/mitre/synthea/modules/CardiovascularDiseaseModule.java"
+owners = ["T23"]
+
+[[module]]
+python = "src/synthea/modules/calculators/ascvd.py"
+java = "java/src/main/java/org/mitre/synthea/modules/calculators/ASCVD.java"
+owners = ["T23"]
+
+[[module]]
+python = "src/synthea/modules/calculators/framingham.py"
+java = "java/src/main/java/org/mitre/synthea/modules/calculators/Framingham.java"
+owners = ["T23"]
+
+[[module]]
+python = "src/synthea/modules/quality_of_life_module.py"
+java = "java/src/main/java/org/mitre/synthea/modules/QualityOfLifeModule.java"
+owners = ["T23"]
+
+[[module]]
+python = "src/synthea/modules/weight_loss_module.py"
+java = "java/src/main/java/org/mitre/synthea/modules/WeightLossModule.java"
+owners = ["T23"]
+
+[[module]]
+python = "src/synthea/modules/covid/c19_immunization_module.py"
+java = "java/src/main/java/org/mitre/synthea/modules/covid/C19ImmunizationModule.java"
+owners = ["T24"]
+
+[[module]]
+python = "src/synthea/modules/covid/c19_vaccine.py"
+java = "java/src/main/java/org/mitre/synthea/modules/covid/C19Vaccine.java"
+owners = ["T24"]
+
+[[module]]
+python = "src/synthea/modules/covid/c19_vaccine_age_distributions.py"
+java = "java/src/main/java/org/mitre/synthea/modules/covid/C19VaccineAgeDistributions.java"
+owners = ["T24"]
+
+[[module]]
+python = "src/synthea/modules/covid/late_adopter_model.py"
+java = "java/src/main/java/org/mitre/synthea/modules/covid/LateAdopterModel.java"
+owners = ["T24"]
+
+[[module]]
+python = "src/synthea/export/exporter.py"
+java = "java/src/main/java/org/mitre/synthea/export/Exporter.java"
+owners = ["T25"]
+
+[[module]]
+python = "src/synthea/export/export_helper.py"
+java = "java/src/main/java/org/mitre/synthea/export/ExportHelper.java"
+owners = ["T25"]
+
+[[module]]
+python = "src/synthea/export/csv_file_manager.py"
+java = "java/src/main/java/org/mitre/synthea/export/CSVFileManager.java"
+owners = ["T25"]
+
+[[module]]
+python = "src/synthea/export/csv_constants.py"
+java = "java/src/main/java/org/mitre/synthea/export/CSVConstants.java"
+owners = ["T25"]
+
+[[module]]
+python = "src/synthea/export/csv_exporter.py"
+java = "java/src/main/java/org/mitre/synthea/export/CSVExporter.java"
+owners = ["T26"]
+
+[[module]]
+python = "src/synthea/engine/generator.py"
+java = "java/src/main/java/org/mitre/synthea/engine/Generator.java"
+owners = ["T27"]
+
+[[module]]
+python = "src/synthea/cli.py"
+java = "java/src/main/java/App.java"
+owners = ["T28"]
+
