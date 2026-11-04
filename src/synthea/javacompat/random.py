@@ -3,6 +3,77 @@
 from __future__ import annotations
 
 import math
+import struct
+
+
+# The fdlibm log polynomial is copyright (C) 1993 Sun Microsystems, Inc.
+# Permission to use, copy, modify and distribute is freely granted,
+# provided that this notice is preserved.
+def _strict_log(value: float) -> float:
+    """Java: java.lang.StrictMath#log, fdlibm 5.3 e_log.c transliteration."""
+    ln2_hi = 6.93147180369123816490e-01
+    ln2_lo = 1.90821492927058770002e-10
+    lg1 = 6.666666666666735130e-01
+    lg2 = 3.999999999940941908e-01
+    lg3 = 2.857142874366239149e-01
+    lg4 = 2.222219843214978396e-01
+    lg5 = 1.818357216161805012e-01
+    lg6 = 1.531383769920937332e-01
+    lg7 = 1.479819860511658591e-01
+    bits = struct.unpack(">Q", struct.pack(">d", value))[0]
+    high = bits >> 32
+    low = bits & 0xFFFFFFFF
+    exponent = 0
+    if high < 0x00100000:
+        if ((high & 0x7FFFFFFF) | low) == 0:
+            return -math.inf
+        if high & 0x80000000:
+            return math.nan
+        exponent -= 54
+        value *= 18014398509481984.0
+        bits = struct.unpack(">Q", struct.pack(">d", value))[0]
+        high = bits >> 32
+    if high >= 0x7FF00000:
+        return value + value
+    exponent += (high >> 20) - 1023
+    high &= 0x000FFFFF
+    shift = (high + 0x95F64) & 0x100000
+    bits = ((high | (shift ^ 0x3FF00000)) << 32) | (bits & 0xFFFFFFFF)
+    value = struct.unpack(">d", struct.pack(">Q", bits))[0]
+    exponent += shift >> 20
+    fraction = value - 1.0
+    if (0x000FFFFF & (2 + high)) < 3:
+        if fraction == 0.0:
+            if exponent == 0:
+                return 0.0
+            scale = float(exponent)
+            return scale * ln2_hi + scale * ln2_lo
+        residual = fraction * fraction * (0.5 - 0.33333333333333333 * fraction)
+        if exponent == 0:
+            return fraction - residual
+        scale = float(exponent)
+        return scale * ln2_hi - ((residual - scale * ln2_lo) - fraction)
+    ratio = fraction / (2.0 + fraction)
+    scale = float(exponent)
+    square = ratio * ratio
+    selector = high - 0x6147A
+    fourth = square * square
+    complement = 0x6B851 - high
+    term1 = fourth * (lg2 + fourth * (lg4 + fourth * lg6))
+    term2 = square * (lg1 + fourth * (lg3 + fourth * (lg5 + fourth * lg7)))
+    selector |= complement
+    residual = term2 + term1
+    if selector > 0:
+        half_square = 0.5 * fraction * fraction
+        if exponent == 0:
+            return fraction - (half_square - ratio * (half_square + residual))
+        return scale * ln2_hi - (
+            (half_square - (ratio * (half_square + residual) + scale * ln2_lo))
+            - fraction
+        )
+    if exponent == 0:
+        return fraction - ratio * (fraction - residual)
+    return scale * ln2_hi - ((ratio * (fraction - residual) - scale * ln2_lo) - fraction)
 
 
 class JavaRandom:
@@ -82,7 +153,7 @@ class JavaRandom:
             s = v1 * v1 + v2 * v2
             if 0 < s < 1:
                 break
-        multiplier = math.sqrt(-2 * math.log(s) / s)
+        multiplier = math.sqrt(-2 * _strict_log(s) / s)
         self._next_gaussian = v2 * multiplier
         self._have_next_gaussian = True
         return v1 * multiplier
