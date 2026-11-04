@@ -12,6 +12,8 @@ class CSVExporter:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: CSVExporter constructor; pending T26."""
+        self.fileManager: object | None = None
+        self.transactionId: object | None = None
         raise NotImplementedError("Java: CSVExporter — pending T26")
 
     def get_instance(self, *args: object, **kwargs: object) -> object:
