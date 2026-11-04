@@ -68,8 +68,7 @@ def _strict_log(value: float) -> float:
         if exponent == 0:
             return fraction - (half_square - ratio * (half_square + residual))
         return scale * ln2_hi - (
-            (half_square - (ratio * (half_square + residual) + scale * ln2_lo))
-            - fraction
+            (half_square - (ratio * (half_square + residual) + scale * ln2_lo)) - fraction
         )
     if exponent == 0:
         return fraction - ratio * (fraction - residual)
