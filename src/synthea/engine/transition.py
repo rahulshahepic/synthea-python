@@ -10,6 +10,7 @@ class Transition:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Transition constructor; pending T18."""
+        self.remarks: list[object] = []
         raise NotImplementedError("Java: Transition — pending T18")
 
     def follow(self, *args: object, **kwargs: object) -> object:
@@ -54,6 +55,7 @@ class DirectTransition:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: DirectTransition constructor; pending T18."""
+        self.transition: str | None = None
         raise NotImplementedError("Java: DirectTransition — pending T18")
 
 
@@ -62,6 +64,7 @@ class TransitionOption:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: TransitionOption constructor; pending T18."""
+        self.transition: str | None = None
         raise NotImplementedError("Java: TransitionOption — pending T18")
 
 
@@ -70,6 +73,9 @@ class DistributedTransitionOption:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: DistributedTransitionOption constructor; pending T18."""
+        self.distribution: object | None = None
+        self.numericDistribution: object | None = None
+        self.namedDistribution: object | None = None
         raise NotImplementedError("Java: DistributedTransitionOption — pending T18")
 
 
@@ -78,6 +84,7 @@ class DistributedTransition:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: DistributedTransition constructor; pending T18."""
+        self.transitions: list[object] = []
         raise NotImplementedError("Java: DistributedTransition — pending T18")
 
 
@@ -86,6 +93,10 @@ class TypeOfCareTransition:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: TypeOfCareTransition constructor; pending T18."""
+        self.ambulatory: str | None = None
+        self.telemedicine: str | None = None
+        self.emergency: str | None = None
+        self.config: object | None = None
         raise NotImplementedError("Java: TypeOfCareTransition — pending T18")
 
 
@@ -94,6 +105,9 @@ class TypeOfCareTransitionOptions:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: TypeOfCareTransitionOptions constructor; pending T18."""
+        self.ambulatory: str | None = None
+        self.telemedicine: str | None = None
+        self.emergency: str | None = None
         raise NotImplementedError("Java: TypeOfCareTransitionOptions — pending T18")
 
 
@@ -102,6 +116,8 @@ class LookupTableTransitionOption:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: LookupTableTransitionOption constructor; pending T18."""
+        self.lookupTableName: str | None = None
+        self.defaultProbability: float = 0.0
         raise NotImplementedError("Java: LookupTableTransitionOption — pending T18")
 
 
@@ -110,6 +126,10 @@ class LookupTableTransition:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: LookupTableTransition constructor; pending T18."""
+        self.transitions: list[object] = []
+        self.attributes: list[object] = []
+        self.defaultTransitions: list[object] = []
+        self.lookupTableName: str | None = None
         raise NotImplementedError("Java: LookupTableTransition — pending T18")
 
 
@@ -118,6 +138,11 @@ class LookupTableKey:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: LookupTableKey constructor; pending T18."""
+        self.attributes: list[object] = []
+        self.age: object | None = None
+        self.ageRange: object | None = None
+        self.time: object | None = None
+        self.timeRange: object | None = None
         raise NotImplementedError("Java: LookupTableKey — pending T18")
 
 
@@ -126,6 +151,7 @@ class ConditionalTransitionOption:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ConditionalTransitionOption constructor; pending T18."""
+        self.condition: object | None = None
         raise NotImplementedError("Java: ConditionalTransitionOption — pending T18")
 
 
@@ -134,6 +160,7 @@ class ConditionalTransition:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ConditionalTransition constructor; pending T18."""
+        self.transitions: list[object] = []
         raise NotImplementedError("Java: ConditionalTransition — pending T18")
 
 
@@ -142,6 +169,8 @@ class ComplexTransitionOption:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ComplexTransitionOption constructor; pending T18."""
+        self.condition: object | None = None
+        self.distributions: list[object] = []
         raise NotImplementedError("Java: ComplexTransitionOption — pending T18")
 
 
@@ -150,6 +179,7 @@ class ComplexTransition:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ComplexTransition constructor; pending T18."""
+        self.transitions: list[object] = []
         raise NotImplementedError("Java: ComplexTransition — pending T18")
 
 
@@ -158,4 +188,6 @@ class NamedDistribution:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: NamedDistribution constructor; pending T18."""
+        self.attribute: str | None = None
+        self.defaultDistribution: float = 0.0
         raise NotImplementedError("Java: NamedDistribution — pending T18")
