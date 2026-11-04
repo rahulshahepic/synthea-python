@@ -127,7 +127,9 @@ class CSVConstants:
     @staticmethod
     def initialize_header_map() -> Mapping[str, str]:
         """Java: CSVConstants#initializeHeaderMap()."""
-        raise NotImplementedError("Java: CSVConstants#initializeHeaderMap — pending T25")
+        raise NotImplementedError(
+            "Java: CSVConstants#initializeHeaderMap — pending T25"
+        )
 
 CSVConstants.HEADER_LINE_MAP = MappingProxyType(
     {
