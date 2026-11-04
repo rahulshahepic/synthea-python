@@ -10,6 +10,9 @@ class ReactionProbabilities:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: ReactionProbabilities constructor; pending T20."""
+        self.reaction: object | None = None
+        self.possibleSeverities: list[object] = []
+        self.severityDistribution: object | None = None
         raise NotImplementedError("Java: ReactionProbabilities — pending T20")
 
     def get_reaction(self, *args: object, **kwargs: object) -> object:
@@ -58,4 +61,6 @@ class SeverityProbability:
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: SeverityProbability constructor; pending T20."""
+        self.level: str | None = None
+        self.value: float = 0.0
         raise NotImplementedError("Java: SeverityProbability — pending T20")
