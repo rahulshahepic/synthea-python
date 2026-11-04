@@ -1,6 +1,8 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/engine/Distribution.java."""
 from __future__ import annotations
-from enum import Enum
+
+from enum import StrEnum
+
 
 class Distribution:
     """Java: Distribution; pending T07."""
@@ -14,5 +16,6 @@ class Distribution:
         """Java: Distribution#validate; pending T07."""
         raise NotImplementedError("Java: Distribution#validate — pending T07")
 
-class Kind(str, Enum):
+
+class Kind(StrEnum):
     """Java: Kind; pending T07."""

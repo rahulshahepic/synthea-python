@@ -1,6 +1,6 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/helpers/ExpressionProcessor.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class ExpressionProcessor:
     """Java: ExpressionProcessor; pending T07."""
@@ -36,4 +36,6 @@ class ExpressionProcessor:
         raise NotImplementedError("Java: ExpressionProcessor#replaceParameters — pending T07")
     def convert_parameterized_expression_to_cql(self, *args: object, **kwargs: object) -> object:
         """Java: ExpressionProcessor#convertParameterizedExpressionToCql; pending T07."""
-        raise NotImplementedError("Java: ExpressionProcessor#convertParameterizedExpressionToCql — pending T07")
+        raise NotImplementedError(
+            "Java: ExpressionProcessor#convertParameterizedExpressionToCql — pending T07"
+        )

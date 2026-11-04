@@ -1,6 +1,8 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/world/concepts/HealthRecord.java."""
 from __future__ import annotations
-from enum import Enum
+
+from enum import StrEnum
+
 
 class HealthRecord:
     """Java: HealthRecord; pending T08."""
@@ -194,11 +196,13 @@ class HealthRecord:
         """Java: HealthRecord#assignImagingStudyDicomUids; pending T08."""
         raise NotImplementedError("Java: HealthRecord#assignImagingStudyDicomUids — pending T08")
 
+
 class Code:
     """Java: Code; pending T08."""
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Code constructor; pending T08."""
         raise NotImplementedError("Java: Code#constructor — pending T08")
+
 
 class Entry:
     """Java: Entry; pending T08."""
@@ -206,11 +210,13 @@ class Entry:
         """Java: Entry constructor; pending T08."""
         raise NotImplementedError("Java: Entry#constructor — pending T08")
 
+
 class EntryWithReasons:
     """Java: EntryWithReasons; pending T08."""
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: EntryWithReasons constructor; pending T08."""
         raise NotImplementedError("Java: EntryWithReasons#constructor — pending T08")
+
 
 class Observation:
     """Java: Observation; pending T08."""
@@ -218,11 +224,13 @@ class Observation:
         """Java: Observation constructor; pending T08."""
         raise NotImplementedError("Java: Observation#constructor — pending T08")
 
+
 class Report:
     """Java: Report; pending T08."""
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Report constructor; pending T08."""
         raise NotImplementedError("Java: Report#constructor — pending T08")
+
 
 class Medication:
     """Java: Medication; pending T08."""
@@ -230,11 +238,13 @@ class Medication:
         """Java: Medication constructor; pending T08."""
         raise NotImplementedError("Java: Medication#constructor — pending T08")
 
+
 class Immunization:
     """Java: Immunization; pending T08."""
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Immunization constructor; pending T08."""
         raise NotImplementedError("Java: Immunization#constructor — pending T08")
+
 
 class Procedure:
     """Java: Procedure; pending T08."""
@@ -242,11 +252,13 @@ class Procedure:
         """Java: Procedure constructor; pending T08."""
         raise NotImplementedError("Java: Procedure#constructor — pending T08")
 
+
 class CarePlan:
     """Java: CarePlan; pending T08."""
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: CarePlan constructor; pending T08."""
         raise NotImplementedError("Java: CarePlan#constructor — pending T08")
+
 
 class ImagingStudy:
     """Java: ImagingStudy; pending T08."""
@@ -254,11 +266,13 @@ class ImagingStudy:
         """Java: ImagingStudy constructor; pending T08."""
         raise NotImplementedError("Java: ImagingStudy#constructor — pending T08")
 
+
 class Series:
     """Java: Series; pending T08."""
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Series constructor; pending T08."""
         raise NotImplementedError("Java: Series#constructor — pending T08")
+
 
 class Instance:
     """Java: Instance; pending T08."""
@@ -266,11 +280,13 @@ class Instance:
         """Java: Instance constructor; pending T08."""
         raise NotImplementedError("Java: Instance#constructor — pending T08")
 
+
 class Device:
     """Java: Device; pending T08."""
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Java: Device constructor; pending T08."""
         raise NotImplementedError("Java: Device#constructor — pending T08")
+
 
 class Supply:
     """Java: Supply; pending T08."""
@@ -278,8 +294,10 @@ class Supply:
         """Java: Supply constructor; pending T08."""
         raise NotImplementedError("Java: Supply#constructor — pending T08")
 
-class EncounterType(str, Enum):
+
+class EncounterType(StrEnum):
     """Java: EncounterType; pending T08."""
+
 
 class Encounter:
     """Java: Encounter; pending T08."""
@@ -287,8 +305,10 @@ class Encounter:
         """Java: Encounter constructor; pending T08."""
         raise NotImplementedError("Java: Encounter#constructor — pending T08")
 
-class ReactionSeverity(str, Enum):
+
+class ReactionSeverity(StrEnum):
     """Java: ReactionSeverity; pending T08."""
+
 
 class Allergy:
     """Java: Allergy; pending T08."""

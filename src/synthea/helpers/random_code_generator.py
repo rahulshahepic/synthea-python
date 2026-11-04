@@ -1,6 +1,6 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/helpers/RandomCodeGenerator.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class RandomCodeGenerator:
     """Java: RandomCodeGenerator; pending T07."""

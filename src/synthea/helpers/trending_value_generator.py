@@ -1,6 +1,6 @@
 """Java port skeleton: java/src/main/java/org/mitre/synthea/helpers/TrendingValueGenerator.java."""
 from __future__ import annotations
-from enum import Enum
+
 
 class TrendingValueGenerator:
     """Java: TrendingValueGenerator; pending T07."""
