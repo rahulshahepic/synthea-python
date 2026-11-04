@@ -38,6 +38,18 @@ class Provider:
         self.location: object | None = None
         self.address: str | None = None
         self.city: str | None = None
+        self.state: str | None = None
+        self.zip: str | None = None
+        self.fipsCountyCode: str | None = None
+        self.phone: str | None = None
+        self.type: ProviderType | None = None
+        self.ownership: str | None = None
+        self.institutional: bool = False
+        self.revenue: float = 0.0
+        self.coordinates: object | None = None
+        self.servicesProvided: set[object] = set()
+        self.clinicianMap: dict[str, list[object]] = {}
+        self.utilization: object | None = None
         raise NotImplementedError("Java: Provider — pending T13")
 
     def write_object(self, *args: object, **kwargs: object) -> object:
