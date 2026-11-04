@@ -1,21 +1,105 @@
-"""Java: clinician_specialty skeleton (pending implementation)."""
+"""Java: org.mitre.synthea.world.concepts.ClinicianSpecialty."""
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 
 class ClinicianSpecialty:
-    """Java: ClinicianSpecialty; pending T11."""
+    """Java: org.mitre.synthea.world.concepts.ClinicianSpecialty; pending T11."""
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Java: ClinicianSpecialty constructor; pending T11."""
-        raise NotImplementedError("Java: ClinicianSpecialty#constructor — pending T11")
+    ADDICTION_MEDICINE: ClassVar[str] = "ADDICTION MEDICINE"
+    ADVANCED_HEART_FAILURE_AND_TRANSPLANT_CARDIOLOGY: ClassVar[str] = "ADVANCED HEART FAILURE AND TRANSPLANT CARDIOLOGY"
+    ALLERGY_IMMUNOLOGY: ClassVar[str] = "ALLERGY/IMMUNOLOGY"
+    ANESTHESIOLOGY: ClassVar[str] = "ANESTHESIOLOGY"
+    ANESTHESIOLOGY_ASSISTANT: ClassVar[str] = "ANESTHESIOLOGY ASSISTANT"
+    AUDIOLOGIST: ClassVar[str] = "AUDIOLOGIST"
+    CARDIAC_ELECTROPHYSIOLOGY: ClassVar[str] = "CARDIAC ELECTROPHYSIOLOGY"
+    CARDIAC_SURGERY: ClassVar[str] = "CARDIAC SURGERY"
+    CARDIOLOGY: ClassVar[str] = "CARDIOVASCULAR DISEASE (CARDIOLOGY)"
+    CERTIFIED_NURSE_MIDWIFE: ClassVar[str] = "CERTIFIED NURSE MIDWIFE"
+    CERTIFIED_REGISTERED_NURSE_ANESTHETIST: ClassVar[str] = "CERTIFIED REGISTERED NURSE ANESTHETIST"
+    CHIROPRACTIC: ClassVar[str] = "CHIROPRACTIC"
+    CLINICAL_NURSE_SPECIALIST: ClassVar[str] = "CLINICAL NURSE SPECIALIST"
+    CLINICAL_PSYCHOLOGIST: ClassVar[str] = "CLINICAL PSYCHOLOGIST"
+    CLINICAL_SOCIAL_WORKER: ClassVar[str] = "CLINICAL SOCIAL WORKER"
+    PROCTOLOGY: ClassVar[str] = "COLORECTAL SURGERY (PROCTOLOGY)"
+    INTENSIVIST: ClassVar[str] = "CRITICAL CARE (INTENSIVISTS)"
+    DENTIST: ClassVar[str] = "DENTIST"
+    DERMATOLOGY: ClassVar[str] = "DERMATOLOGY"
+    DIAGNOSTIC_RADIOLOGY: ClassVar[str] = "DIAGNOSTIC RADIOLOGY"
+    EMERGENCY_MEDICINE: ClassVar[str] = "EMERGENCY MEDICINE"
+    ENDOCRINOLOGY: ClassVar[str] = "ENDOCRINOLOGY"
+    FAMILY_PRACTICE: ClassVar[str] = "FAMILY PRACTICE"
+    GASTROENTEROLOGY: ClassVar[str] = "GASTROENTEROLOGY"
+    GENERAL_PRACTICE: ClassVar[str] = "GENERAL PRACTICE"
+    GENERAL_SURGERY: ClassVar[str] = "GENERAL SURGERY"
+    GERIATRIC_MEDICINE: ClassVar[str] = "GERIATRIC MEDICINE"
+    GERIATRIC_PSYCHIATRY: ClassVar[str] = "GERIATRIC PSYCHIATRY"
+    GYNECOLOGICAL_ONCOLOGY: ClassVar[str] = "GYNECOLOGICAL ONCOLOGY"
+    HAND_SURGERY: ClassVar[str] = "HAND SURGERY"
+    HEMATOLOGY: ClassVar[str] = "HEMATOLOGY"
+    HEMATOLOGY_ONCOLOGY: ClassVar[str] = "HEMATOLOGY/ONCOLOGY"
+    HEMATOPOIETIC_CELL_TRANSPLANTATION_AND_CELLULAR_TH: ClassVar[str] = "HEMATOPOIETIC CELL TRANSPLANTATION AND CELLULAR TH"
+    HOSPICE_AND_PALLIATIVE_CARE: ClassVar[str] = "HOSPICE/PALLIATIVE CARE"
+    HOSPITALIST: ClassVar[str] = "HOSPITALIST"
+    INFECTIOUS_DISEASE: ClassVar[str] = "INFECTIOUS DISEASE"
+    INTERNAL_MEDICINE: ClassVar[str] = "INTERNAL MEDICINE"
+    INTERVENTIONAL_CARDIOLOGY: ClassVar[str] = "INTERVENTIONAL CARDIOLOGY"
+    INTERVENTIONAL_PAIN_MANAGEMENT: ClassVar[str] = "INTERVENTIONAL PAIN MANAGEMENT"
+    INTERVENTIONAL_RADIOLOGY: ClassVar[str] = "INTERVENTIONAL RADIOLOGY"
+    MAXILLOFACIAL_SURGERY: ClassVar[str] = "MAXILLOFACIAL SURGERY"
+    MEDICAL_ONCOLOGY: ClassVar[str] = "MEDICAL ONCOLOGY"
+    NEPHROLOGY: ClassVar[str] = "NEPHROLOGY"
+    NEUROLOGY: ClassVar[str] = "NEUROLOGY"
+    NEUROPSYCHIATRY: ClassVar[str] = "NEUROPSYCHIATRY"
+    NEUROSURGERY: ClassVar[str] = "NEUROSURGERY"
+    NUCLEAR_MEDICINE: ClassVar[str] = "NUCLEAR MEDICINE"
+    NURSE_PRACTITIONER: ClassVar[str] = "NURSE PRACTITIONER"
+    OBSTETRICS_GYNECOLOGY: ClassVar[str] = "OBSTETRICS/GYNECOLOGY"
+    OCCUPATIONAL_THERAPY: ClassVar[str] = "OCCUPATIONAL THERAPY"
+    OPHTHALMOLOGY: ClassVar[str] = "OPHTHALMOLOGY"
+    OPTOMETRY: ClassVar[str] = "OPTOMETRY"
+    ORAL_SURGERY: ClassVar[str] = "ORAL SURGERY"
+    ORTHOPEDIC_SURGERY: ClassVar[str] = "ORTHOPEDIC SURGERY"
+    OSTEOPATHIC_MANIPULATIVE_MEDICINE: ClassVar[str] = "OSTEOPATHIC MANIPULATIVE MEDICINE"
+    OTOLARYNGOLOGY: ClassVar[str] = "OTOLARYNGOLOGY"
+    PAIN_MANAGEMENT: ClassVar[str] = "PAIN MANAGEMENT"
+    PATHOLOGY: ClassVar[str] = "PATHOLOGY"
+    PEDIATRIC_MEDICINE: ClassVar[str] = "PEDIATRIC MEDICINE"
+    PERIPHERAL_VASCULAR_DISEASE: ClassVar[str] = "PERIPHERAL VASCULAR DISEASE"
+    PHYSICAL_MEDICINE_AND_REHABILITATION: ClassVar[str] = "PHYSICAL MEDICINE AND REHABILITATION"
+    PHYSICAL_THERAPY: ClassVar[str] = "PHYSICAL THERAPY"
+    PHYSICIAN_ASSISTANT: ClassVar[str] = "PHYSICIAN ASSISTANT"
+    PLASTIC_AND_RECONSTRUCTIVE_SURGERY: ClassVar[str] = "PLASTIC AND RECONSTRUCTIVE SURGERY"
+    PODIATRY: ClassVar[str] = "PODIATRY"
+    PREVENTATIVE_MEDICINE: ClassVar[str] = "PREVENTATIVE MEDICINE"
+    PSYCHIATRY: ClassVar[str] = "PSYCHIATRY"
+    PULMONARY_DISEASE: ClassVar[str] = "PULMONARY DISEASE"
+    RADIATION_ONCOLOGY: ClassVar[str] = "RADIATION ONCOLOGY"
+    REGISTERED_DIETITIAN_OR_NUTRITION_PROFESSIONAL: ClassVar[str] = "REGISTERED DIETITIAN OR NUTRITION PROFESSIONAL"
+    RHEUMATOLOGY: ClassVar[str] = "RHEUMATOLOGY"
+    SLEEP_MEDICINE: ClassVar[str] = "SLEEP MEDICINE"
+    SPEECH_LANGUAGE_PATHOLOGIST: ClassVar[str] = "SPEECH LANGUAGE PATHOLOGIST"
+    SPORTS_MEDICINE: ClassVar[str] = "SPORTS MEDICINE"
+    SURGICAL_ONCOLOGY: ClassVar[str] = "SURGICAL ONCOLOGY"
+    THORACIC_SURGERY: ClassVar[str] = "THORACIC SURGERY"
+    UNDEFINED: ClassVar[str] = "UNDEFINED PHYSICIAN TYPE (SPECIFY)"
+    UROLOGY: ClassVar[str] = "UROLOGY"
+    VASCULAR_SURGERY: ClassVar[str] = "VASCULAR SURGERY"
 
-    def get_specialties(self, *args: object, **kwargs: object) -> object:
-        """Java: ClinicianSpecialty#getSpecialties; pending T11."""
+    def __init__(self) -> None:
+        """Java: ClinicianSpecialty#ClinicianSpecialty() implicit constructor."""
+        raise NotImplementedError("Java: ClinicianSpecialty#ClinicianSpecialty — pending T11")
+
+    @staticmethod
+    def get_specialties() -> list[str]:
+        """Java: ClinicianSpecialty#getSpecialties()."""
         raise NotImplementedError("Java: ClinicianSpecialty#getSpecialties — pending T11")
 
-    def get_cms_provider_specialty_code(self, *args: object, **kwargs: object) -> object:
-        """Java: ClinicianSpecialty#getCMSProviderSpecialtyCode; pending T11."""
+    @staticmethod
+    def get_cms_provider_specialty_code(specialty: str) -> str:
+        """Java: ClinicianSpecialty#getCMSProviderSpecialtyCode(String)."""
         raise NotImplementedError(
             "Java: ClinicianSpecialty#getCMSProviderSpecialtyCode — pending T11"
         )
