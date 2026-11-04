@@ -1,0 +1,18 @@
+"""Java port skeleton: java/src/main/java/org/mitre/synthea/world/geography/quadtree/QuadTreeElement.java."""
+from __future__ import annotations
+from enum import Enum
+
+class QuadTreeElement:
+    """Java: QuadTreeElement; pending T10."""
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        """Java: QuadTreeElement constructor; pending T10."""
+        raise NotImplementedError("Java: QuadTreeElement#constructor — pending T10")
+    def get_x(self, *args: object, **kwargs: object) -> object:
+        """Java: QuadTreeElement#getX; pending T10."""
+        raise NotImplementedError("Java: QuadTreeElement#getX — pending T10")
+    def get_y(self, *args: object, **kwargs: object) -> object:
+        """Java: QuadTreeElement#getY; pending T10."""
+        raise NotImplementedError("Java: QuadTreeElement#getY — pending T10")
+    def distance(self, *args: object, **kwargs: object) -> object:
+        """Java: QuadTreeElement#distance; pending T10."""
+        raise NotImplementedError("Java: QuadTreeElement#distance — pending T10")
