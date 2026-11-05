@@ -27,8 +27,8 @@ push and come first. The reviewer only looks at PRs whose CI is green.
 ## Routine (each scheduled run)
 
 1. **Housekeeping**
-   * For every open `type:task` issue with `status:blocked`: if all its "Depends on" issues are
-     closed, swap the label to `status:ready`.
+   * Promoting `status:blocked` → `status:ready` is automatic (`unblock-tasks.yml`, on every
+     issue close and hourly). Only check that it ran; fix labels by hand if it didn't.
    * For every `status:claimed` issue: if the branch `task/<N>` does not exist, or nothing was
      pushed for > 72h and the PR is not in review, comment on the issue and tell the user.
      Do not release the claim automatically.
