@@ -1,10 +1,14 @@
-"""Java API skeleton: TimeSeriesData.java."""
+"""TimeSeriesData port.
+
+Java: org.mitre.synthea.helpers.TimeSeriesData — a list of Double values
+plus a sampling period in seconds.
+"""
 
 from __future__ import annotations
 
 
 class TimeSeriesData:
-    """Java: TimeSeriesData; pending T06."""
+    """Java: org.mitre.synthea.helpers.TimeSeriesData."""
 
     def __init__(
         self,
@@ -15,12 +19,29 @@ class TimeSeriesData:
 
         Java overloads:
         (double period)
-        (List values, double period)
-        (int initialCapacity, double period)
+        (List values, double period) — the list is stored by reference.
+        (int initialCapacity, double period) — capacity is a Java ArrayList
+            sizing hint with no Python counterpart; a negative capacity
+            raises ValueError (Java: IllegalArgumentException).
         """
         self.values: list[float]
         self.period: float
-        raise NotImplementedError("Java: TimeSeriesData#TimeSeriesData — pending T06")
+        if isinstance(period_or_values_or_initial_capacity, list):
+            if period is None:
+                raise TypeError("TimeSeriesData(List, double) requires a period")
+            self.set_values(period_or_values_or_initial_capacity)
+            self.set_period(period)
+        elif period is not None:
+            capacity = period_or_values_or_initial_capacity
+            if not isinstance(capacity, int) or isinstance(capacity, bool):
+                raise TypeError("TimeSeriesData(int, double) requires an int capacity")
+            if capacity < 0:
+                raise ValueError(f"Illegal Capacity: {capacity}")
+            self.set_values([])
+            self.set_period(period)
+        else:
+            self.set_values([])
+            self.set_period(float(period_or_values_or_initial_capacity))
 
     def get_values(self) -> list[float]:
         """Java: TimeSeriesData#getValues.
@@ -28,7 +49,7 @@ class TimeSeriesData:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: TimeSeriesData#getValues — pending T06")
+        return self.values
 
     def set_values(self, values: list[float]) -> None:
         """Java: TimeSeriesData#setValues.
@@ -36,7 +57,7 @@ class TimeSeriesData:
         Java overloads:
         (List values)
         """
-        raise NotImplementedError("Java: TimeSeriesData#setValues — pending T06")
+        self.values = values
 
     def get_period(self) -> float:
         """Java: TimeSeriesData#getPeriod.
@@ -44,7 +65,7 @@ class TimeSeriesData:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: TimeSeriesData#getPeriod — pending T06")
+        return self.period
 
     def set_period(self, period: float) -> None:
         """Java: TimeSeriesData#setPeriod.
@@ -52,12 +73,13 @@ class TimeSeriesData:
         Java overloads:
         (double period)
         """
-        raise NotImplementedError("Java: TimeSeriesData#setPeriod — pending T06")
+        self.period = period
 
     def add_value(self, value: float) -> bool:
-        """Java: TimeSeriesData#addValue.
+        """Java: TimeSeriesData#addValue — ArrayList.add, always true.
 
         Java overloads:
         (double value)
         """
-        raise NotImplementedError("Java: TimeSeriesData#addValue — pending T06")
+        self.values.append(value)
+        return True
