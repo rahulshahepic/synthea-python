@@ -1,8 +1,10 @@
-"""Java API skeleton: ExpressedConditionRecord.java."""
+"""Java: org.mitre.synthea.engine.ExpressedConditionRecord."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
+
+from synthea.javacompat.collections import JavaConcurrentHashMap
 
 if TYPE_CHECKING:
     from synthea.engine.expressed_symptom import SymptomSource
@@ -10,353 +12,268 @@ if TYPE_CHECKING:
 
 
 class ExpressedConditionRecord:
-    """Java: ExpressedConditionRecord; pending T09."""
+    """Java: org.mitre.synthea.engine.ExpressedConditionRecord."""
 
     serialVersionUID: ClassVar[int] = 4322116644425686900
 
     def __init__(self, person: Person) -> None:
-        """Java: ExpressedConditionRecord#ExpressedConditionRecord.
-
-        Java overloads:
-        (Person person)
-        """
-        self.sources: dict[str, ModuleConditions]
-        self.person: Person
-        raise NotImplementedError(
-            "Java: ExpressedConditionRecord#ExpressedConditionRecord — pending T09"
-        )
+        """Java: ExpressedConditionRecord#ExpressedConditionRecord(Person)."""
+        self.sources: JavaConcurrentHashMap[str, ModuleConditions] = JavaConcurrentHashMap()
+        self.person: Person = person
 
     def clone(self) -> ExpressedConditionRecord:
-        """Java: ExpressedConditionRecord#clone.
+        """Java: ExpressedConditionRecord#clone."""
+        data = ExpressedConditionRecord(self.person)
+        data.sources.update(self.sources)
+        return data
 
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: ExpressedConditionRecord#clone — pending T09")
-
-    def get_sources(self) -> dict[str, ModuleConditions]:
-        """Java: ExpressedConditionRecord#getSources.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: ExpressedConditionRecord#getSources — pending T09")
+    def get_sources(self) -> JavaConcurrentHashMap[str, ModuleConditions]:
+        """Java: ExpressedConditionRecord#getSources."""
+        return self.sources
 
     def on_condition_onset(self, module: str, state: str, condition: str, time: int) -> None:
-        """Java: ExpressedConditionRecord#onConditionOnset.
+        """Java: ExpressedConditionRecord#onConditionOnset(String, String, String, long)."""
+        if module not in self.sources:
+            self.sources[module] = ModuleConditions(module)
+        self.sources[module].onset_condition(condition, state, time)
 
-        Java overloads:
-        (String module, String state, String condition, long time)
-        """
-        raise NotImplementedError("Java: ExpressedConditionRecord#onConditionOnset — pending T09")
+    def get_condition_last_onset_time_from_module(self, module: str, condition: str) -> int | None:
+        """Java: ExpressedConditionRecord#getConditionLastOnsetTimeFromModule(String, String)."""
+        result: int | None = None
+        if module in self.sources:
+            result = self.sources[module].get_condition_last_onset_time(condition)
+        return result
 
-    def get_condition_last_onset_time_from_module(self, module: str, condition: str) -> int:
-        """Java: ExpressedConditionRecord#getConditionLastOnsetTimeFromModule.
+    def get_condition_last_end_time_from_module(self, module: str, condition: str) -> int | None:
+        """Java: ExpressedConditionRecord#getConditionLastEndTimeFromModule(String, String)."""
+        result: int | None = None
+        if module in self.sources:
+            result = self.sources[module].get_condition_last_end_time(condition)
+        return result
 
-        Java overloads:
-        (String module, String condition)
-        """
-        raise NotImplementedError(
-            "Java: ExpressedConditionRecord#getConditionLastOnsetTimeFromModule — pending T09"
-        )
-
-    def get_condition_last_end_time_from_module(self, module: str, condition: str) -> int:
-        """Java: ExpressedConditionRecord#getConditionLastEndTimeFromModule.
-
-        Java overloads:
-        (String module, String condition)
-        """
-        raise NotImplementedError(
-            "Java: ExpressedConditionRecord#getConditionLastEndTimeFromModule — pending T09"
-        )
-
-    def get_condition_from_state(self, module: str, state: str) -> str:
-        """Java: ExpressedConditionRecord#getConditionFromState.
-
-        Java overloads:
-        (String module, String state)
-        """
-        raise NotImplementedError(
-            "Java: ExpressedConditionRecord#getConditionFromState — pending T09"
-        )
+    def get_condition_from_state(self, module: str, state: str) -> str | None:
+        """Java: ExpressedConditionRecord#getConditionFromState(String, String)."""
+        result: str | None = None
+        if module in self.sources:
+            result = self.sources[module].get_condition_from_state(state)
+        return result
 
     def on_condition_end(self, module: str, condition: str, time: int) -> None:
-        """Java: ExpressedConditionRecord#onConditionEnd.
+        """Java: ExpressedConditionRecord#onConditionEnd(String, String, long)."""
+        if module in self.sources:
+            self.sources[module].end_condition(condition, time)
 
-        Java overloads:
-        (String module, String condition, long time)
-        """
-        raise NotImplementedError("Java: ExpressedConditionRecord#onConditionEnd — pending T09")
-
-    def get_condition_symptoms(self) -> dict[int, list[ConditionWithSymptoms]]:
-        """Java: ExpressedConditionRecord#getConditionSymptoms.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError(
-            "Java: ExpressedConditionRecord#getConditionSymptoms — pending T09"
+    def get_condition_symptoms(
+        self,
+    ) -> JavaConcurrentHashMap[int, list[ConditionWithSymptoms]]:
+        """Java: ExpressedConditionRecord#getConditionSymptoms."""
+        symptoms = self.person.get_expressed_symptoms()
+        result: JavaConcurrentHashMap[int, list[ConditionWithSymptoms]] = JavaConcurrentHashMap(
+            key_type="long"
         )
+        for module in self.sources:
+            module_conditions = self.sources[module]
+            for condition in module_conditions.get_onset_conditions():
+                infos = module_conditions.get_onset_conditions()[condition].get_time_infos()
+                for entry in infos:
+                    begin = entry.get_onset_time()
+                    end = entry.get_end_time()
+                    if begin is None:
+                        # Java: ConcurrentHashMap.containsKey(null) below.
+                        raise TypeError("Java NullPointerException: null onset time as map key")
+                    if begin not in result:
+                        result[begin] = []
+                    condition_with_symptoms = ConditionWithSymptoms(condition, begin, end)
+                    for type_name in symptoms:
+                        expressed_symptom = symptoms[type_name]
+                        if module in expressed_symptom.get_sources():
+                            symptom_source = expressed_symptom.get_sources()[module]
+                            condition_with_symptoms.add_symptoms(type_name, symptom_source)
+                    result[begin].append(condition_with_symptoms)
+        return result
 
 
 class ConditionPeriod:
-    """Java: ConditionPeriod; pending T09."""
+    """Java: org.mitre.synthea.engine.ExpressedConditionRecord.ConditionPeriod."""
 
     serialVersionUID: ClassVar[int] = 4322116644425686901
 
-    def __init__(self, onset_time: int, end_time: int | None = None) -> None:
-        """Java: ConditionPeriod#ConditionPeriod.
-
-        Java overloads:
-        (Long onsetTime)
-        (Long onsetTime, Long endTime)
-        """
-        self.end_time: int
-        self.onset_time: int
-        raise NotImplementedError("Java: ConditionPeriod#ConditionPeriod — pending T09")
+    def __init__(self, onset_time: int | None, end_time: int | None = None) -> None:
+        """Java: ConditionPeriod#ConditionPeriod(Long) and #ConditionPeriod(Long, Long)."""
+        self.end_time: int | None = end_time
+        self.onset_time: int | None = onset_time
 
     def clone(self) -> ConditionPeriod:
-        """Java: ConditionPeriod#clone.
+        """Java: ConditionPeriod#clone."""
+        return ConditionPeriod(self.onset_time, self.end_time)
 
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: ConditionPeriod#clone — pending T09")
+    def get_end_time(self) -> int | None:
+        """Java: ConditionPeriod#getEndTime."""
+        return self.end_time
 
-    def get_end_time(self) -> int:
-        """Java: ConditionPeriod#getEndTime.
+    def set_end_time(self, end_time: int | None) -> None:
+        """Java: ConditionPeriod#setEndTime(Long)."""
+        self.end_time = end_time
 
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: ConditionPeriod#getEndTime — pending T09")
-
-    def set_end_time(self, end_time: int) -> None:
-        """Java: ConditionPeriod#setEndTime.
-
-        Java overloads:
-        (Long endTime)
-        """
-        raise NotImplementedError("Java: ConditionPeriod#setEndTime — pending T09")
-
-    def get_onset_time(self) -> int:
-        """Java: ConditionPeriod#getOnsetTime.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: ConditionPeriod#getOnsetTime — pending T09")
+    def get_onset_time(self) -> int | None:
+        """Java: ConditionPeriod#getOnsetTime."""
+        return self.onset_time
 
 
 class OnsetCondition:
-    """Java: OnsetCondition; pending T09."""
+    """Java: org.mitre.synthea.engine.ExpressedConditionRecord.OnsetCondition."""
 
     serialVersionUID: ClassVar[int] = 4322116644425686902
 
     def __init__(self, name: str) -> None:
-        """Java: OnsetCondition#OnsetCondition.
-
-        Java overloads:
-        (String name)
-        """
-        self.name: str
-        self.time_infos: list[ConditionPeriod]
-        raise NotImplementedError("Java: OnsetCondition#OnsetCondition — pending T09")
+        """Java: OnsetCondition#OnsetCondition(String)."""
+        self.name: str = name
+        self.time_infos: list[ConditionPeriod] = []
 
     def clone(self) -> OnsetCondition:
-        """Java: OnsetCondition#clone.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: OnsetCondition#clone — pending T09")
+        """Java: OnsetCondition#clone."""
+        data = OnsetCondition(self.name)
+        data.time_infos.extend(self.time_infos)
+        return data
 
     def get_name(self) -> str:
-        """Java: OnsetCondition#getName.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: OnsetCondition#getName — pending T09")
+        """Java: OnsetCondition#getName."""
+        return self.name
 
     def get_time_infos(self) -> list[ConditionPeriod]:
-        """Java: OnsetCondition#getTimeInfos.
+        """Java: OnsetCondition#getTimeInfos."""
+        return self.time_infos
 
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: OnsetCondition#getTimeInfos — pending T09")
+    def get_last_onset_time(self) -> int | None:
+        """Java: OnsetCondition#getLastOnsetTime."""
+        if not self.time_infos:
+            return None
+        return self.time_infos[-1].get_onset_time()
 
-    def get_last_onset_time(self) -> int:
-        """Java: OnsetCondition#getLastOnsetTime.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: OnsetCondition#getLastOnsetTime — pending T09")
-
-    def get_last_end_time(self) -> int:
-        """Java: OnsetCondition#getLastEndTime.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: OnsetCondition#getLastEndTime — pending T09")
+    def get_last_end_time(self) -> int | None:
+        """Java: OnsetCondition#getLastEndTime."""
+        if not self.time_infos:
+            return None
+        return self.time_infos[-1].get_end_time()
 
     def add_new_entry(self, onset_time: int) -> None:
-        """Java: OnsetCondition#addNewEntry.
-
-        Java overloads:
-        (long onsetTime)
-        """
-        raise NotImplementedError("Java: OnsetCondition#addNewEntry — pending T09")
+        """Java: OnsetCondition#addNewEntry(long)."""
+        self.time_infos.append(ConditionPeriod(onset_time, None))
 
     def end_last_entry(self, time: int) -> None:
-        """Java: OnsetCondition#endLastEntry.
-
-        Java overloads:
-        (long time)
-        """
-        raise NotImplementedError("Java: OnsetCondition#endLastEntry — pending T09")
+        """Java: OnsetCondition#endLastEntry(long)."""
+        if len(self.time_infos) > 0:
+            self.time_infos[-1].set_end_time(time)
 
 
 class ModuleConditions:
-    """Java: ModuleConditions; pending T09."""
+    """Java: org.mitre.synthea.engine.ExpressedConditionRecord.ModuleConditions."""
 
     serialVersionUID: ClassVar[int] = 4322116644425686903
 
     def __init__(self, source: str) -> None:
-        """Java: ModuleConditions#ModuleConditions.
-
-        Java overloads:
-        (String source)
-        """
-        self.source: str
-        self.onset_conditions: dict[str, OnsetCondition]
-        self.state2condition_mapping: dict[str, str]
-        raise NotImplementedError("Java: ModuleConditions#ModuleConditions — pending T09")
+        """Java: ModuleConditions#ModuleConditions(String)."""
+        self.source: str = source
+        self.onset_conditions: JavaConcurrentHashMap[str, OnsetCondition] = JavaConcurrentHashMap()
+        self.state2condition_mapping: JavaConcurrentHashMap[str, str] = JavaConcurrentHashMap()
 
     def clone(self) -> ModuleConditions:
-        """Java: ModuleConditions#clone.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: ModuleConditions#clone — pending T09")
+        """Java: ModuleConditions#clone."""
+        data = ModuleConditions(self.source)
+        data.state2condition_mapping.update(self.state2condition_mapping)
+        data.onset_conditions.update(self.onset_conditions)
+        return data
 
     def onset_condition(self, condition: str, state: str, time: int) -> None:
-        """Java: ModuleConditions#onsetCondition.
-
-        Java overloads:
-        (String condition, String state, long time)
-        """
-        raise NotImplementedError("Java: ModuleConditions#onsetCondition — pending T09")
+        """Java: ModuleConditions#onsetCondition(String, String, long)."""
+        if condition not in self.onset_conditions:
+            self.onset_conditions[condition] = OnsetCondition(condition)
+        self.onset_conditions[condition].add_new_entry(time)
+        self.state2condition_mapping[state] = condition
 
     def end_condition(self, condition: str, time: int) -> None:
-        """Java: ModuleConditions#endCondition.
+        """Java: ModuleConditions#endCondition(String, long)."""
+        if condition in self.onset_conditions:
+            self.onset_conditions[condition].end_last_entry(time)
 
-        Java overloads:
-        (String condition, long time)
-        """
-        raise NotImplementedError("Java: ModuleConditions#endCondition — pending T09")
+    def get_condition_last_onset_time(self, condition: str) -> int | None:
+        """Java: ModuleConditions#getConditionLastOnsetTime(String)."""
+        if condition in self.onset_conditions:
+            return self.onset_conditions[condition].get_last_onset_time()
+        return None
 
-    def get_condition_last_onset_time(self, condition: str) -> int:
-        """Java: ModuleConditions#getConditionLastOnsetTime.
+    def get_condition_last_end_time(self, condition: str) -> int | None:
+        """Java: ModuleConditions#getConditionLastEndTime(String)."""
+        if condition in self.onset_conditions:
+            return self.onset_conditions[condition].get_last_end_time()
+        return None
 
-        Java overloads:
-        (String condition)
-        """
-        raise NotImplementedError("Java: ModuleConditions#getConditionLastOnsetTime — pending T09")
+    def get_condition_from_state(self, state: str) -> str | None:
+        """Java: ModuleConditions#getConditionFromState(String)."""
+        if state in self.state2condition_mapping:
+            return self.state2condition_mapping[state]
+        return None
 
-    def get_condition_last_end_time(self, condition: str) -> int:
-        """Java: ModuleConditions#getConditionLastEndTime.
-
-        Java overloads:
-        (String condition)
-        """
-        raise NotImplementedError("Java: ModuleConditions#getConditionLastEndTime — pending T09")
-
-    def get_condition_from_state(self, state: str) -> str:
-        """Java: ModuleConditions#getConditionFromState.
-
-        Java overloads:
-        (String state)
-        """
-        raise NotImplementedError("Java: ModuleConditions#getConditionFromState — pending T09")
-
-    def get_onset_conditions(self) -> dict[str, OnsetCondition]:
-        """Java: ModuleConditions#getOnsetConditions.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: ModuleConditions#getOnsetConditions — pending T09")
+    def get_onset_conditions(self) -> JavaConcurrentHashMap[str, OnsetCondition]:
+        """Java: ModuleConditions#getOnsetConditions."""
+        return self.onset_conditions
 
 
 class ConditionWithSymptoms:
-    """Java: ConditionWithSymptoms; pending T09."""
+    """Java: org.mitre.synthea.engine.ExpressedConditionRecord.ConditionWithSymptoms."""
 
     serialVersionUID: ClassVar[int] = 4322116644425686904
 
-    def __init__(self, name: str, onset_time: int, end_time: int) -> None:
-        """Java: ConditionWithSymptoms#ConditionWithSymptoms.
-
-        Java overloads:
-        (String name, Long onsetTime, Long endTime)
-        """
-        self.condition_name: str
-        self.onset_time: int
-        self.end_time: int
-        self.symptoms: dict[str, list[int]]
-        raise NotImplementedError("Java: ConditionWithSymptoms#ConditionWithSymptoms — pending T09")
+    def __init__(self, name: str, onset_time: int | None, end_time: int | None) -> None:
+        """Java: ConditionWithSymptoms#ConditionWithSymptoms(String, Long, Long)."""
+        self.condition_name: str = name
+        self.onset_time: int | None = onset_time
+        self.end_time: int | None = end_time
+        self.symptoms: JavaConcurrentHashMap[str, list[int | None]] = JavaConcurrentHashMap()
 
     def clone(self) -> ConditionWithSymptoms:
-        """Java: ConditionWithSymptoms#clone.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: ConditionWithSymptoms#clone — pending T09")
+        """Java: ConditionWithSymptoms#clone."""
+        data = ConditionWithSymptoms(self.condition_name, self.onset_time, self.end_time)
+        data.symptoms.update(self.symptoms)
+        return data
 
     def add_symptoms(self, name: str, symptom_source: SymptomSource) -> None:
-        """Java: ConditionWithSymptoms#addSymptoms.
+        """Java: ConditionWithSymptoms#addSymptoms(String, SymptomSource)."""
+        timed_typed_symptoms = symptom_source.get_time_infos()
+        all_times: list[int] = []
+        for time in timed_typed_symptoms:
+            if self.onset_time is None:
+                # Java unboxes onsetTime for the comparison: NullPointerException.
+                raise TypeError("Java NullPointerException: unboxing a null Long")
+            greater_than_begin = time >= self.onset_time
+            lower_than_end = (self.end_time is not None and time <= self.end_time) or (
+                self.end_time is None
+            )
+            if greater_than_begin and lower_than_end:
+                all_times.append(time)
+        if len(all_times) > 0:
+            all_times.sort()
+            if name not in self.symptoms:
+                self.symptoms[name] = []
+            for time in all_times:
+                value = timed_typed_symptoms[time].get_value()
+                self.symptoms[name].append(value)
 
-        Java overloads:
-        (String name, SymptomSource symptomSource)
-        """
-        raise NotImplementedError("Java: ConditionWithSymptoms#addSymptoms — pending T09")
+    def get_onset_time(self) -> int | None:
+        """Java: ConditionWithSymptoms#getOnsetTime."""
+        return self.onset_time
 
-    def get_onset_time(self) -> int:
-        """Java: ConditionWithSymptoms#getOnsetTime.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: ConditionWithSymptoms#getOnsetTime — pending T09")
-
-    def get_end_time(self) -> int:
-        """Java: ConditionWithSymptoms#getEndTime.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: ConditionWithSymptoms#getEndTime — pending T09")
+    def get_end_time(self) -> int | None:
+        """Java: ConditionWithSymptoms#getEndTime."""
+        return self.end_time
 
     def get_condition_name(self) -> str:
-        """Java: ConditionWithSymptoms#getConditionName.
+        """Java: ConditionWithSymptoms#getConditionName."""
+        return self.condition_name
 
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: ConditionWithSymptoms#getConditionName — pending T09")
-
-    def get_symptoms(self) -> dict[str, list[int]]:
-        """Java: ConditionWithSymptoms#getSymptoms.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: ConditionWithSymptoms#getSymptoms — pending T09")
+    def get_symptoms(self) -> JavaConcurrentHashMap[str, list[int | None]]:
+        """Java: ConditionWithSymptoms#getSymptoms."""
+        return self.symptoms
 
 
 setattr(ExpressedConditionRecord, "ConditionPeriod", ConditionPeriod)  # noqa: B010
