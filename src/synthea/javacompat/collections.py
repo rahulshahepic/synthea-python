@@ -23,6 +23,7 @@ from typing import Protocol, cast, runtime_checkable
 
 from synthea.javacompat.hashing import (
     KeyType,
+    character_hash_code,
     double_to_long_bits,
     java_hash_code,
     string_compare_to,
@@ -30,7 +31,6 @@ from synthea.javacompat.hashing import (
 )
 
 _MAXIMUM_CAPACITY = 1 << 30
-_MISSING = object()
 
 
 @runtime_checkable
@@ -97,13 +97,22 @@ def _class_name(value: object, key_type: KeyType | None) -> str:
     if isinstance(value, float):
         return "java.lang.Double"
     name = getattr(value, "java_class_name", None)
-    return str(name) if name is not None else f"{type(value).__module__}.{type(value).__qualname__}"
+    if name is not None:
+        return str(name)
+    raise NondeterministicJavaOrderError(
+        "Java tree-bin cross-class tie breaking requires java_class_name metadata; "
+        "a Python class name does not identify the original Java class."
+    )
 
 
 def _key_compare(left: object, right: object, key_type: KeyType | None) -> int:
     """Java: comparableClassFor/compareComparables followed by TreeNode#tieBreakOrder."""
     if left is None or right is None:
-        return -1 if left is None else 1  # identityHashCode(null) is zero
+        return -1 if left is None else 1
+    if key_type == "character":
+        return character_hash_code(cast(str | int, left)) - character_hash_code(
+            cast(str | int, right)
+        )  # identityHashCode(null) is zero
     if type(left) is type(right):
         if isinstance(left, str) and isinstance(right, str):
             return string_compare_to(left, right)
@@ -304,7 +313,7 @@ class JavaHashMap[K, V](MutableMapping[K, V]):
 
     @property
     def capacity(self) -> int:
-        """Java: HashMap#capacity; expose allocated table length for parity diagnostics."""
+        """Java: HashMap.table length; zero before lazy allocation, for parity diagnostics."""
         return self._capacity
 
     def _hash(self, key: K) -> int:
@@ -332,6 +341,16 @@ class JavaHashMap[K, V](MutableMapping[K, V]):
             else (1 << 31) - 1
         )
 
+    def _keys_equal(self, left: K, right: K) -> bool:
+        """Java: Character.equals accepts either documented Python code-unit representation."""
+        if left is None or right is None:
+            return left is right
+        if self.key_type == "character":
+            return character_hash_code(cast(str | int, left)) == character_hash_code(
+                cast(str | int, right)
+            )
+        return _java_equal(left, right)
+
     def _find(self, key: K, h: int | None = None) -> _Node[K, V] | None:
         """Java: HashMap#getNode; compare Java equals within the matching bucket."""
         if h is None:
@@ -341,7 +360,7 @@ class JavaHashMap[K, V](MutableMapping[K, V]):
         bucket = self._table.get(h & (self._capacity - 1))
         if bucket is not None:
             for node in bucket.nodes:
-                if node.hash == h and _java_equal(key, node.key):
+                if node.hash == h and self._keys_equal(key, node.key):
                     return node
         return None
 
@@ -526,6 +545,8 @@ class JavaHashMap[K, V](MutableMapping[K, V]):
 
     def compute_if_absent(self, key: K, function: Callable[[K], V | None]) -> V | None:
         """Java: HashMap#computeIfAbsent; null results do not create a mapping."""
+        if function is None:
+            raise ValueError("Java NullPointerException: mapping function")
         self._prepare_compute()
         node = self._find(key)
         if node is not None and node.value is not None:
@@ -545,8 +566,8 @@ class JavaHashMap[K, V](MutableMapping[K, V]):
 
     def merge(self, key: K, value: V, function: Callable[[V, V], V | None]) -> V | None:
         """Java: HashMap#merge; a null remapping result removes the old mapping."""
-        if value is None:
-            raise ValueError("Java NullPointerException: merge value")
+        if value is None or function is None:
+            raise ValueError("Java NullPointerException: merge value or function")
         self._prepare_compute()
         node = self._find(key)
         if node is None:
@@ -797,7 +818,7 @@ class JavaConcurrentHashMap[K, V](JavaHashMap[K, V]):
         if bucket.root is not None:
             return 2
         for i, node in enumerate(bucket.nodes, 1):
-            if node.hash == h and _java_equal(key, node.key):
+            if node.hash == h and self._keys_equal(key, node.key):
                 return i
         return len(bucket.nodes)
 
@@ -838,6 +859,8 @@ class JavaConcurrentHashMap[K, V](JavaHashMap[K, V]):
 
     def compute_if_absent(self, key: K, function: Callable[[K], V | None]) -> V | None:
         """Java: CHM#computeIfAbsent can treeify a long bin even if no mapping is added."""
+        if function is None:
+            raise ValueError("Java NullPointerException: mapping function")
         count = self._visited_count(key)
         self._init_table()
         node = self._find(key)
@@ -941,6 +964,8 @@ class JavaTreeMap[K, V](JavaHashMap[K, V]):
             return self._comparator(left, right)
         if left is None or right is None:
             raise ValueError("Java NullPointerException: natural-order TreeMap key")
+        if self.key_type == "character":
+            return _key_compare(left, right, self.key_type)
         if type(left) is not type(right):
             raise TypeError("Java ClassCastException: incompatible TreeMap key classes")
         if isinstance(left, JavaComparable):
@@ -1049,6 +1074,13 @@ class _JavaItemsView[K, V](ItemsView[K, V]):
         super().__init__(mapping)
         self._java_mapping = mapping
 
+    def __contains__(self, value: object) -> bool:
+        """Java: EntrySet#contains checks the node directly and does not register access."""
+        if not isinstance(value, tuple) or len(value) != 2:
+            return False
+        node = self._java_mapping._find(value[0])
+        return node is not None and _java_equal(node.value, value[1])
+
     def __iter__(self) -> Iterator[tuple[K, V]]:
         """Java: HashMap.EntryIterator#next."""
         mapping = self._java_mapping
@@ -1062,6 +1094,10 @@ class _JavaValuesView[V](ValuesView[V]):
         """Java: HashMap.Values bound to its backing map."""
         super().__init__(mapping)
         self._java_mapping = mapping
+
+    def __contains__(self, value: object) -> bool:
+        """Java: Values#contains/HashMap#containsValue uses boxed-value equality."""
+        return any(_java_equal(value, node.value) for node in self._java_mapping._iteration_nodes())
 
     def __iter__(self) -> Iterator[V]:
         """Java: HashMap.ValueIterator#next."""
