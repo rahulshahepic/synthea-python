@@ -123,6 +123,22 @@ class _ProbeKey:
         return (self.value > other.value) - (self.value < other.value)
 
 
+@dataclass(frozen=True)
+class _SplitKey:
+    """Java: JavaCollectionsProbe.SplitKey; hash bits force tree-bin resize splits."""
+
+    value: int
+
+    def java_hash_code(self) -> int:
+        """Java: SplitKey#hashCode."""
+        return self.value % 7 | (self.value // 7 % 32) << 6
+
+    def java_compare_to(self, other: object) -> int:
+        """Java: SplitKey#compareTo."""
+        assert isinstance(other, _SplitKey)
+        return (self.value > other.value) - (self.value < other.value)
+
+
 def _decode(key: object, kind: str) -> object:
     """Decode transport values; key semantics remain in the implementation under test."""
     if kind == "string":
@@ -133,6 +149,8 @@ def _decode(key: object, kind: str) -> object:
         return _double(key)
     if kind == "custom":
         return _ProbeKey(key)
+    if kind == "split":
+        return _SplitKey(key)
     return key
 
 
@@ -144,7 +162,7 @@ def _encode(key: object, kind: str) -> object:
         return str(key)
     if kind == "double":
         return format(double_to_long_bits(key), "x")
-    if kind == "custom":
+    if kind in {"custom", "split"}:
         return key.value
     return key
 
@@ -153,7 +171,7 @@ def _build(row: dict) -> JavaHashMap | JavaHashSet:
     """Replay the exact Java constructor, including collection and map presizing."""
     kind, ctor, key_type = row["kind"], row["ctor"], row["keyType"]
     initial = [(_decode(key, key_type), value) for key, value in row["initial"]]
-    typed = {"key_type": "object" if key_type == "custom" else key_type}
+    typed = {"key_type": "object" if key_type in {"custom", "split"} else key_type}
     if kind == "TreeMap":
         if ctor == 3:
             natural = JavaTreeMap(**typed)
@@ -180,7 +198,8 @@ def _build(row: dict) -> JavaHashMap | JavaHashSet:
 
 @pytest.mark.parity
 def test_javacompat_collection_mutations(golden: Callable[[str], Path]) -> None:
-    """240 scenarios per collection; every operation result and ordered snapshot is exact."""
+    """256 scenarios per collection; every operation result and ordered snapshot is exact."""
+    tree_splits: Counter[str] = Counter()
     counts: Counter[str] = Counter()
     sizes: dict[str, list[int]] = {}
     for row in _rows(golden("JavaCollectionsProbe") / "collections.jsonl"):
@@ -198,6 +217,14 @@ def test_javacompat_collection_mutations(golden: Callable[[str], Path]) -> None:
 
         assert snapshot() == row["snapshots"]["0"], label + " initial"
         for step, op in enumerate(row["operations"], 1):
+            backing = collection._map if isinstance(collection, JavaHashSet) else collection
+            capacity_before = backing.capacity
+            mixed_tree = capacity_before and any(
+                bucket.root is not None
+                and any(node.hash & capacity_before for node in bucket.nodes)
+                and any(not node.hash & capacity_before for node in bucket.nodes)
+                for bucket in backing._table.values()
+            )
             name = op[0]
             if name == "clear":
                 collection.clear()
@@ -230,6 +257,8 @@ def test_javacompat_collection_mutations(golden: Callable[[str], Path]) -> None:
                     result = collection.get(key)
                 else:
                     raise AssertionError(name)
+            if mixed_tree and backing.capacity > capacity_before:
+                tree_splits[row["kind"]] += 1
             assert result == row["returns"][step - 1], f"{label}, op {step}: {op} return"
             if str(step) in row["snapshots"]:
                 assert snapshot() == row["snapshots"][str(step)], f"{label}, op {step}: order"
@@ -238,3 +267,5 @@ def test_javacompat_collection_mutations(golden: Callable[[str], Path]) -> None:
     assert set(counts) == {"HashMap", "HashSet", "ConcurrentHashMap", "LinkedHashMap", "TreeMap"}
     assert all(count >= 200 for count in counts.values()), counts
     assert all(min(values) == 0 and max(values) == 5000 for values in sizes.values()), sizes
+
+    assert tree_splits["HashMap"] > 0 and tree_splits["ConcurrentHashMap"] > 0, tree_splits

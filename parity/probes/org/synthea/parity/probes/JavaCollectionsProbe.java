@@ -40,6 +40,17 @@ public class JavaCollectionsProbe {
     @Override public int compareTo(ProbeKey other) { return Integer.compare(value, other.value); }
   }
 
+  /** Force already-treeified bins to split into both resize partitions. */
+  public static final class SplitKey implements Comparable<SplitKey> {
+    final int value;
+    SplitKey(int value) { this.value = value; }
+    @Override public int hashCode() { return value % 7 | (value / 7 % 32) << 6; }
+    @Override public boolean equals(Object other) {
+      return other instanceof SplitKey key && value == key.value;
+    }
+    @Override public int compareTo(SplitKey other) { return Integer.compare(value, other.value); }
+  }
+
   private static List<Integer> units(String text) {
     List<Integer> result = new ArrayList<>();
     for (int i = 0; i < text.length(); i++) { result.add((int) text.charAt(i)); }
@@ -65,6 +76,7 @@ public class JavaCollectionsProbe {
     }
     if (key instanceof Character value) { return (int) value.charValue(); }
     if (key instanceof ProbeKey value) { return value.value; }
+    if (key instanceof SplitKey value) { return value.value; }
     return key;
   }
 
@@ -132,6 +144,7 @@ public class JavaCollectionsProbe {
       case "boolean": return random.nextBoolean();
       case "character": return (char) random.nextInt(65536);
       case "custom": return new ProbeKey(index);
+      case "split": return new SplitKey(index);
       default: throw new IllegalArgumentException(type);
     }
   }
@@ -174,10 +187,11 @@ public class JavaCollectionsProbe {
     try (PrintWriter writer = new PrintWriter(Files.newBufferedWriter(
         out.resolve("collections.jsonl"), StandardCharsets.UTF_8))) {
       for (String kind : KINDS) {
-        for (int scenario = 0; scenario < 240; scenario++) {
+        for (int scenario = 0; scenario < 256; scenario++) {
           Random random = new Random(0xC011EC700L + scenario * 7919L);
-          String type = TYPES[scenario % TYPES.length];
-          int size = scenario == 0 ? 0 : scenario % 37 == 0 ? 5000 : random.nextInt(220);
+          String type = scenario >= 240 ? "split" : TYPES[scenario % TYPES.length];
+          int size = scenario >= 240 ? 400 + (scenario - 240) * 30
+              : scenario == 0 ? 0 : scenario % 37 == 0 ? 5000 : random.nextInt(220);
           int ctor = scenario % 4;
           int capacity = new int[] {0, 1, 2, 3, 12, 16, 32, 64, 128, 1024}[scenario % 10];
           float loadFactor = new float[] {0.5f, 0.75f, 1.0f, 1.5f}[scenario / 4 % 4];
