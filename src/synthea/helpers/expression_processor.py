@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import builtins
+import re
 from decimal import Decimal
 from typing import TYPE_CHECKING, ClassVar, Protocol
 
@@ -132,7 +133,20 @@ class ExpressionProcessor:
         Java overloads:
         (String expression)
         """
-        raise NotImplementedError("Java: ExpressionProcessor#replaceParameters — pending T07")
+        clean_expression = expression
+        for match in re.finditer(r"#([dlbs]?)\\{(.+?)\\}", expression):
+            key, type_key, param = match.group(0, 1, 2)
+            cql_param = param.replace(" ", "_")
+            self.cql_param_map[param] = cql_param
+            if type_key:
+                self.param_type_map[cql_param] = {
+                    "d": "Decimal",
+                    "l": "List<Decimal>",
+                    "b": "Boolean",
+                    "s": "String",
+                }[type_key]
+            clean_expression = clean_expression.replace(key, cql_param)
+        return clean_expression
 
     def convert_parameterized_expression_to_cql(self, expression: str) -> str:
         """Java: ExpressionProcessor#convertParameterizedExpressionToCql.
@@ -140,6 +154,15 @@ class ExpressionProcessor:
         Java overloads:
         (String expression)
         """
-        raise NotImplementedError(
-            "Java: ExpressionProcessor#convertParameterizedExpressionToCql — pending T07"
-        )
+        wrapped = "library " + self.LIBRARY_NAME + " version '1'\\n"
+        for param, cql_param in self.cql_param_map.items():
+            wrapped += (
+                "\\nparameter " + cql_param + " "
+                + self.param_type_map.get(param, "Decimal")
+            )
+        wrapped += "\\n\\ncontext Unfiltered\\n\\n"
+        statements = expression.split("\\n")
+        for statement in statements[:-1]:
+            wrapped += statement + "\\n"
+        wrapped += "define result: " + statements[-1]
+        return wrapped
