@@ -126,7 +126,17 @@ public class DistributionProbe {
         "Round(#{x} / 7, 3)", "Abs(-#{x})", "Power(#{x}, 2.0)",
         "if null then 1.0 else 2.0", "Coalesce(null, #{x})",
         "#{x} / 3", "0.1 + 0.2", "null = null", "true and null",
-        "false and null", "true or null", "false or null"};
+        "false and null", "true or null", "false or null",
+        "if #b{flag} then 1 else 2.0", "if #b{flag} then 1.0 else 2",
+        "-1.0 / 3", "Round(-1.5)", "Round(-2.55, 1)", "1.0 / 0.0",
+        "Ceiling(-2.4)", "Floor(-2.4)", "Truncate(-2.4)", "Power(2, 10)",
+        "Power(2, -2)", "Sqrt(4.0)", "Ln(2.0)", "Exp(1.0)", "Log(8.0, 2.0)",
+        "Avg({1, 2, 3})", "Sum({1, null, 3})", "Max({1, 2.5})",
+        "{} is null", "1 is not null", "not false", "2 div 3", "-7 mod 3",
+        "'a' + 'b'", "'a' & null", "Upper('abc')", "Length('abc')",
+        "{1, 2, 3}[1]", "Coalesce(null, 2, 3.0)",
+        "if #d{x} then 1 else 2", "Sum(1)", "#b{flag with spaces}",
+        "#{a b} + #{a_b}", "define a: b + 1\ndefine b: 2\na"};
     for (String expression : expressions) {
       ExpressionProcessor processor;
       try {

@@ -241,3 +241,22 @@ def test_expression_decimal_precision_and_nulls() -> None:
     assert ExpressionProcessor("true or null").evaluate({}) is True
     assert ExpressionProcessor("false or null").evaluate({}) is None
     assert ExpressionProcessor("define offset: 2.0\n#{x} + offset").evaluate({"x": Decimal(3)}) == 5
+
+
+@pytest.mark.parametrize(
+    ("source", "expected", "kind"),
+    [
+        ("if true then 1 else 2.0", Decimal(1), Decimal),
+        ("Power(2, -2)", Decimal("0.25"), Decimal),
+        ("Coalesce(null, 2, 3.0)", 2, int),
+        ("Sum(1)", 1, int),
+        ("define a: b + 1\ndefine b: 2\na", 3, int),
+    ],
+)
+def test_expression_java_type_and_definition_quirks(
+    source: str, expected: object, kind: type
+) -> None:
+    """Java: DistributionProbe extended expressions, including surprising runtime types."""
+    value = ExpressionProcessor(source).evaluate({})
+    assert value == expected
+    assert type(value) is kind

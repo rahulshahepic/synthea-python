@@ -97,7 +97,8 @@ def test_distribution_expressions(golden: Callable[[str], Path]) -> None:
         json.loads(line, parse_float=Decimal)
         for line in (golden("DistributionProbe") / "expressions.jsonl").read_text().splitlines()
     ]
-    assert len(rows) >= 150
+    assert len(rows) == 340
+    assert len({row["expression"] for row in rows}) == 60
     for row in rows:
         if "error" in row:
             with pytest.raises(ValueError):

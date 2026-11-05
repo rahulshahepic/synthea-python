@@ -32,10 +32,14 @@ class RandomSource(Protocol):
     """Java: Person random-number methods used by Distribution."""
 
     @overload
-    def rand(self) -> float: ...
+    def rand(self) -> float:
+        """Java: Person#rand()."""
+        ...
 
     @overload
-    def rand(self, low: float, high: float) -> float: ...
+    def rand(self, low: float, high: float) -> float:
+        """Java: Person#rand(double,double)."""
+        ...
 
     def rand_gaussian(self) -> float:
         """Java: Person#randGaussian()."""

@@ -44,6 +44,7 @@ class _Node:
     kind: str
     value: object = None
     args: list[_Node] = field(default_factory=list)
+    result_type: str = "Any"
 
 
 _TOKEN = re.compile(
@@ -83,7 +84,6 @@ _FUNCTION_ARITIES = {
     "Truncate": (1, 1),
     "Round": (1, 2),
     "Power": (2, 2),
-    "Sqrt": (1, 1),
     "Ln": (1, 1),
     "Exp": (1, 1),
     "Log": (2, 2),
@@ -334,7 +334,7 @@ def _call(name: str, args: list[object]) -> object:
         return None
     if name in ("Min", "Max", "Sum", "Avg", "First", "Last", "Distinct"):
         if not isinstance(value, list):
-            raise TypeError(f"{name} requires a list")
+            value = [value]  # CQL implicitly promotes a scalar to a singleton list.
         values = [v for v in value if v is not None]
         if name == "Distinct":
             return list(dict.fromkeys(value))
@@ -390,24 +390,156 @@ def _call(name: str, args: list[object]) -> object:
         if name == "Power":
             exponent = _decimal(args[1])
             if type(value) is int and type(args[1]) is int:
-                return to_int32(int(math.pow(int(value), int(args[1]))))
+                power = int(args[1])
+                if power < 0:
+                    return bd.divide_exact(Decimal(1), Decimal(pow(int(value), -power)))
+                return to_int32(pow(int(value), power))
             return _precision(Decimal.from_float(math.pow(float(number), float(exponent))))
         if name == "Log":
             return _precision(
                 Decimal.from_float(math.log(float(number)) / math.log(float(_decimal(args[1]))))
             )
         function = {"Sqrt": math.sqrt, "Ln": math.log, "Exp": math.exp}[name]
-        return _precision(Decimal.from_float(function(float(number))))
+        result = Decimal.from_float(function(float(number)))
+        return result if name == "Exp" else _precision(result)
     except (ValueError, OverflowError):
         return None
 
 
+def _common_type(types: list[str]) -> str:
+    """Java: CqlTranslator common-type inference and implicit numeric promotion."""
+    present = set(types) - {"Any"}
+    if not present:
+        return "Any"
+    if present <= {"Integer", "Decimal"}:
+        return "Decimal" if "Decimal" in present else "Integer"
+    if len(present) != 1:
+        raise ValueError(f"Incompatible CQL operand types: {', '.join(sorted(present))}")
+    return next(iter(present))
+
+
+def _infer(
+    node: _Node, types: dict[str, str], definitions: dict[str, _Node], visiting: set[str]
+) -> str:
+    """Java: CqlTranslator type resolution for the scalar/list system operators."""
+    child_types = [_infer(arg, types, definitions, visiting) for arg in node.args]
+    result = "Any"
+    if node.kind == "Literal":
+        value = node.value
+        result = (
+            "Boolean"
+            if isinstance(value, bool)
+            else "Integer"
+            if isinstance(value, int)
+            else "Decimal"
+            if isinstance(value, Decimal)
+            else "String"
+            if isinstance(value, str)
+            else "Any"
+        )
+    elif node.kind == "Reference":
+        name = str(node.value)
+        if name in types:
+            result = types[name]
+        elif name in definitions:
+            if name in visiting:
+                raise ValueError(f"Circular CQL expression reference: {name}")
+            result = _infer(definitions[name], types, definitions, visiting | {name})
+        else:
+            raise ValueError(f"Unknown CQL identifier: {name}")
+    elif node.kind == "If":
+        if child_types[0] not in ("Boolean", "Any"):
+            raise ValueError("CQL if condition must be Boolean")
+        result = _common_type(child_types[1:])
+    elif node.kind == "List":
+        result = f"List<{_common_type(child_types)}>"
+    elif node.kind == "is":
+        result = "Boolean"
+    elif node.kind == "index":
+        if not child_types[0].startswith("List<") or child_types[1] != "Integer":
+            raise ValueError("CQL index requires List and Integer")
+        result = child_types[0][5:-1]
+    elif node.kind == "unary":
+        allowed = {"Boolean", "Any"} if node.value == "not" else {"Integer", "Decimal", "Any"}
+        if child_types[0] not in allowed:
+            raise ValueError(f"Invalid operand type for {node.value}")
+        result = "Boolean" if node.value == "not" else child_types[0]
+    elif node.kind == "binary":
+        operator = str(node.value)
+        if operator in ("and", "or", "xor", "implies"):
+            if any(t not in ("Boolean", "Any") for t in child_types):
+                raise ValueError("CQL Boolean operator requires Boolean operands")
+            result = "Boolean"
+        elif operator in ("in", "contains"):
+            result = "Boolean"
+        elif operator in ("=", "!=", "<>", "~", "!~", "<", "<=", ">", ">="):
+            _common_type(child_types)
+            result = "Boolean"
+        elif operator == "&":
+            if any(t not in ("String", "Any") for t in child_types):
+                raise ValueError("CQL concatenate requires String operands")
+            result = "String"
+        else:
+            common = _common_type(child_types)
+            if common not in ("Integer", "Decimal", "Any") and not (
+                operator == "+" and common == "String"
+            ):
+                raise ValueError(f"Invalid operands for CQL {operator}")
+            result = "Decimal" if operator == "/" else common
+    elif node.kind == "call":
+        name = str(node.value)
+        first = child_types[0]
+        if name in ("Sum", "Avg", "Min", "Max", "Count", "First", "Last", "Distinct", "Exists"):
+            element = first[5:-1] if first.startswith("List<") else first
+            result = (
+                "Integer"
+                if name == "Count"
+                else "Boolean"
+                if name == "Exists"
+                else "Decimal"
+                if name == "Avg"
+                else first
+                if name == "Distinct"
+                else element
+            )
+        elif name == "Coalesce":
+            _common_type(child_types)  # Check compatibility; Coalesce preserves runtime types.
+            result = "Any"
+        elif name in ("Upper", "Lower", "ToString", "Concatenate"):
+            result = "String"
+        elif name in ("Ceiling", "Floor", "Truncate", "Length", "ToInteger"):
+            result = "Integer"
+        else:
+            if any(t not in ("Integer", "Decimal", "Any") for t in child_types):
+                raise ValueError(f"CQL {name} requires numeric operands")
+            result = (
+                first
+                if name == "Abs"
+                else (_common_type(child_types) if name == "Power" else "Decimal")
+            )
+    node.result_type = result
+    return result
+
+
 def _execute(node: _Node, context: dict[str, object]) -> object:
+    """Java: ELM implicit conversions inserted by CqlTranslator."""
+    result = _execute_raw(node, context)
+    if node.result_type == "Decimal" and type(result) is int:
+        return Decimal(result)
+    return result
+
+
+def _execute_raw(node: _Node, context: dict[str, object]) -> object:
     """Java: ExpressionDef#evaluate(Context)."""
     if node.kind == "Literal":
         return node.value
     if node.kind == "Reference":
-        return context[str(node.value)]
+        name = str(node.value)
+        value = context[name]
+        if isinstance(value, _Node):
+            value = _execute(value, context)
+            context[name] = value
+        return value
     if node.kind == "If":
         return _execute(node.args[1 if _execute(node.args[0], context) is True else 2], context)
     args = [_execute(arg, context) for arg in node.args]
@@ -450,18 +582,21 @@ class ExpressionProcessor:
 
     def __init__(self, expression: str, param_type_map: dict[str, str] | None = None) -> None:
         """Java: ExpressionProcessor#ExpressionProcessor(String,Map)."""
-        self.param_type_map = {} if param_type_map is None else param_type_map
+        self.param_type_map: dict[str, str] = {} if param_type_map is None else param_type_map
         self.cql_param_map: dict[str, str] = {}
         clean = self.replace_parameters(expression)
-        self.expression = expression
+        self.expression: str = expression
         self.context: dict[str, object] = {}
         self.library: dict[str, _Node] = {}
-        self.elm = self.cql_to_elm(self.convert_parameterized_expression_to_cql(clean))
+        self.elm: str = self.cql_to_elm(self.convert_parameterized_expression_to_cql(clean))
+        self.library_manager: dict[str, _Node] = self.library
 
     def cql_to_elm(self, cql: str) -> str:
         """Java: ExpressionProcessor#cqlToElm, compiling the scalar/list expression library."""
         definitions = re.findall(r'(?m)^define\s+(?:"([^"]+)"|(\w+))\s*:\s*', cql)
         names = [a or b for a, b in definitions]
+        if len(set(names)) != len(names):
+            raise ValueError("Duplicate CQL definition")
         if not names:
             raise ValueError("CQL library contains no expression definitions")
         parts = re.split(r'(?m)^define\s+(?:"[^"]+"|\w+)\s*:\s*', cql)[1:]
@@ -470,22 +605,131 @@ class ExpressionProcessor:
             name: _Parser(source.strip(), known).parse()
             for name, source in zip(names, parts, strict=True)
         }
-        library = ET.Element("library", {"xmlns": "urn:hl7-org:elm:r1"})
+        types = {
+            mapped: self.param_type_map.get(original, "Decimal")
+            for original, mapped in self.cql_param_map.items()
+        }
+        for name, node in self.library.items():
+            _infer(node, types, self.library, {name})
+        library = ET.Element(
+            "library",
+            {
+                "xmlns": "urn:hl7-org:elm:r1",
+                "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+            },
+        )
         ET.SubElement(library, "identifier", {"id": self.LIBRARY_NAME, "version": "1"})
+        parameters = ET.SubElement(library, "parameters")
+        for original, mapped in self.cql_param_map.items():
+            parameter = ET.SubElement(parameters, "def", {"name": mapped, "accessLevel": "Public"})
+            type_name = self.param_type_map.get(original, "Decimal")
+            if type_name.startswith("List<"):
+                specifier = ET.SubElement(
+                    parameter, "parameterTypeSpecifier", {"xsi:type": "ListTypeSpecifier"}
+                )
+                ET.SubElement(
+                    specifier,
+                    "elementType",
+                    {
+                        "xsi:type": "NamedTypeSpecifier",
+                        "name": "{urn:hl7-org:elm-types:r1}" + type_name[5:-1],
+                    },
+                )
+            else:
+                parameter.set("parameterType", "{urn:hl7-org:elm-types:r1}" + type_name)
         statements = ET.SubElement(library, "statements")
         for name, node in self.library.items():
             definition = ET.SubElement(statements, "def", {"name": name, "context": "Unfiltered"})
             self._elm_node(definition, node)
         return ET.tostring(library, encoding="unicode")
 
-    @staticmethod
-    def _elm_node(parent: ET.Element, node: _Node) -> None:
-        """Java: CqlTranslator#toXml, serializing the compiled expression tree."""
-        element = ET.SubElement(parent, "expression", {"type": node.kind})
-        if node.value is not None:
-            element.set("value", str(node.value))
-        for arg in node.args:
-            ExpressionProcessor._elm_node(element, arg)
+    def _elm_node(self, parent: ET.Element, node: _Node, tag: str = "expression") -> None:
+        """Java: CqlTranslator#toXml; ELM representation of the supported system operators."""
+        element = ET.SubElement(parent, tag)
+        if node.kind == "Literal":
+            if node.value is None:
+                element.set("xsi:type", "Null")
+            else:
+                element.set("xsi:type", "Literal")
+                element.set("valueType", "{urn:hl7-org:elm-types:r1}" + node.result_type)
+                text = str(node.value).lower() if isinstance(node.value, bool) else str(node.value)
+                element.set("value", text)
+            return
+        if node.kind == "Reference":
+            element.set(
+                "xsi:type",
+                "ParameterRef" if node.value in self.cql_param_map.values() else "ExpressionRef",
+            )
+            element.set("name", str(node.value))
+            return
+        if node.kind == "If":
+            element.set("xsi:type", "If")
+            for name, arg in zip(("condition", "then", "else"), node.args, strict=True):
+                self._elm_node(element, arg, name)
+            return
+        if node.kind == "List":
+            element.set("xsi:type", "List")
+            for arg in node.args:
+                self._elm_node(element, arg, "element")
+            return
+        if node.kind == "index":
+            element.set("xsi:type", "Indexer")
+            self._elm_node(element, node.args[0], "source")
+            self._elm_node(element, node.args[1], "index")
+            return
+        if node.kind == "is":
+            assert isinstance(node.value, tuple)
+            target, negate = node.value
+            element.set("xsi:type", "Not" if negate else "Is" + str(target).title())
+            if negate:
+                element = ET.SubElement(
+                    element, "operand", {"xsi:type": "Is" + str(target).title()}
+                )
+            self._elm_node(element, node.args[0], "operand")
+            return
+        operator = str(node.value)
+        if node.kind == "binary":
+            name = {
+                "+": "Add",
+                "-": "Subtract",
+                "*": "Multiply",
+                "/": "Divide",
+                "div": "TruncatedDivide",
+                "mod": "Modulo",
+                "^": "Power",
+                "=": "Equal",
+                "!=": "Equal",
+                "<>": "Equal",
+                "~": "Equivalent",
+                "!~": "Equivalent",
+                "<": "Less",
+                "<=": "LessOrEqual",
+                ">": "Greater",
+                ">=": "GreaterOrEqual",
+                "and": "And",
+                "or": "Or",
+                "xor": "Xor",
+                "implies": "Implies",
+                "in": "In",
+                "contains": "Contains",
+                "&": "Concatenate",
+            }[operator]
+            if operator in ("!=", "<>", "!~"):
+                element.set("xsi:type", "Not")
+                element = ET.SubElement(element, "operand")
+            element.set("xsi:type", name)
+        elif node.kind == "unary":
+            element.set("xsi:type", {"-": "Negate", "+": "ToDecimal", "not": "Not"}[operator])
+        else:
+            element.set("xsi:type", operator)
+        source_functions = {"Min", "Max", "Sum", "Avg", "Count", "First", "Last", "Distinct"}
+        for index, arg in enumerate(node.args):
+            child_tag = (
+                "source"
+                if operator in source_functions
+                else ("precision" if operator == "Round" and index == 1 else "operand")
+            )
+            self._elm_node(element, arg, child_tag)
 
     def get_expression(self) -> str:
         """Java: ExpressionProcessor#getExpression()."""
@@ -575,6 +819,7 @@ class ExpressionProcessor:
                 self.expression,
                 ", ".join(sorted(extra)),
             )
+        self.context = dict(self.library)
         for name, mapped in self.cql_param_map.items():
             self.context[mapped] = params[name]
         result: object = None
