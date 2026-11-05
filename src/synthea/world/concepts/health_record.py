@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from enum import StrEnum
 from typing import IO, TYPE_CHECKING, ClassVar, cast
+from uuid import UUID
 
 from synthea.helpers.utilities import Utilities
 from synthea.javacompat.bigdecimal import (
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     from synthea.world.agents.clinician import Clinician
     from synthea.world.agents.person import Person
     from synthea.world.agents.provider import Provider
+    from synthea.world.concepts.claim import Claim
 
 
 _MISSING = object()
@@ -82,7 +84,7 @@ class HealthRecord:
         Java overloads:
         (Person person)
         """
-        self.person = person
+        self.person: Person = person
         self.provider: Provider | None = None
         self.encounters: list[Encounter] = []
         self.present: JavaHashMap[str, Entry] = JavaHashMap()
@@ -600,9 +602,9 @@ class Code:
         (JsonObject definition)
         """
         if isinstance(system_or_definition, dict):
-            self.system = cast(str, system_or_definition["system"])
-            self.code = cast(str, system_or_definition["code"])
-            self.display = cast(str, system_or_definition["display"])
+            self.system: str = cast(str, system_or_definition["system"])
+            self.code: str = cast(str, system_or_definition["code"])
+            self.display: str = cast(str, system_or_definition["display"])
         else:
             self.system = system_or_definition
             self.code = cast(str, code)
@@ -687,13 +689,13 @@ class Entry:
         Java overloads:
         (long start, String type)
         """
-        self.record = record
-        self.uuid = record.person.rand_uuid()
+        self.record: HealthRecord = record
+        self.uuid: UUID | str = record.person.rand_uuid()
         self.full_url: str | None = None
         self.name: str | None = None
-        self.start = start
-        self.stop = 0
-        self.type = type
+        self.start: int = start
+        self.stop: int = 0
+        self.type: str = type
         self.codes: list[Code] = []
         self.cost: Decimal | None = None
         self.note: str | None = None
@@ -794,7 +796,7 @@ class Observation(Entry):
         (long time, String type, Object value)
         """
         super().__init__(time, type, record=record)
-        self.value = value
+        self.value: object = value
         self.category: str | None = None
         self.unit: str | None = None
         self.observations: list[Observation] = []
@@ -813,7 +815,7 @@ class Report(Entry):
         (long time, String type, List observations)
         """
         super().__init__(time, type, record=record)
-        self.observations = observations
+        self.observations: list[Observation] = observations
 
 
 class Medication(EntryWithReasons):
@@ -830,9 +832,9 @@ class Medication(EntryWithReasons):
         super().__init__(time, type, record=record)
         self.stop_reason: Code | None = None
         self.prescription_details: dict[str, object] | None = None
-        self.administration = False
-        self.chronic = False
-        self.claim = Claim(self, record.person)
+        self.administration: bool = False
+        self.chronic: bool = False
+        self.claim: Claim = Claim(self, record.person)
 
     def write_object(self, oos: IO[bytes]) -> None:
         """Java: Medication#writeObject.
@@ -889,7 +891,7 @@ class Immunization(Entry):
         (long start, String type)
         """
         super().__init__(start, type, record=record)
-        self.series = -1
+        self.series: int = -1
 
 
 class Procedure(EntryWithReasons):
@@ -948,7 +950,7 @@ class ImagingStudy(Entry):
         (Person person, long time, String type)
         """
         super().__init__(time, type, record=record)
-        self.dicom_uid = Utilities.random_dicom_uid(
+        self.dicom_uid: str = Utilities.random_dicom_uid(
             cast("RandomNumberGenerator", person), time, 0, 0
         )
         self.series: list[Series] = []
@@ -967,8 +969,8 @@ class Series:
         self.body_site: Code | None = None
         self.modality: Code | None = None
         self.instances: list[Instance] | None = None
-        self.min_number_instances = 0
-        self.max_number_instances = 0
+        self.min_number_instances: int = 0
+        self.max_number_instances: int = 0
 
     def clone(self) -> Series:
         """Java: Series#clone.
@@ -1014,8 +1016,8 @@ class Device(Entry):
         self.manufacturer: str | None = None
         self.model: str | None = None
         self.udi: str | None = None
-        self.manufacture_time = 0
-        self.expiration_time = 0
+        self.manufacture_time: int = 0
+        self.expiration_time: int = 0
         self.device_identifier: str | None = None
         self.lot_number: str | None = None
         self.serial_number: str | None = None
@@ -1068,7 +1070,7 @@ class Supply(Entry):
         (long start, String type)
         """
         super().__init__(start, type, record=record)
-        self.quantity = 0
+        self.quantity: int = 0
 
 
 class EncounterType(StrEnum):
@@ -1134,9 +1136,9 @@ class Encounter(Entry):
         else:
             minutes = 15
         self.stop = to_int64(self.start + minutes * 60_000)
-        self.ended = False
-        self.ended_time = 0
-        self.chronic_meds_renewed = False
+        self.ended: bool = False
+        self.ended_time: int = 0
+        self.chronic_meds_renewed: bool = False
         self.observations: list[Observation] = []
         self.reports: list[Report] = []
         self.conditions: list[Entry] = []
@@ -1153,7 +1155,7 @@ class Encounter(Entry):
         self.provider: Provider | None = None
         self.clinician: Clinician | None = None
         self.clinical_note: str | None = None
-        self.claim = Claim(self, record.person)
+        self.claim: Claim = Claim(self, record.person)
 
     def add_observation(
         self, time: int, type: str, value: object, display: str | object | None = _MISSING
