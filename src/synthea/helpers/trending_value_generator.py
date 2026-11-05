@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import TYPE_CHECKING
 
 from synthea.helpers.value_generator import ValueGenerator
 
-
-class GaussianSource(Protocol):
-    """Java: Person#randGaussian, the only Person operation used here."""
-
-    def rand_gaussian(self) -> float:
-        """Java: Person#randGaussian()."""
-        ...
+if TYPE_CHECKING:
+    from synthea.world.agents.person import Person
 
 
 class TrendingValueGenerator(ValueGenerator):
@@ -20,7 +15,7 @@ class TrendingValueGenerator(ValueGenerator):
 
     def __init__(
         self,
-        person: GaussianSource,
+        person: Person,
         standard_deviation: float,
         begin_mean: float,
         end_mean: float,
@@ -76,10 +71,8 @@ class TrendingValueGenerator(ValueGenerator):
 
     def to_string(self) -> str:
         """Java: TrendingValueGenerator#toString()."""
-        from synthea.javacompat import double_to_string
-
         def fmt(value: float | None) -> str:
-            return "null" if value is None else double_to_string(value)
+            return "null" if value is None else str(value)
 
         return (
             "TrendingValueGenerator {"
