@@ -1,5 +1,8 @@
-# Automated checks come first. A PR labelled `review:needed` reaches the reviewer only after
-# CI is green on its head commit:
+# A PR labelled `review:question` (an agent's ❓ QUESTION) reaches the reviewer whatever CI
+# says: a blocker question is often *why* CI is red. It is never approved or merged from here.
+#
+# Automated checks come first for everything else. A PR labelled `review:needed` reaches the
+# reviewer only after CI is green on its head commit:
 #   * CI red   -> bounce it back to the agent automatically (no reviewer involved)
 #   * CI green -> wake the reviewer routine (REVIEWER_TRIGGER_URL/TOKEN secrets)
 #   * CI still running -> do nothing; this workflow runs again when CI completes
@@ -37,7 +40,10 @@ jobs:
     name: review-dispatch
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: github.event_name != 'pull_request_target' || github.event.label.name == 'review:needed'
+    if: >-
+      github.event_name != 'pull_request_target'
+      || github.event.label.name == 'review:needed'
+      || github.event.label.name == 'review:question'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,6 +54,7 @@ jobs:
           REPO: ${{ github.repository }}
           BRANCH: ${{ inputs.branch || github.event.workflow_run.head_branch || github.event.pull_request.head.ref }}
           WAIT_FOR_CI: ${{ inputs.wait_for_ci }}
+          EVENT_NAME: ${{ github.event_name }}
           MERGE_TOKEN: ${{ secrets.SYNC_TOKEN }}
           TRIGGER_URL: ${{ secrets.REVIEWER_TRIGGER_URL }}
           TRIGGER_TOKEN: ${{ secrets.REVIEWER_TRIGGER_TOKEN }}

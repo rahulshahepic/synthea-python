@@ -13,7 +13,8 @@ This file is both the reviewer's runbook and the instructions for the scheduled 
 | `status:stale` | issue | claimed, but no push for 24h; reviewer/user may reassign | `unblock-tasks` bot |
 | `status:claimed` | issue | an agent owns it (branch `task/<N>` exists) | agent |
 | `agent:muse` / `agent:chatgpt` | issue + PR | who owns it | agent |
-| `review:needed` | PR | agent asks for a verdict (or asked a `❓ QUESTION`) | agent (and CI, after a post-approval push) |
+| `review:needed` | PR | agent asks for a verdict; reaches the reviewer only with green CI | agent (and CI, after a post-approval push) |
+| `review:question` | PR | agent asked a `❓ QUESTION`; reaches the reviewer **whatever CI says**; keeps `review-gate` pending | agent |
 | `review:changes-requested` | PR | reviewer asked for changes | reviewer |
 | `review:approved` | PR | reviewer approved **this exact head commit**. Turns the required `review-gate` status from pending (amber) to success | reviewer only |
 
@@ -24,7 +25,9 @@ required commit status (pending until approved, never a red failure), and remove
 automatically when an agent pushes new commits.
 
 Order of operations: automated checks (`lint`, `typecheck`, `java-golden`, `test`) run on every
-push and come first. The reviewer only looks at PRs whose CI is green.
+push and come first. The reviewer only **reviews** PRs whose CI is green. Questions
+(`review:question`) are the exception: they are answered even with red CI, because a blocker
+question is often the reason CI is red. Answering one is never an approval.
 
 ## Routine (each scheduled run)
 
@@ -37,7 +40,13 @@ push and come first. The reviewer only looks at PRs whose CI is green.
    * Look for protocol violations: an agent with two open PRs, `review:approved` added by
      someone other than the reviewer, pushes to `main`, edits under `java/` or `.github/`.
      Flag them on the PR and tell the user.
-2. **Review** every open PR labelled `review:needed` whose CI is green on the head commit,
+2. **Answer questions** first: every open PR labelled `review:question`, regardless of CI.
+   Verify the claim yourself (reproduce the failure). Reply with a comment whose first line is
+   `❓ ANSWER (at <sha>)`, numbered decisions, and swap `review:question` →
+   `review:changes-requested`. If the fix is in shared files (tests, workflows, AGENTS.md,
+   task definitions), make that change on main first and say in the answer how to resume.
+   Never add `review:approved` while answering.
+3. **Review** every open PR labelled `review:needed` whose CI is green on the head commit,
    oldest first. (`review-dispatch.yml` already bounces PRs with red CI back to the agent
    automatically, and wakes this routine when a PR is green and waiting. Skip a PR whose CI
    is still running: you'll be woken again when it finishes.)
@@ -54,7 +63,11 @@ push and come first. The reviewer only looks at PRs whose CI is green.
       compare against goldens (nothing hard-coded or skipped, no loosened tolerances), and
       the JUnit ports are present.
    6. Run `scripts/check_port_map.py --task T<nn> --no-stubs` if the task requires it.
-   7. Verdict:
+   7. Component vs integration (PORTING_GUIDE §10): test doubles only in `tests/`, named
+      `*_double`, only for unmerged/cyclic collaborators, never in parity tests described as
+      integration; integration scenarios use `run_or_pending` with exactly the issue's
+      dependency list, and the issue's integration task shows 0 pending.
+   8. Verdict:
       * **Changes needed**: comment `🔴 CHANGES REQUESTED (reviewed <sha>)` followed by
         numbered, actionable points (file:line, what is wrong, what "fixed" looks like). Swap
         `review:needed` → `review:changes-requested`.
@@ -62,12 +75,13 @@ push and come first. The reviewer only looks at PRs whose CI is green.
         `review:approved`. When `review-gate` and CI are green on that SHA, **squash-merge**
         with the title `#<N> <title> (T<nn>)`. The issue closes via `Closes #<N>`. Then run
         housekeeping again so dependants become `status:ready`.
-      * **❓ QUESTION**: answer it in a comment and swap `review:needed` →
-        `review:changes-requested` (the agent's next action is to read your answer).
-3. **Problems found**: for every real issue an agent reports under "Problems found", open a
+      * **❓ QUESTION** asked with `review:needed`: answer it as in step 2.
+      * Never approve with CI red or pending, or with gated integration scenarios pending on
+        a task that the issue says must already be implemented.
+4. **Problems found**: for every real issue an agent reports under "Problems found", open a
    fix task (an issue with acceptance criteria) owned by the module's task ID, labelled
    `status:ready`. Link it from the PR.
-4. Post a short summary for the user: merged, reviewed, parked (waiting:deps), stale.
+5. Post a short summary for the user: merged, reviewed, parked (waiting:deps), stale.
 
 ## Merge policy
 
