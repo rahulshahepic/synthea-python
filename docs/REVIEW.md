@@ -7,8 +7,10 @@ This file is both the reviewer's runbook and the instructions for the scheduled 
 | Label | On | Meaning | Set by |
 |---|---|---|---|
 | `type:task` | issue | a porting task | reviewer |
-| `status:blocked` | issue | dependencies not merged yet; do not take | reviewer |
-| `status:ready` | issue | all dependencies merged; may be claimed | reviewer |
+| `status:blocked` | issue | some dependency not claimed yet; do not take | `unblock-tasks` bot |
+| `status:ready` | issue | all dependencies merged; may be claimed | `unblock-tasks` bot |
+| `status:startable` | issue | all dependencies merged or claimed; may be claimed and ported against stubs | `unblock-tasks` bot |
+| `status:stale` | issue | claimed, but no push for 24h; reviewer/user may reassign | `unblock-tasks` bot |
 | `status:claimed` | issue | an agent owns it (branch `task/<N>` exists) | agent |
 | `agent:muse` / `agent:chatgpt` | issue + PR | who owns it | agent |
 | `review:needed` | PR | agent asks for a verdict (or asked a `❓ QUESTION`) | agent (and CI, after a post-approval push) |

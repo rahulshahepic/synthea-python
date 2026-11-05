@@ -39,7 +39,10 @@ consume the CSV/FHIR output, so they need no simulation changes).
 3. **Skeleton first** (T04): every class is stubbed with its full signature early on. Because
    Java's import cycles are pre-broken, later tasks can proceed in parallel and depend on
    *interfaces* instead of finished code.
-4. **Dependencies**: an issue is `status:ready` only when every issue it depends on is merged.
+4. **Dependencies**: an issue is `status:ready` when every dependency is merged, and
+   `status:startable` when every dependency is merged *or claimed*. Startable work is ported
+   against the T04 stubs and reviewed once its dependencies merge, so tasks overlap instead
+   of queueing. A claim with no push for 24h is flagged `status:stale`.
 
 ## Phases and tasks
 
@@ -53,9 +56,9 @@ Phases 1–2 are foundations, 3–4 the world model, 5 the engine, 6 the Java mo
 | T03 | #2 | 1 | javacompat: numerics, Double.toString, String.format, BigDecimal | — |
 | T04 | #3 | 1 | Port skeleton: stub every in-scope class with signatures | — |
 | T05 | #5 | 2 | helpers: Config, SimpleCSV, SimpleYML | T03, T04 |
-| T06 | #6 | 2 | helpers: Utilities, TimeSeriesData, Telemedicine | T01, T03, T05 |
-| T07 | #7 | 2 | helpers/engine: RandomCollection, Distribution, ValueGenerators, RandomCodeGenerator, ExpressionProcessor | T01, T02, T06 |
-| T08 | #8 | 3 | world/concepts: HealthRecord data model | T06, T07 |
+| T06 | #6 | 2 | helpers: Utilities, TimeSeriesData, Telemedicine | T01, T03 |
+| T07 | #7 | 2 | helpers/engine: RandomCollection, Distribution, ValueGenerators, ExpressionProcessor | T01, T02 |
+| T08 | #8 | 3 | world/concepts: HealthRecord data model + RandomCodeGenerator | T06 |
 | T09 | #9 | 3 | world/agents: Person, ExpressedSymptom, ExpressedConditionRecord | T08 |
 | T10 | #10 | 3 | world/geography: Place, Location, Demographics, CMS state codes, QuadTree, Employment | T05, T07, T09 |
 | T11 | #11 | 3 | world/concepts: names, race/ethnicity, specialties, vitals, biometrics, BMI, telemedicine config | T05, T07, T09 |
