@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class RandomCodeGenerator:
-    """Java: RandomCodeGenerator; pending T07."""
+    """Java: RandomCodeGenerator; pending T08."""
 
     expandBaseUrl: ClassVar[str]  # Java initialization deferred to T07.
     codeListCache: ClassVar[dict[str, list[Code]]] = {}
@@ -37,7 +37,7 @@ class RandomCodeGenerator:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: RandomCodeGenerator#RandomCodeGenerator — pending T07")
+        raise NotImplementedError("Java: RandomCodeGenerator#RandomCodeGenerator — pending T08")
 
     @staticmethod
     def get_code(value_set_uri: str, seed: int, code: Code | None = None) -> Code:
@@ -47,7 +47,7 @@ class RandomCodeGenerator:
         (String valueSetUri, long seed, Code code)
         (String valueSetUri, long seed)
         """
-        raise NotImplementedError("Java: RandomCodeGenerator#getCode — pending T07")
+        raise NotImplementedError("Java: RandomCodeGenerator#getCode — pending T08")
 
     @staticmethod
     def code_in_value_set(code: Code, value_set_uri: str) -> bool:
@@ -56,7 +56,7 @@ class RandomCodeGenerator:
         Java overloads:
         (Code code, String valueSetUri)
         """
-        raise NotImplementedError("Java: RandomCodeGenerator#codeInValueSet — pending T07")
+        raise NotImplementedError("Java: RandomCodeGenerator#codeInValueSet — pending T08")
 
     @staticmethod
     def expand_value_set(value_set_uri: str) -> None:
@@ -65,7 +65,7 @@ class RandomCodeGenerator:
         Java overloads:
         (String valueSetUri)
         """
-        raise NotImplementedError("Java: RandomCodeGenerator#expandValueSet — pending T07")
+        raise NotImplementedError("Java: RandomCodeGenerator#expandValueSet — pending T08")
 
     @staticmethod
     def load_value_set(value_set_uri: str, value_set: ValueSet) -> None:
@@ -74,7 +74,7 @@ class RandomCodeGenerator:
         Java overloads:
         (String valueSetUri, ValueSet valueSet)
         """
-        raise NotImplementedError("Java: RandomCodeGenerator#loadValueSet — pending T07")
+        raise NotImplementedError("Java: RandomCodeGenerator#loadValueSet — pending T08")
 
     @staticmethod
     def validate_expansion(expansion: ValueSetExpansionComponent) -> None:
@@ -83,7 +83,7 @@ class RandomCodeGenerator:
         Java overloads:
         (ValueSetExpansionComponent expansion)
         """
-        raise NotImplementedError("Java: RandomCodeGenerator#validateExpansion — pending T07")
+        raise NotImplementedError("Java: RandomCodeGenerator#validateExpansion — pending T08")
 
     @staticmethod
     def validate_code(code: Code) -> None:
@@ -92,7 +92,7 @@ class RandomCodeGenerator:
         Java overloads:
         (Code code)
         """
-        raise NotImplementedError("Java: RandomCodeGenerator#validateCode — pending T07")
+        raise NotImplementedError("Java: RandomCodeGenerator#validateCode — pending T08")
 
     @staticmethod
     def set_base_url(url: str) -> None:
@@ -101,4 +101,4 @@ class RandomCodeGenerator:
         Java overloads:
         (String url)
         """
-        raise NotImplementedError("Java: RandomCodeGenerator#setBaseUrl — pending T07")
+        raise NotImplementedError("Java: RandomCodeGenerator#setBaseUrl — pending T08")

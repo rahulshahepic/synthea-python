@@ -116,7 +116,7 @@ owners = ["T07"]
 [[module]]
 python = "src/synthea/helpers/random_code_generator.py"
 java = "java/src/main/java/org/mitre/synthea/helpers/RandomCodeGenerator.java"
-owners = ["T07"]
+owners = ["T08"]
 
 [[module]]
 python = "src/synthea/helpers/expression_processor.py"

@@ -1,11 +1,10 @@
-# Promote task issues from status:blocked to status:ready as soon as every issue listed under
-# "### Depends on" is closed (i.e. its PR merged). Runs when any issue closes, hourly as a
-# safety net, and on demand.
+# Keep task status labels current (ready / startable / blocked / stale); see
+# scripts/unblock_tasks.sh. Runs on issue changes (incl. claims), hourly, and on demand.
 name: unblock-tasks
 
 on:
   issues:
-    types: [closed, reopened, edited]
+    types: [closed, reopened, edited, labeled, unlabeled]
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:
