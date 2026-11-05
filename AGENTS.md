@@ -38,14 +38,22 @@ GitHub UI/API, or `git branch -r` together with the PR list.
 
 ## 2. Pick a task
 
-1. List **open** issues with the label `status:ready` that do **not** have `status:claimed`.
-2. Pick the **lowest-numbered** one. Do not cherry-pick.
+1. List **open** issues labelled `status:ready` that do **not** have `status:claimed`, and take
+   the **lowest-numbered** one.
+2. If there are none, do the same with `status:startable`.
 3. Read the whole issue: Java sources, Depends on, Scope, Acceptance criteria.
-4. Check that every issue under **Depends on** is closed. If one is still open, skip this
-   issue and take the next one. The reviewer normally keeps `status:ready` accurate, but
-   check anyway.
 
-If no issue qualifies, **stop and tell the user "no ready tasks"**. Do not invent work.
+What the labels mean (a bot keeps them current; trust them):
+* `status:ready`: every dependency is merged. Port, test and ask for review.
+* `status:startable`: every dependency is merged **or claimed by an agent**. Claim it and port
+  now. Code you depend on may still be a T04 stub; the skeleton fixes every class and
+  method signature, so program against it. Parity tests that hit a stub will fail until
+  that dependency merges. That's expected, and the PR stays a **draft** until then. As
+  soon as the issue turns `status:ready` (the bot merges `main` into your branch for you),
+  make CI green and ask for review (§5).
+* `status:blocked`: some dependency isn't even claimed yet. Don't take it.
+
+If nothing is ready or startable, **stop and tell the user "no ready tasks"**. Do not invent work.
 
 ## 3. Claim it atomically (prevents two agents doing the same task)
 
@@ -135,8 +143,9 @@ Immediately after the push succeeds:
 
 ## 5. Ask for review
 
-When **every** acceptance criterion in the issue holds, the branch has **no merge conflicts**
-with `main`, **and** CI is green on your latest commit:
+When the issue is `status:ready` (all dependencies merged), **every** acceptance criterion
+holds, the branch has **no merge conflicts** with `main`, **and** CI is green on your latest
+commit:
 1. Mark the PR **Ready for review** (no longer a draft).
 2. Add the label `review:needed` to the PR.
 3. Comment on the PR: `Ready for review at <short-sha>. Agent: <your-name>`, plus a

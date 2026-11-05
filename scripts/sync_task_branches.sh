@@ -13,6 +13,8 @@ done <<'LABELS'
 type:task 5319E7
 status:ready 0E8A16
 status:blocked B60205
+status:startable C2E0C6
+status:stale D93F0B
 status:claimed FBCA04
 agent:muse 1D76DB
 agent:chatgpt 1D76DB
