@@ -30,13 +30,15 @@ git fetch origin --prune
 
 Then list your open PRs (label `agent:<your-name>`) and deal with them **in this order**:
 
-1. **`review:changes-requested`** (or an automated 🔴 bounce): go to step 7.
+1. **`review:changes-requested`** (or an automated 🔴 bounce, or the answer to your
+   `❓ QUESTION`): go to step 7.
 2. **`waiting:deps` whose issue is now `status:ready`**: its dependencies have merged. Remove
    `waiting:deps`, pull, make CI green, and ask for review (step 5).
-3. **An active PR** (no `waiting:deps`, `review:needed` or `review:approved` label): that's
-   the task you were in the middle of. Go to step 4.
-4. **Nothing above?** Start a new task: go to step 2. PRs that are parked (`waiting:deps`) or
-   waiting for review (`review:needed` / `review:approved`) don't stop you.
+3. **An active PR** (no `waiting:deps`, `review:needed`, `review:question` or
+   `review:approved` label): that's the task you were in the middle of. Go to step 4.
+4. **Nothing above?** Start a new task: go to step 2. PRs that are parked (`waiting:deps`),
+   waiting for review (`review:needed` / `review:approved`) or waiting for an answer
+   (`review:question`) don't stop you.
 
 You may have **one active PR** at a time, plus any number of parked or in-review PRs, up to
 **4 open PRs** in total. At 4, only handle items 1–2 above, and if there are none, stop and
@@ -107,6 +109,21 @@ Immediately after the push succeeds:
 * Code owned by a task that hasn't merged yet is still a stub (from T04). Call it anyway; your
   dependencies guarantee that what you need is real. If you hit a stub that is *not* covered
   by your dependencies, report it under "Problems found". Don't implement it.
+* **Component vs integration tests** (PORTING_GUIDE §10). Production code always keeps its
+  real calls into other tasks. Tests come in two kinds, and the issue says which it requires:
+  * *Component parity*: exercises your task's code alone. Where the Java needs a collaborator
+    owned by an **unmerged** task (or one that depends on you), a test double may stand in for
+    it, **only in `tests/`**, only for state/RNG plumbing the Java reads (never for behaviour
+    the probe output depends on beyond that), named `*_double` and listed in your PR body.
+    Name such tests `test_<area>_component_*` or say "component" in the docstring. Never call
+    them full or integration parity.
+  * *Integration parity*: real objects end to end, no doubles. If a scenario must call into
+    a task that is still a stub, wrap each scenario in `tests.dependency_gate.run_or_pending`
+    with the dependency tasks the issue lists, and call `report_pending`. A genuine stub of a
+    listed task is reported as pending (a warning in the pytest summary); anything else fails.
+    Every scenario that can run must match exactly, and once the listed tasks are implemented
+    nothing can be pending: the test is then required in full, in the PR of the integration
+    task named in the issue. Never skip, xfail or drop such scenarios instead.
 * Break Java's circular imports with `from __future__ import annotations` and
   `if TYPE_CHECKING:` imports, or with a function-local import. Never merge modules to avoid a cycle.
 * **Never modify**: anything under `java/`, `.github/`, `AGENTS.md`, `docs/` (except your own
@@ -166,7 +183,9 @@ green yet. Instead **park** it:
    RESUME check brings you back.
 
 If you add `review:needed` while CI is red, automation bounces the PR straight back with an
-automated `🔴 CHANGES REQUESTED` comment. Treat that like any other review (§7).
+automated `🔴 CHANGES REQUESTED` comment. Treat that like any other review (§7). If CI is
+red because of something you may not fix in your scope, don't ask for review: ask a
+question (§8). Questions reach the reviewer whatever CI says.
 
 The `review-gate` status shows **pending (amber)** until the reviewer approves. That is
 normal and not a failure; your job is to get the other checks green.
@@ -205,13 +224,19 @@ one of:
   of probe seeds.
 * One **active** task at a time per agent, at most 4 open PRs (§1). Never take a task claimed by
   someone else, even if it's marked `status:stale`. The user or reviewer reassigns it.
-* If you are stuck for real (the spec is ambiguous, or the Java seems non-deterministic, …),
-  write a PR comment that starts with `❓ QUESTION:`, add the label `review:needed`, and wait.
-  The reviewer answers like a review.
+* If you are stuck for real (the spec is ambiguous, the Java seems non-deterministic, a
+  test or task definition outside your scope blocks you, …), write a PR comment that starts
+  with `❓ QUESTION:` and add the label **`review:question`** (not `review:needed`). It reaches
+  the reviewer **even while CI is red** and is never bounced. Then take other work (§6). The
+  reviewer answers with a comment starting `❓ ANSWER` and swaps `review:question` →
+  `review:changes-requested`; handle it in §7. A question is never an approval: merging still
+  needs `review:needed`, green CI and `🟢 ALL CLEAR`.
 
 ## 9. Definition of Done (applies to every task, in addition to the issue's own criteria)
 
-1. CI is green on the PR head: `lint`, `typecheck`, `java-golden`, `test`.
+1. CI is green on the PR head: `lint`, `typecheck`, `java-golden`, `test`. Integration tests
+   gated by `run_or_pending` count as green only while every pending scenario names a task
+   the issue lists as not yet merged; the issue's integration task must show **0 pending**.
 2. The issue's parity tests exist, use goldens produced by a probe, and pass **exactly**.
 3. The relevant upstream JUnit tests (named in the issue) are ported to `tests/unit/` where
    they make sense. List any you skipped in the PR body, with a reason.

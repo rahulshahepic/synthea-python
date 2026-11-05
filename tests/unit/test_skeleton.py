@@ -1,13 +1,20 @@
-"""Check that T04 skeletons preserve Java instance fields and enum members."""
+"""T04 skeleton contract: Java fields, enum members, typed callables, explicit stubs.
+
+These hold for skeletons and implementations alike; nothing here requires a ported module
+to stay a stub (stub-ness is detected from the code, see tests/dependency_gate.py).
+"""
 
 from __future__ import annotations
 
 import ast
+import functools
 import re
 import tomllib
 from pathlib import Path
 
 import pytest
+
+from tests.dependency_gate import pending_stubs, pending_tasks, stub_message
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -132,40 +139,154 @@ def test_skeleton_java_fields_and_enums(entry: dict[str, object]) -> None:
     assert not errors, "\n".join(errors)
 
 
-@pytest.mark.parametrize(
-    "entry",
-    [
-        x
-        for x in tomllib.loads((ROOT / "docs/port_map.toml").read_text())["module"]
-        if not set(x["owners"]) & {"T01", "T02", "T03", "T05", "T06", "T07"} and x["java"]
-    ],
-    ids=lambda x: x["python"],
-)
-def test_skeleton_explicit_typed_stubs(entry: dict[str, object]) -> None:
-    """A skeleton preserves the callable contract and fails with its actual owner task."""
+CONTRACT_MODULES = [
+    x
+    for x in tomllib.loads((ROOT / "docs/port_map.toml").read_text())["module"]
+    if not set(x["owners"]) & {"T01", "T02", "T03", "T05"} and x["java"]
+]
+
+
+def _functions(tree: ast.Module) -> list[ast.FunctionDef | ast.AsyncFunctionDef]:
+    return [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
+
+
+def _is_public(name: str) -> bool:
+    return not name.startswith("_") or (name.startswith("__") and name.endswith("__"))
+
+
+@pytest.mark.parametrize("entry", CONTRACT_MODULES, ids=lambda x: x["python"])
+def test_skeleton_typed_callable_contract(entry: dict[str, object]) -> None:
+    """Stubs and implementations alike keep the T04 callable contract (AGENTS.md §9.4-5).
+
+    Every function is fully annotated with no catch-all ``*args``/``**kwargs`` (Java overloads
+    are explicit), and every public one cites its Java origin. Python-only private and local
+    helpers of an implementation need no Java citation.
+    """
     tree = ast.parse((ROOT / str(entry["python"])).read_text())
-    owners = entry["owners"]
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.FunctionDef):
-            continue
+    errors: list[str] = []
+    local = {
+        id(inner)
+        for outer in _functions(tree)
+        for inner in ast.walk(outer)
+        if inner is not outer and isinstance(inner, ast.FunctionDef | ast.AsyncFunctionDef)
+    }
+    for node in _functions(tree):
         label = f"{entry['python']}:{node.lineno} {node.name}"
-        assert node.args.vararg is None and node.args.kwarg is None, label
-        assert node.returns is not None, label
-        assert all(
-            arg.annotation is not None
+        if node.args.vararg is not None or node.args.kwarg is not None:
+            errors.append(f"{label}: *args/**kwargs")
+        if node.returns is None:
+            errors.append(f"{label}: missing return annotation")
+        if any(
+            arg.annotation is None
             for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs
             if arg.arg not in {"self", "cls"}
-        ), label
-        assert "Java:" in (ast.get_docstring(node) or ""), label
-        raises = [child for child in ast.walk(node) if isinstance(child, ast.Raise)]
-        assert len(raises) == 1, label
-        exc = raises[0].exc
-        assert isinstance(exc, ast.Call) and isinstance(exc.func, ast.Name), label
-        assert exc.func.id == "NotImplementedError", label
-        assert len(exc.args) == 1 and isinstance(exc.args[0], ast.Constant), label
-        message = exc.args[0].value
-        assert isinstance(message, str) and "Java:" in message and "#" in message, label
-        assert "pending" in message and all(owner in message for owner in owners), label
+        ):
+            errors.append(f"{label}: unannotated parameter")
+        if (
+            id(node) not in local
+            and _is_public(node.name)
+            and "Java:" not in (ast.get_docstring(node) or "")
+        ):
+            errors.append(f"{label}: docstring does not cite Java")
+    assert not errors, "\n".join(errors)
+
+
+@pytest.mark.parametrize("entry", CONTRACT_MODULES, ids=lambda x: x["python"])
+def test_skeleton_stubs_are_explicit_and_name_their_owner(entry: dict[str, object]) -> None:
+    """Every remaining stub fails loudly with its Java origin and its owner task.
+
+    A stub is a docstring plus one ``raise NotImplementedError("Java: X#y — pending T<nn>")``
+    (or an "out of scope" message, PORTING_GUIDE §8). A "pending" raise anywhere else (inside
+    a partly ported body) is forbidden: it would hide an unported path from --no-stubs.
+    """
+    tree = ast.parse((ROOT / str(entry["python"])).read_text())
+    owners = [str(o) for o in entry["owners"]]  # type: ignore[attr-defined]
+    errors: list[str] = []
+    for node in _functions(tree):
+        label = f"{entry['python']}:{node.lineno} {node.name}"
+        message = stub_message(node)
+        if message is not None:
+            if "out of scope" in message.lower():
+                continue
+            if not ("Java:" in message and "#" in message and "pending" in message):
+                errors.append(f"{label}: stub message must be 'Java: X#y — pending T<nn>'")
+            elif not all(owner in message for owner in owners):
+                errors.append(f"{label}: stub message must name {owners}")
+            continue
+        for child in ast.walk(node):
+            if (
+                isinstance(child, ast.Raise)
+                and isinstance(child.exc, ast.Call)
+                and isinstance(child.exc.func, ast.Name)
+                and child.exc.func.id == "NotImplementedError"
+                and any(
+                    isinstance(a, ast.Constant) and "pending" in str(a.value)
+                    for a in child.exc.args
+                )
+            ):
+                errors.append(f"{label}:{child.lineno}: 'pending' raise inside an implementation")
+    assert not errors, "\n".join(errors)
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [x for x in CONTRACT_MODULES if len(x["owners"]) == 1],
+    ids=lambda x: x["python"],
+)
+def test_module_is_skeleton_or_fully_implemented(entry: dict[str, object]) -> None:
+    """A single-owner module is either still the T04 skeleton or completely ported.
+
+    Implemented: no pending stub remains (the --no-stubs rule) and at least one unit or
+    parity test imports the module. Skeleton: every function is still a pending stub. A mix
+    means a half-merged port. Multi-owner modules (e.g. State: T19 then T20) are exempt.
+    """
+    python = str(entry["python"])
+    tree = ast.parse((ROOT / python).read_text())
+    functions = _functions(tree)
+    pending = pending_stubs(python)
+    if pending:
+        implemented = [
+            f"{n.name}:{n.lineno}"
+            for n in functions
+            if (n.name, n.lineno) not in {(name, line) for name, line, *_ in pending}
+            and stub_message(n) is None
+        ]
+        assert not implemented, f"{python}: partly ported; still pending: {len(pending)}"
+        return
+    module = python.removeprefix("src/").removesuffix(".py").replace("/", ".")
+    covered = _covered_modules()
+    assert module in covered, (
+        f"{python}: implemented, but no unit or parity test imports {module} "
+        "(directly or through another covered module)"
+    )
+
+
+def _imports(path: Path) -> set[str]:
+    names: set[str] = set()
+    for node in ast.walk(ast.parse(path.read_text())):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            names.add(node.module)
+        elif isinstance(node, ast.Import):
+            names.update(a.name for a in node.names)
+    return names
+
+
+@functools.cache
+def _covered_modules() -> frozenset[str]:
+    """Modules a test imports, closed over what those src modules import in turn."""
+    covered: set[str] = set()
+    for test in (ROOT / "tests").rglob("test_*.py"):
+        if test.name != "test_skeleton.py":
+            covered |= _imports(test)
+    frontier = set(covered)
+    while frontier:
+        name = frontier.pop()
+        path = ROOT / "src" / (name.replace(".", "/") + ".py")
+        if path.is_file():
+            new = _imports(path) - covered
+            covered |= new
+            frontier |= new
+    return frozenset(covered)
 
 
 def test_skeleton_nested_members_belong_to_their_java_class() -> None:
@@ -207,8 +328,9 @@ def test_skeleton_overload_shapes_and_cli_failure() -> None:
     assert "list[float]" in str(params[0].annotation)
     assert "int" in str(params[0].annotation)
     assert isinstance(vars(SimpleCSV)["parse"], staticmethod)
-    with pytest.raises(NotImplementedError, match=r"Java: App#main.*pending T28"):
-        main([])
+    if "T28" in pending_tasks():  # the CLI stub fails loudly until T28 ports it
+        with pytest.raises(NotImplementedError, match=r"Java: App#main.*pending T28"):
+            main([])
 
 
 def test_skeleton_constant_scale_and_readonly_maps() -> None:

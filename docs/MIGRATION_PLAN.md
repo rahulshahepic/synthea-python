@@ -44,6 +44,13 @@ consume the CSV/FHIR output, so they need no simulation changes).
    dependencies merge, and only then is it reviewed. Agents park finished-but-waiting PRs
    (`waiting:deps`) and keep working, so the agents run at full parallelism. A claim with no
    push for 24h (excluding parked or in-review PRs) is flagged `status:stale`.
+5. **Component first, integration later** (PORTING_GUIDE §10): a task is accepted on
+   component parity. Scenarios that need later tasks run through `run_or_pending` and become
+   required, automatically, in the PR of the named integration task. Example: T08's 60
+   full-record HealthRecord scenarios need Person (T09), Claim (T14), PayerManager (T15) and
+   CoverageRecord (T16); T16 is their integration task.
+6. **Questions are never blocked by CI**: `review:question` reaches the reviewer even when CI
+   is red; approval still requires green CI.
 
 ## Phases and tasks
 
@@ -67,7 +74,7 @@ Phases 1–2 are foundations, 3–4 the world model, 5 the engine, 6 the Java mo
 | T13 | #13 | 3 | world/agents: Clinician, Provider, provider finders | T10, T11 |
 | T14 | #14 | 4 | world/concepts: Costs and Claim | T03, T09, T10 |
 | T15 | #15 | 4 | insurance I: Payer, PayerManager, InsurancePlan, payer adjustments, plan finders | T14 |
-| T16 | #16 | 4 | insurance II: PlanRecord, CoverageRecord, plan eligibility, HealthInsuranceModule | T15 |
+| T16 | #16 | 4 | insurance II: PlanRecord, CoverageRecord, plan eligibility, HealthInsuranceModule (+ integration task for T08's full-record parity) | T15 |
 | T17 | #17 | 5 | engine: Components and Logic (conditions) | T09 |
 | T18 | #18 | 5 | engine: Transition | T15, T17 |
 | T19 | #19 | 5 | engine: Module loading/processing + control-flow States | T18 |

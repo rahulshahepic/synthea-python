@@ -12,6 +12,7 @@ STALE_HOURS="${STALE_HOURS:-24}"
 gh label create status:startable --repo "$REPO" --color C2E0C6 --force >/dev/null 2>&1 || true
 gh label create status:stale --repo "$REPO" --color D93F0B --force >/dev/null 2>&1 || true
 gh label create waiting:deps --repo "$REPO" --color BFD4F2 --force >/dev/null 2>&1 || true
+gh label create review:question --repo "$REPO" --color D876E3 --force >/dev/null 2>&1 || true
 
 issues="$(gh issue list --repo "$REPO" --state all --label type:task --limit 500 \
   --json number,state,labels,body)"
@@ -25,6 +26,7 @@ for num in $(jq -r '.[] | select(.state == "OPEN") | .number' <<<"$issues"); do
     pr_labels="$(gh pr list --repo "$REPO" --head "task/$num" --state open --json labels \
       --jq '[.[0].labels[]?.name] | join(",")' 2>/dev/null || true)"
     if [[ ",$pr_labels," == *",waiting:deps,"* || ",$pr_labels," == *",review:needed,"* \
+          || ",$pr_labels," == *",review:question,"* \
           || ",$pr_labels," == *",review:approved,"* ]]; then
       pr_labels="skip"   # parked or waiting on the reviewer: not the agent's move, so not stale
     fi

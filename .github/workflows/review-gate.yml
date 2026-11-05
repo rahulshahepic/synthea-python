@@ -1,6 +1,7 @@
 # Publishes the required commit status `review-gate`:
 #   pending -> waiting for the reviewer (shown amber, not as a failure)
-#   success -> the PR carries `review:approved` (added only by the reviewer)
+#   success -> the PR carries `review:approved` (added only by the reviewer) and no open
+#              `review:question`
 # Any new commit pushed by an agent removes `review:approved`, so an approval only covers the
 # commit that was reviewed. Automated checks (ci.yml) run independently on every push and are
 # never blocked by this gate. The auto-sync bot dispatches this workflow with a PR number,
@@ -45,7 +46,9 @@ jobs:
             labels="${labels//review:approved/}"
             echo "New commits after approval: approval removed, re-review required."
           fi
-          if [[ ",$labels," == *",review:approved,"* ]]; then
+          if [[ ",$labels," == *",review:question,"* ]]; then
+            state=pending; desc="Open question for the reviewer (label review:question)"
+          elif [[ ",$labels," == *",review:approved,"* ]]; then
             state=success; desc="Approved by reviewer"
           else
             state=pending; desc="Waiting for reviewer (label review:approved)"
