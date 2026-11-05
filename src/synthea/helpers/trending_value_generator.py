@@ -5,9 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from synthea.helpers.value_generator import ValueGenerator
+from synthea.javacompat.numbers import double_to_string, to_int64
 
 if TYPE_CHECKING:
-    from synthea.world.agents.person import Person
+    from synthea.engine.distribution import RandomSource
 
 
 class TrendingValueGenerator(ValueGenerator):
@@ -15,7 +16,7 @@ class TrendingValueGenerator(ValueGenerator):
 
     def __init__(
         self,
-        person: Person,
+        person: RandomSource,
         standard_deviation: float,
         begin_mean: float,
         end_mean: float,
@@ -26,10 +27,10 @@ class TrendingValueGenerator(ValueGenerator):
     ) -> None:
         """Java: TrendingValueGenerator#TrendingValueGenerator(Person,double,double,double,long,long,Double,Double)."""
         super().__init__(person)
-        if standard_deviation < 0 or (
+        if not standard_deviation >= 0 or (
             minimum_value is not None
             and maximum_value is not None
-            and minimum_value > maximum_value
+            and not minimum_value <= maximum_value
         ):
             raise ValueError("invalid trending generator arguments")
         self.standard_deviation: float = standard_deviation
@@ -54,25 +55,25 @@ class TrendingValueGenerator(ValueGenerator):
             return self.next_value(self.begin_mean)
         if time > self.end_time:
             return self.next_value(self.end_mean)
-        mean = self.begin_mean + (self.end_mean - self.begin_mean) * (
+        mean = self.begin_mean + (self.end_mean - self.begin_mean) * to_int64(
             time - self.begin_time
-        ) / (self.end_time - self.begin_time)
+        ) / to_int64(self.end_time - self.begin_time)
         return self.next_value(mean)
 
     def next_value(self, mean: float) -> float:
         """Java: TrendingValueGenerator#nextValue(double); rejection sampling."""
         while True:
             value = self.person.rand_gaussian() * self.standard_deviation + mean
-            if (
-                (self.minimum_value is None or value >= self.minimum_value)
-                and (self.maximum_value is None or value <= self.maximum_value)
+            if (self.minimum_value is None or value >= self.minimum_value) and (
+                self.maximum_value is None or value <= self.maximum_value
             ):
                 return value
 
     def to_string(self) -> str:
         """Java: TrendingValueGenerator#toString()."""
+
         def fmt(value: float | None) -> str:
-            return "null" if value is None else str(value)
+            return "null" if value is None else double_to_string(value)
 
         return (
             "TrendingValueGenerator {"

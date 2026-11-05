@@ -4,15 +4,19 @@ from __future__ import annotations
 
 import math
 from enum import StrEnum
-from typing import Protocol
+from typing import Protocol, overload
+
+from synthea.javacompat.numbers import math_round
 
 
 class RandomSource(Protocol):
     """Java: Person random-number methods used by Distribution."""
 
-    def rand(self, *bounds: float) -> float:
-        """Java: Person#rand() and Person#rand(double,double)."""
-        ...
+    @overload
+    def rand(self) -> float: ...
+
+    @overload
+    def rand(self, low: float, high: float) -> float: ...
 
     def rand_gaussian(self) -> float:
         """Java: Person#randGaussian()."""
@@ -70,7 +74,7 @@ class Distribution:
         else:
             value = -1.0
         if self.round:
-            value = float(math.floor(value + 0.5))
+            value = float(math_round(value))
         return value
 
     def validate(self) -> bool:
@@ -84,4 +88,8 @@ class Distribution:
             Kind.EXPONENTIAL: ("mean",),
             Kind.TRIANGULAR: ("min", "mode", "max"),
         }
-        return all(key in self.parameters for key in required.get(self.kind, ())) if self.kind in required else False
+        return (
+            all(key in self.parameters for key in required.get(self.kind, ()))
+            if self.kind in required
+            else False
+        )

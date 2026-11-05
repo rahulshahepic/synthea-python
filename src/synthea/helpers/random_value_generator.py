@@ -8,14 +8,17 @@ from synthea.engine.distribution import Distribution, Kind
 from synthea.helpers.value_generator import ValueGenerator
 
 if TYPE_CHECKING:
-    from synthea.world.agents.person import Person
+    from synthea.engine.distribution import RandomSource
 
 
 class RandomValueGenerator(ValueGenerator):
     """Java: org.mitre.synthea.helpers.RandomValueGenerator."""
 
     def __init__(
-        self, person: Person, low_or_distribution: float | Distribution, high: float | None = None
+        self,
+        person: RandomSource,
+        low_or_distribution: float | Distribution,
+        high: float | None = None,
     ) -> None:
         """Java: RandomValueGenerator#RandomValueGenerator(Person,double,double)
         and RandomValueGenerator#RandomValueGenerator(Person,Distribution).

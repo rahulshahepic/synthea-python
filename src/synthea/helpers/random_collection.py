@@ -6,7 +6,7 @@ from bisect import bisect_right
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from synthea.helpers.random_number_generator import RandomNumberGenerator
+    from synthea.engine.distribution import RandomSource
 
 
 class RandomCollection[E]:
@@ -31,7 +31,7 @@ class RandomCollection[E]:
             self.add(cumulative_weight - weight_adj, other.map[cumulative_weight])
             weight_adj = cumulative_weight
 
-    def next(self, random_or_value: RandomNumberGenerator | float) -> E:
+    def next(self, random_or_value: RandomSource | float) -> E:
         """Java: RandomCollection#next(RandomNumberGenerator), next(double)."""
         if isinstance(random_or_value, (float, int)):
             value = float(random_or_value)
