@@ -694,7 +694,7 @@ class JavaConcurrentHashMap[K, V](JavaHashMap[K, V]):
         )
         if initial_capacity is not None:
             target = max(initial_capacity, concurrency_level)
-            self._threshold = _table_size_for(int(1.0 + target / self._load_factor))
+            self._threshold = _table_size_for(int(1.0 + _float32(target / self._load_factor)))
         if entries is not None:
             items = list(entries.items() if isinstance(entries, Mapping) else entries)
             self._threshold = 16
@@ -718,9 +718,8 @@ class JavaConcurrentHashMap[K, V](JavaHashMap[K, V]):
         if not self._capacity:
             self._capacity = max(self._threshold, target)
             self._threshold = self._new_threshold(self._capacity)
-        else:
-            while target > self._threshold and self._capacity < _MAXIMUM_CAPACITY:
-                self._resize()
+        while target > self._threshold and self._capacity < _MAXIMUM_CAPACITY:
+            self._resize()
 
     def _treeify_bin(self, index: int) -> None:
         """Java: ConcurrentHashMap#treeifyBin presizes small tables more aggressively."""
@@ -787,21 +786,82 @@ class JavaConcurrentHashMap[K, V](JavaHashMap[K, V]):
         while self._size >= self._threshold and self._capacity < _MAXIMUM_CAPACITY:
             self._resize()
 
+    def _visited_count(self, key: K) -> int:
+        """Java: ConcurrentHashMap#putVal/computeIfAbsent/merge binCount before mutation."""
+        h = self._hash(key)
+        if not self._capacity:
+            return 0
+        bucket = self._table.get(h & (self._capacity - 1))
+        if bucket is None:
+            return 0
+        if bucket.root is not None:
+            return 2
+        for i, node in enumerate(bucket.nodes, 1):
+            if node.hash == h and _java_equal(key, node.key):
+                return i
+        return len(bucket.nodes)
+
+    def _treeify_after_visit(self, key: K, count: int) -> None:
+        """Java: CHM may treeify even when compute returns null or an old value is replaced."""
+        if count >= 8:
+            self._treeify_bin(self._hash(key) & (self._capacity - 1))
+
     def put(self, key: K, value: V) -> V | None:
-        """Java: ConcurrentHashMap#put rejects null even for an existing key."""
+        """Java: ConcurrentHashMap#put rejects null and may treeify a visited existing bin."""
         if value is None:
             raise ValueError("Java NullPointerException: ConcurrentHashMap value")
-        return super().put(key, value)
+        count = self._visited_count(key)
+        node = self._find(key)
+        if node is not None:
+            previous = node.value
+            node.value = value
+            self._treeify_after_visit(key, count)
+            return previous
+        self._insert(key, value)
+        return None
 
     def put_if_absent(self, key: K, value: V) -> V | None:
-        """Java: ConcurrentHashMap#putIfAbsent rejects null values unconditionally."""
+        """Java: ConcurrentHashMap#putIfAbsent still traverses/treeifies a non-head old key."""
         if value is None:
             raise ValueError("Java NullPointerException: ConcurrentHashMap value")
-        return super().put_if_absent(key, value)
+        count = self._visited_count(key)
+        node = self._find(key)
+        if node is not None:
+            self._treeify_after_visit(key, count)
+            return node.value
+        self._insert(key, value)
+        return None
 
     def _prepare_compute(self) -> None:
         """Java: ConcurrentHashMap#computeIfAbsent/#merge initialize before lookup."""
         self._init_table()
+
+    def compute_if_absent(self, key: K, function: Callable[[K], V | None]) -> V | None:
+        """Java: CHM#computeIfAbsent can treeify a long bin even if no mapping is added."""
+        count = self._visited_count(key)
+        self._init_table()
+        node = self._find(key)
+        if node is not None:
+            self._treeify_after_visit(key, count)
+            return node.value
+        expected = self._mod_count
+        value = function(key)
+        if expected != self._mod_count:
+            raise RuntimeError("Java IllegalStateException: recursive mapping update")
+        if value is None:
+            self._treeify_after_visit(key, count)
+        else:
+            self._insert(key, value)
+        return value
+
+    def merge(self, key: K, value: V, function: Callable[[V, V], V | None]) -> V | None:
+        """Java: CHM#merge treeifies a visited list even on value replacement or removal."""
+        count = self._visited_count(key)
+        existed = self._find(key) is not None
+        result = super().merge(key, value, function)
+        if existed:
+            self._treeify_after_visit(key, count)
+        return result
 
 
 class JavaLinkedHashMap[K, V](JavaHashMap[K, V]):
@@ -872,6 +932,7 @@ class JavaTreeMap[K, V](JavaHashMap[K, V]):
     ) -> None:
         """Java: TreeMap constructors; comparator equality determines key identity."""
         self._comparator = comparator
+        self._sorted_nodes: list[_Node[K, V]] = []
         super().__init__(entries, key_type=key_type)
 
     def _compare(self, left: K, right: K) -> int:
@@ -886,28 +947,51 @@ class JavaTreeMap[K, V](JavaHashMap[K, V]):
             return left.java_compare_to(right)
         return _key_compare(left, right, self.key_type)
 
+    def _position(self, key: K) -> int:
+        """Java: TreeMap#getEntry; binary search by the same comparator as the tree."""
+        low, high = 0, len(self._sorted_nodes)
+        while low < high:
+            middle = (low + high) // 2
+            if self._compare(key, self._sorted_nodes[middle].key) > 0:
+                low = middle + 1
+            else:
+                high = middle
+        return low
+
     def _find(self, key: K, h: int | None = None) -> _Node[K, V] | None:
-        """Java: TreeMap#getEntry walks by comparator, ignoring hashCode."""
+        """Java: TreeMap#getEntry uses comparator equality, ignoring hashCode entirely."""
         self._compare(key, key)
-        for node in super()._iteration_nodes():
+        index = self._position(key)
+        if index < len(self._sorted_nodes):
+            node = self._sorted_nodes[index]
             if self._compare(key, node.key) == 0:
                 return node
         return None
 
-    def _compare_nodes(self, left: _Node[K, V], right: _Node[K, V]) -> int:
-        """Java: TreeMap#compare on two stored entries."""
-        return self._compare(left.key, right.key)
+    def _insert(self, key: K, value: V, *, at_head: bool = False) -> None:
+        """Java: TreeMap#addEntry places a new comparator-distinct key in sorted order."""
+        index = self._position(key)
+        self._sorted_nodes.insert(index, _Node(0, key, value))
+        self._size += 1
+        self._mod_count += 1
 
     def _iteration_nodes(self) -> Iterator[_Node[K, V]]:
         """Java: TreeMap.PrivateEntryIterator traverses ascending comparator order."""
-        from functools import cmp_to_key
+        return iter(self._sorted_nodes)
 
-        return iter(
-            sorted(
-                super()._iteration_nodes(),
-                key=cmp_to_key(self._compare_nodes),
-            )
-        )
+    def _remove_node(self, node: _Node[K, V]) -> None:
+        """Java: TreeMap#deleteEntry removes the comparator-identified entry."""
+        self._sorted_nodes.pop(self._position(node.key))
+        self._size -= 1
+        self._mod_count += 1
+
+    def _prepare_compute(self) -> None:
+        """Java: TreeMap default Map computation has no hash-table resize step."""
+
+    def clear(self) -> None:
+        """Java: TreeMap#clear."""
+        self._sorted_nodes.clear()
+        super().clear()
 
 
 class JavaHashSet[K](MutableSet[K]):

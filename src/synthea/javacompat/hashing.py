@@ -9,7 +9,8 @@ from __future__ import annotations
 import math
 import struct
 from collections.abc import Iterable
-from typing import Literal, Protocol, runtime_checkable
+from dataclasses import dataclass
+from typing import ClassVar, Literal, Protocol, runtime_checkable
 
 KeyType = Literal["string", "integer", "long", "double", "boolean", "character", "object"]
 
@@ -184,6 +185,12 @@ def _code_point_including(units: tuple[int, ...], index: int) -> tuple[int, bool
 def string_compare_to_ignore_case(left: str, right: str) -> int:
     """Java: String#compareToIgnoreCase / StringUTF16#compareToCIImpl (not casefold)."""
     a, b = utf16_units(left), utf16_units(right)
+    if all(unit <= 0xFF for unit in a) or all(unit <= 0xFF for unit in b):
+        for x, y in zip(a, b, strict=False):
+            difference = _compare_code_point_ci(x, y)
+            if difference:
+                return difference
+        return len(a) - len(b)
     i = j = 0
     while i < len(a) and j < len(b):
         x, y = a[i], b[j]
@@ -198,3 +205,43 @@ def string_compare_to_ignore_case(left: str, right: str) -> int:
         i += 1
         j += 1
     return len(a) - len(b)
+
+
+@dataclass(frozen=True, slots=True)
+class JavaLong:
+    """Java: java.lang.Long; retain boxed type in heterogeneous Objects/Arrays hashes."""
+
+    value: int
+    java_class_name: ClassVar[str] = "java.lang.Long"
+
+    def java_hash_code(self) -> int:
+        """Java: Long#hashCode."""
+        return long_hash_code(self.value)
+
+    def java_compare_to(self, other: object) -> int:
+        """Java: Long#compareTo."""
+        if not isinstance(other, JavaLong):
+            raise TypeError("Java ClassCastException: Long.compareTo")
+        return (self.value > other.value) - (self.value < other.value)
+
+
+@dataclass(frozen=True, slots=True, init=False)
+class JavaCharacter:
+    """Java: java.lang.Character; retain boxed type in heterogeneous Object[] hashes."""
+
+    value: int
+    java_class_name: ClassVar[str] = "java.lang.Character"
+
+    def __init__(self, value: int | str) -> None:
+        """Java: Character#Character(char)."""
+        object.__setattr__(self, "value", character_hash_code(value))
+
+    def java_hash_code(self) -> int:
+        """Java: Character#hashCode."""
+        return self.value
+
+    def java_compare_to(self, other: object) -> int:
+        """Java: Character#compareTo returns the unsigned code-unit difference."""
+        if not isinstance(other, JavaCharacter):
+            raise TypeError("Java ClassCastException: Character.compareTo")
+        return self.value - other.value
