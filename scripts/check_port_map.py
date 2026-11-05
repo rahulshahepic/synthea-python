@@ -185,10 +185,12 @@ def stubs_in(path: Path) -> list[tuple[str, int, bool]]:
     found = []
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            # Docstrings and bare field annotations (a stubbed __init__) don't count as a body.
             body = [
                 b
                 for b in node.body
                 if not (isinstance(b, ast.Expr) and isinstance(b.value, ast.Constant))
+                and not (isinstance(b, ast.AnnAssign) and b.value is None)
             ]
             if len(body) == 1 and isinstance(body[0], ast.Raise) and body[0].exc is not None:
                 exc = body[0].exc
