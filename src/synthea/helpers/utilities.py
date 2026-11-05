@@ -12,6 +12,9 @@ if TYPE_CHECKING:
     from synthea.helpers.random_number_generator import RandomNumberGenerator
     from synthea.world.concepts.health_record import Code
 
+    class Resource(Protocol):
+        """Java: org.hl7.fhir.dstu3.model.Resource; external FHIR boundary type."""
+
     class BiConsumer(Protocol):
         """Java boundary type: BiConsumer; external to the mapped Python port."""
 
@@ -258,7 +261,7 @@ class Utilities:
         raise NotImplementedError("Java: Utilities#enableReadingURIFromJar — pending T06")
 
     @staticmethod
-    def parse_yaml_to_resources[T](
+    def parse_yaml_to_resources[T: Resource](
         yaml: list[dict[str, object]], resource_class: type[T]
     ) -> list[T]:
         """Java: Utilities#parseYamlToResources.

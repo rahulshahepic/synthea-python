@@ -34,7 +34,7 @@ class Logic:
         raise NotImplementedError("Java: Logic#test — pending T17")
 
     @staticmethod
-    def find_entry_from_history[T](
+    def find_entry_from_history[T: HealthRecordEntry](
         person: Person, class_type: type[T], code: Code
     ) -> HealthRecordEntry:
         """Java: Logic#findEntryFromHistory.

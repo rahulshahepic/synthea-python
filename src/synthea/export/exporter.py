@@ -173,7 +173,7 @@ class Exporter:
         raise NotImplementedError("Java: Exporter#filterForExport — pending T25")
 
     @staticmethod
-    def filter_entries[E](
+    def filter_entries[E: HealthRecordEntry](
         entries: list[E],
         claim_items: list[ClaimClaimEntry],
         cutoff_date: int,

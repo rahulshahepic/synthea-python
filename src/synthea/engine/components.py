@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
@@ -24,7 +25,7 @@ class Components:
         raise NotImplementedError("Java: Components#Components — pending T17")
 
 
-class Range[R]:
+class Range[R: int | float | Decimal]:
     """Java: Range; pending T17."""
 
     def __init__(self) -> None:
@@ -39,7 +40,7 @@ class Range[R]:
         raise NotImplementedError("Java: Range#Range — pending T17")
 
 
-class RangeWithUnit[R](Range[R]):
+class RangeWithUnit[R: int | float | Decimal](Range[R]):
     """Java: RangeWithUnit; pending T17."""
 
     def __init__(self) -> None:
