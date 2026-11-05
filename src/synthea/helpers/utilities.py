@@ -252,9 +252,15 @@ class Utilities:
                 wrapped = ((365 * value + 2**63) % 2**64) - 2**63
                 return _timeunit_to_millis(wrapped, 86400000)
             case "months":
-                return _timeunit_to_millis(30 * value, 86400000)
+                # 30 * value is a wrapping long multiply in Java, then a
+                # saturating DAYS.toMillis.
+                wrapped = ((30 * value + 2**63) % 2**64) - 2**63
+                return _timeunit_to_millis(wrapped, 86400000)
             case "weeks":
-                return _timeunit_to_millis(7 * value, 86400000)
+                # 7 * value is a wrapping long multiply in Java, then a
+                # saturating DAYS.toMillis.
+                wrapped = ((7 * value + 2**63) % 2**64) - 2**63
+                return _timeunit_to_millis(wrapped, 86400000)
             case _:
                 raise RuntimeError(f"Unexpected time unit: {units}")
 
@@ -451,6 +457,11 @@ class Utilities:
             and hasattr(rhs, "code")
         ):
             return Utilities._compare_codes(lhs, rhs, operator)
+        if rhs is None:
+            # Java's Object overload builds its "Cannot compare" message with
+            # rhs.getClass(), so a null rhs throws NullPointerException
+            # instead of the RuntimeException a type mismatch gets.
+            raise TypeError("Cannot compare: rhs.getClass() on a null rhs")
         raise RuntimeError(f"Cannot compare {_java_class_name(lhs)} to {_java_class_name(rhs)}.\n")
 
     @staticmethod

@@ -1,80 +1,89 @@
-"""Java API skeleton: TrendingValueGenerator.java."""
+"""Java: org.mitre.synthea.helpers.TrendingValueGenerator."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from synthea.engine.distribution import _java_divide
+from synthea.helpers.value_generator import ValueGenerator
+from synthea.javacompat.numbers import double_to_string, to_int64
+
 if TYPE_CHECKING:
-    from synthea.world.agents.person import Person
+    from synthea.engine.distribution import RandomSource
 
 
-class TrendingValueGenerator:
-    """Java: TrendingValueGenerator; pending T07."""
+class TrendingValueGenerator(ValueGenerator):
+    """Java: org.mitre.synthea.helpers.TrendingValueGenerator."""
 
     def __init__(
         self,
-        person: Person,
+        person: RandomSource,
         standard_deviation: float,
         begin_mean: float,
         end_mean: float,
         begin_time: int,
         end_time: int,
-        minimum_value: float,
-        maximum_value: float,
+        minimum_value: float | None,
+        maximum_value: float | None,
     ) -> None:
-        """Java: TrendingValueGenerator#TrendingValueGenerator.
-
-        Java overloads:
-        (Person person, double standardDeviation, double beginMean, double endMean, long
-        beginTime, long endTime, Double minimumValue, Double maximumValue)
-        """
-        self.standard_deviation: float
-        self.minimum_value: float
-        self.maximum_value: float
-        self.begin_mean: float
-        self.end_mean: float
-        self.begin_time: int
-        self.end_time: int
-        raise NotImplementedError(
-            "Java: TrendingValueGenerator#TrendingValueGenerator — pending T07"
-        )
+        """Java: TrendingValueGenerator#TrendingValueGenerator (bounded Gaussian trend)."""
+        super().__init__(person)
+        if not standard_deviation >= 0 or (
+            minimum_value is not None
+            and maximum_value is not None
+            and not minimum_value <= maximum_value
+        ):
+            raise ValueError("invalid trending generator arguments")
+        self.standard_deviation: float = standard_deviation
+        self.begin_mean: float = begin_mean
+        self.end_mean: float = end_mean
+        self.begin_time: int = begin_time
+        self.end_time: int = end_time
+        self.minimum_value: float | None = minimum_value
+        self.maximum_value: float | None = maximum_value
 
     def get_begin_time(self) -> int:
-        """Java: TrendingValueGenerator#getBeginTime.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: TrendingValueGenerator#getBeginTime — pending T07")
+        """Java: TrendingValueGenerator#getBeginTime()."""
+        return self.begin_time
 
     def get_end_time(self) -> int:
-        """Java: TrendingValueGenerator#getEndTime.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: TrendingValueGenerator#getEndTime — pending T07")
+        """Java: TrendingValueGenerator#getEndTime()."""
+        return self.end_time
 
     def get_value(self, time: int) -> float:
-        """Java: TrendingValueGenerator#getValue.
-
-        Java overloads:
-        (long time)
-        """
-        raise NotImplementedError("Java: TrendingValueGenerator#getValue — pending T07")
+        """Java: TrendingValueGenerator#getValue(long)."""
+        if time < self.begin_time:
+            return self.next_value(self.begin_mean)
+        if time > self.end_time:
+            return self.next_value(self.end_mean)
+        mean = self.begin_mean + _java_divide(
+            (self.end_mean - self.begin_mean) * to_int64(time - self.begin_time),
+            float(to_int64(self.end_time - self.begin_time)),
+        )
+        return self.next_value(mean)
 
     def next_value(self, mean: float) -> float:
-        """Java: TrendingValueGenerator#nextValue.
-
-        Java overloads:
-        (double mean)
-        """
-        raise NotImplementedError("Java: TrendingValueGenerator#nextValue — pending T07")
+        """Java: TrendingValueGenerator#nextValue(double); rejection sampling."""
+        while True:
+            value = self.person.rand_gaussian() * self.standard_deviation + mean
+            if (self.minimum_value is None or value >= self.minimum_value) and (
+                self.maximum_value is None or value <= self.maximum_value
+            ):
+                return value
 
     def to_string(self) -> str:
-        """Java: TrendingValueGenerator#toString.
+        """Java: TrendingValueGenerator#toString()."""
 
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: TrendingValueGenerator#toString — pending T07")
+        def fmt(value: float | None) -> str:
+            return "null" if value is None else double_to_string(value)
+
+        return (
+            "TrendingValueGenerator {"
+            f"standardDeviation={fmt(self.standard_deviation)}, "
+            f"beginMean={fmt(self.begin_mean)}, "
+            f"endMean={fmt(self.end_mean)}, "
+            f"beginTime={self.begin_time}, endTime={self.end_time}, "
+            f"minimumValue={fmt(self.minimum_value)}, "
+            f"maximumValue={fmt(self.maximum_value)}"
+            "}"
+        )

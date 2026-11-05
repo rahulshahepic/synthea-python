@@ -1,33 +1,40 @@
-"""Java API skeleton: RandomValueGenerator.java."""
+"""Java: org.mitre.synthea.helpers.RandomValueGenerator."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from synthea.engine.distribution import Distribution, Kind
+from synthea.helpers.value_generator import ValueGenerator
+
 if TYPE_CHECKING:
-    from synthea.engine.distribution import Distribution
-    from synthea.world.agents.person import Person
+    from synthea.engine.distribution import RandomSource
 
 
-class RandomValueGenerator:
-    """Java: RandomValueGenerator; pending T07."""
+class RandomValueGenerator(ValueGenerator):
+    """Java: org.mitre.synthea.helpers.RandomValueGenerator."""
 
     def __init__(
-        self, person: Person, low_or_distribution: float | Distribution, high: float | None = None
+        self,
+        person: RandomSource,
+        low_or_distribution: float | Distribution,
+        high: float | None = None,
     ) -> None:
-        """Java: RandomValueGenerator#RandomValueGenerator.
-
-        Java overloads:
-        (Person person, double low, double high)
-        (Person person, Distribution distribution)
+        """Java: RandomValueGenerator#RandomValueGenerator(Person,double,double)
+        and RandomValueGenerator#RandomValueGenerator(Person,Distribution).
         """
-        self.distribution: Distribution
-        raise NotImplementedError("Java: RandomValueGenerator#RandomValueGenerator — pending T07")
+        super().__init__(person)
+        if isinstance(low_or_distribution, Distribution):
+            if high is not None:
+                raise TypeError("Distribution constructor does not accept high")
+            self.distribution: Distribution = low_or_distribution
+        else:
+            if high is None:
+                raise TypeError("Range constructor requires high")
+            self.distribution = Distribution()
+            self.distribution.kind = Kind.UNIFORM
+            self.distribution.parameters = {"low": float(low_or_distribution), "high": high}
 
     def get_value(self, time: int) -> float:
-        """Java: RandomValueGenerator#getValue.
-
-        Java overloads:
-        (long time)
-        """
-        raise NotImplementedError("Java: RandomValueGenerator#getValue — pending T07")
+        """Java: RandomValueGenerator#getValue(long)."""
+        return self.distribution.generate(self.person)

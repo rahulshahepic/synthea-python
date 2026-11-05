@@ -115,12 +115,14 @@ def test_utilities_probe(golden: Callable[[str], Path]) -> None:
             actual = Utilities.convert_risk_to_timestep(
                 parse_double(row["risk"]), parse_double(row["period"]), parse_double(row["step"])
             )
-            assert actual == parse_double(row["result"]), row
+            # Compare via Double.toString (the probe's serialization): exact
+            # for NaN and -0.0, where == is not.
+            assert double_to_string(actual) == row["result"], row
         elif kind == "risk2":
             actual = Utilities.convert_risk_to_timestep(
                 parse_double(row["risk"]), parse_double(row["period"])
             )
-            assert actual == parse_double(row["result"]), row
+            assert double_to_string(actual) == row["result"], row
         elif kind == "compare":
             _check_compare(row)
         elif kind == "parseRange":
@@ -250,7 +252,8 @@ def _check_primitive(row: dict[str, Any]) -> None:
         assert result == int(row["result"]), row
     elif result_class == "Double":
         assert isinstance(result, float), row
-        assert result == parse_double(row["result"]), row
+        # Double.toString comparison: exact for NaN and -0.0, where == is not.
+        assert double_to_string(result) == row["result"], row
     elif result_class == "String":
         assert result == row["result"], row
     elif result_class == "null":

@@ -134,11 +134,12 @@ public class UtilitiesProbe {
 
   private static void writeCalendar(PrintWriter w) {
     for (int year = -2000; year <= 3000; year++) {
+      final int y = year;
       JsonObject o = new JsonObject();
       o.addProperty("kind", "calYears");
-      o.addProperty("year", year);
+      o.addProperty("year", y);
       o.addProperty("result",
-          orErr(() -> Utilities.convertCalendarYearsToTime(year), r -> Long.toString(r)));
+          orErr(() -> Utilities.convertCalendarYearsToTime(y), r -> Long.toString(r)));
       w.println(o.toString());
     }
     // getYear / getMonth over Jan 1 and mid-year (day 182) of every year in
@@ -181,19 +182,23 @@ public class UtilitiesProbe {
     }
     long feb29 = Utilities.localDateToTimestamp(LocalDate.of(2020, 2, 29)) + 37800000L;
     for (int a = -8; a <= 8; a++) {
+      final int ann = a;
       JsonObject o = new JsonObject();
       o.addProperty("kind", "anniversary");
       o.addProperty("time", Long.toString(feb29));
-      o.addProperty("anniversary", a);
+      o.addProperty("anniversary", ann);
       o.addProperty("result",
-          orErr(() -> Utilities.getAnniversary(feb29, a), r -> Long.toString(r)));
+          orErr(() -> Utilities.getAnniversary(feb29, ann), r -> Long.toString(r)));
       w.println(o.toString());
     }
   }
 
   private static void writeLocalDates(PrintWriter w) {
     List<LocalDate> dates = new ArrayList<>();
-    for (long day = -719528L; day <= 2932896L; day += 733) {
+    // Sweep starts at 0001-01-01 (epoch day -719162): the Python port maps
+    // LocalDate to datetime.date, whose minimum year is 1, so year 0 and
+    // earlier are outside the port's representable range (see T06 notes).
+    for (long day = -719162L; day <= 2932896L; day += 733) {
       dates.add(LocalDate.ofEpochDay(day));
     }
     for (int y = 2019; y <= 2021; y++) {
