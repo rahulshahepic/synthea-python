@@ -9,6 +9,25 @@ from typing import Protocol, overload
 from synthea.javacompat.numbers import math_round
 
 
+def _java_divide(numerator: float, denominator: float) -> float:
+    """Java: double division, including signed zero, NaN and infinities."""
+    if denominator == 0.0:
+        if numerator == 0.0 or math.isnan(numerator):
+            return math.nan
+        return math.copysign(math.inf, numerator * math.copysign(1.0, denominator))
+    return numerator / denominator
+
+
+def _java_log(value: float) -> float:
+    """Java: Math#log, returning IEEE special values instead of Python exceptions."""
+    return -math.inf if value == 0.0 else math.nan if value < 0.0 else math.log(value)
+
+
+def _java_sqrt(value: float) -> float:
+    """Java: Math#sqrt, returning NaN for negative arguments."""
+    return math.nan if value < 0.0 else math.sqrt(value)
+
+
 class RandomSource(Protocol):
     """Java: Person random-number methods used by Distribution."""
 
@@ -46,6 +65,8 @@ class Distribution:
 
     def generate(self, person: RandomSource) -> float:
         """Java: Distribution#generate(Person)."""
+        if self.kind is None:
+            raise TypeError("Distribution kind is null")
         if self.parameters is None:
             raise TypeError("Distribution parameters are null")
         p = self.parameters
@@ -61,16 +82,16 @@ class Distribution:
                 value = p["max"]
         elif self.kind == Kind.EXPONENTIAL:
             average = p["mean"]
-            lam = -1.0 / average
-            value = 1.0 + math.log(1.0 - person.rand()) / lam
+            lam = _java_divide(-1.0, average)
+            value = 1.0 + _java_divide(_java_log(1.0 - person.rand()), lam)
         elif self.kind == Kind.TRIANGULAR:
             minimum, mode, maximum = p["min"], p["mode"], p["max"]
-            f = (mode - minimum) / (maximum - minimum)
+            f = _java_divide(mode - minimum, maximum - minimum)
             draw = person.rand()
             if draw < f:
-                value = minimum + math.sqrt(draw * (maximum - minimum) * (mode - minimum))
+                value = minimum + _java_sqrt(draw * (maximum - minimum) * (mode - minimum))
             else:
-                value = maximum - math.sqrt((1.0 - draw) * (maximum - minimum) * (maximum - mode))
+                value = maximum - _java_sqrt((1.0 - draw) * (maximum - minimum) * (maximum - mode))
         else:
             value = -1.0
         if self.round:
@@ -81,6 +102,8 @@ class Distribution:
         """Java: Distribution#validate()."""
         if self.parameters is None:
             return False
+        if self.kind is None:
+            raise TypeError("Distribution kind is null")
         required = {
             Kind.EXACT: ("value",),
             Kind.UNIFORM: ("low", "high"),

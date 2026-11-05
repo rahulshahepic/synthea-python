@@ -2,7 +2,6 @@ package org.synthea.parity.probes;
 
 import com.google.gson.Gson;
 import java.io.PrintWriter;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -129,7 +128,15 @@ public class DistributionProbe {
         "#{x} / 3", "0.1 + 0.2", "null = null", "true and null",
         "false and null", "true or null", "false or null"};
     for (String expression : expressions) {
-      ExpressionProcessor processor = new ExpressionProcessor(expression);
+      ExpressionProcessor processor;
+      try {
+        processor = new ExpressionProcessor(expression);
+      } catch (RuntimeException ex) {
+        Map<String,Object> error = new LinkedHashMap<>();
+        error.put("expression", expression); error.put("error", ex.getClass().getSimpleName());
+        error.put("message", ex.getMessage()); out.println(GSON.toJson(error));
+        continue;
+      }
       for (int i = 0; i < 6; i++) {
         Map<String,Object> params = new HashMap<>();
         for (String name : processor.getParamNames()) {

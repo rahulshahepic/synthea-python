@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from synthea.engine.distribution import _java_divide
 from synthea.helpers.value_generator import ValueGenerator
 from synthea.javacompat.numbers import double_to_string, to_int64
 
@@ -25,7 +26,7 @@ class TrendingValueGenerator(ValueGenerator):
         minimum_value: float | None,
         maximum_value: float | None,
     ) -> None:
-        """Java: TrendingValueGenerator#TrendingValueGenerator(Person,double,double,double,long,long,Double,Double)."""
+        """Java: TrendingValueGenerator#TrendingValueGenerator (bounded Gaussian trend)."""
         super().__init__(person)
         if not standard_deviation >= 0 or (
             minimum_value is not None
@@ -55,9 +56,10 @@ class TrendingValueGenerator(ValueGenerator):
             return self.next_value(self.begin_mean)
         if time > self.end_time:
             return self.next_value(self.end_mean)
-        mean = self.begin_mean + (self.end_mean - self.begin_mean) * to_int64(
-            time - self.begin_time
-        ) / to_int64(self.end_time - self.begin_time)
+        mean = self.begin_mean + _java_divide(
+            (self.end_mean - self.begin_mean) * to_int64(time - self.begin_time),
+            float(to_int64(self.end_time - self.begin_time)),
+        )
         return self.next_value(mean)
 
     def next_value(self, mean: float) -> float:
