@@ -17,7 +17,7 @@ class Claim:
     """Java: Claim; pending T14."""
 
     serialVersionUID: ClassVar[int] = -3565704321813987656
-    ZERO_CENTS: ClassVar[Decimal]  # Java initialization deferred to T14.
+    ZERO_CENTS: ClassVar[Decimal] = Decimal("0.00")
 
     def __init__(self, entry: Entry, person: Person) -> None:
         """Java: Claim#Claim.

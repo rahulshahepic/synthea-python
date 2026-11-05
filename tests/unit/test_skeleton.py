@@ -130,3 +130,102 @@ def test_skeleton_java_fields_and_enums(entry: dict[str, object]) -> None:
         for member in sorted(members - declared):
             errors.append(f"{name}.{member}: missing enum value")
     assert not errors, "\n".join(errors)
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        x
+        for x in tomllib.loads((ROOT / "docs/port_map.toml").read_text())["module"]
+        if not set(x["owners"]) & {"T01", "T02", "T03"} and x["java"]
+    ],
+    ids=lambda x: x["python"],
+)
+def test_skeleton_explicit_typed_stubs(entry: dict[str, object]) -> None:
+    """A skeleton preserves the callable contract and fails with its actual owner task."""
+    tree = ast.parse((ROOT / str(entry["python"])).read_text())
+    owners = entry["owners"]
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        label = f"{entry['python']}:{node.lineno} {node.name}"
+        assert node.args.vararg is None and node.args.kwarg is None, label
+        assert node.returns is not None, label
+        assert all(
+            arg.annotation is not None
+            for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs
+            if arg.arg not in {"self", "cls"}
+        ), label
+        assert "Java:" in (ast.get_docstring(node) or ""), label
+        raises = [child for child in ast.walk(node) if isinstance(child, ast.Raise)]
+        assert len(raises) == 1, label
+        exc = raises[0].exc
+        assert isinstance(exc, ast.Call) and isinstance(exc.func, ast.Name), label
+        assert exc.func.id == "NotImplementedError", label
+        assert len(exc.args) == 1 and isinstance(exc.args[0], ast.Constant), label
+        message = exc.args[0].value
+        assert isinstance(message, str) and "Java:" in message and "#" in message, label
+        assert "pending" in message and all(owner in message for owner in owners), label
+
+
+def test_skeleton_nested_members_belong_to_their_java_class() -> None:
+    """Java: HealthRecord.Code, HealthRecord.Entry, State.Delay and Components.Range."""
+    import inspect
+
+    from synthea.engine.components import Components, Range, RangeWithUnit
+    from synthea.engine.state import Delay, Delayable, State
+    from synthea.world.concepts.health_record import Code, Entry, HealthRecord, Medication
+
+    assert HealthRecord.Code is Code
+    assert HealthRecord.Entry is Entry
+    assert "from_json" in vars(Code) and "from_json" not in vars(HealthRecord)
+    assert "get_cost" in vars(Entry) and "get_cost" not in vars(HealthRecord)
+    assert "get_quantity" in vars(Medication)
+    assert isinstance(vars(Code)["from_json"], staticmethod)
+    assert issubclass(Medication, Entry)
+    assert State.Delay is Delay and issubclass(Delay, Delayable)
+    assert Components.Range is Range and issubclass(RangeWithUnit, Range)
+    params = inspect.signature(Code).parameters
+    assert len(params) == 3
+    assert next(iter(params.values())).default is inspect.Parameter.empty
+    assert all(p.default is None for p in list(params.values())[1:])
+
+
+def test_skeleton_overload_shapes_and_cli_failure() -> None:
+    """Java: TimeSeriesData constructors, SimpleCSV#parse, and App#main."""
+    import inspect
+
+    from synthea.cli import main
+    from synthea.helpers.simple_csv import SimpleCSV
+    from synthea.helpers.time_series_data import TimeSeriesData
+
+    params = list(inspect.signature(TimeSeriesData).parameters.values())
+    assert len(params) == 2
+    assert params[0].default is inspect.Parameter.empty
+    assert params[1].default is None
+    assert "float" in str(params[0].annotation)
+    assert "list[float]" in str(params[0].annotation)
+    assert "int" in str(params[0].annotation)
+    assert isinstance(vars(SimpleCSV)["parse"], staticmethod)
+    with pytest.raises(NotImplementedError, match=r"Java: App#main.*pending T28"):
+        main([])
+
+
+def test_skeleton_constant_scale_and_readonly_maps() -> None:
+    """Java: Claim#ZERO_CENTS and Collections.unmodifiableMap data declarations."""
+    from decimal import Decimal
+
+    from synthea.export.csv_constants import CSVConstants
+    from synthea.world.concepts.claim import Claim
+    from synthea.world.concepts.race_and_ethnicity import RaceAndEthnicity
+
+    assert Decimal("0.00") == Claim.ZERO_CENTS
+    assert Claim.ZERO_CENTS.as_tuple().exponent == -2
+    for mapping in [
+        CSVConstants.HEADER_LINE_MAP,
+        RaceAndEthnicity.LOOK_UP_CDC_RACE,
+        RaceAndEthnicity.LOOK_UP_CDC_ETHNICITY_CODE,
+        RaceAndEthnicity.LOOK_UP_CDC_ETHNICITY_DISPLAY,
+    ]:
+        with pytest.raises(TypeError):
+            mapping["new_key"] = "must fail"
