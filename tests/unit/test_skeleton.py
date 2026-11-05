@@ -98,7 +98,7 @@ def _init_fields(cls: ast.ClassDef) -> set[str]:
     [
         x
         for x in tomllib.loads((ROOT / "docs/port_map.toml").read_text())["module"]
-        if not set(x["owners"]) & {"T01", "T02", "T03", "T05", "T06"} and x["java"]
+        if not set(x["owners"]) & {"T01", "T02", "T03", "T05"} and x["java"]
     ],
     ids=lambda x: x["python"],
 )
@@ -137,7 +137,7 @@ def test_skeleton_java_fields_and_enums(entry: dict[str, object]) -> None:
     [
         x
         for x in tomllib.loads((ROOT / "docs/port_map.toml").read_text())["module"]
-        if not set(x["owners"]) & {"T01", "T02", "T03", "T05", "T06", "T07"} and x["java"]
+        if not set(x["owners"]) & {"T01", "T02", "T03", "T05", "T07"} and x["java"]
     ],
     ids=lambda x: x["python"],
 )
