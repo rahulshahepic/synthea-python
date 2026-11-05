@@ -86,7 +86,7 @@ def test_code_identity_hash_and_json() -> None:
 
 def test_entry_merges_and_java_reason_quirk(record: HealthRecord) -> None:
     a, b = Code("s", "a", "A"), Code("s", "b", "B")
-    procedure = Procedure(-1, "proc", record=record)
+    procedure = record.new_entry(lambda: Procedure(-1, "proc"))
     procedure.merge_code_list([a, a, b])
     assert procedure.codes == [a, b]
     procedure.reasons.append(a)
@@ -104,7 +104,7 @@ def test_entry_merges_and_java_reason_quirk(record: HealthRecord) -> None:
 @pytest.mark.parametrize("time,count", [(0, 0), (-1, 1), (1000, 10)])
 def test_active_entries_and_hash_order(record: HealthRecord, time: int, count: int) -> None:
     for i in range(count):
-        entry = Entry(time, str(i), record=record)
+        entry = record.new_entry(lambda i=i: Entry(time, str(i)))
         entry.name = "same state"
         record.present[entry.type] = entry
     before = list(record.present)
@@ -252,7 +252,7 @@ def test_careplans_allergies_supplies_and_immunizations(claimed_record: HealthRe
 def test_snapshot_serialization_explicitly_excluded(record: HealthRecord) -> None:
     from io import BytesIO
 
-    careplan = CarePlan(0, "cp", record=record)
+    careplan = record.new_entry(lambda: CarePlan(0, "cp"))
     with pytest.raises(NotImplementedError, match="out of scope"):
         careplan.write_object(BytesIO())
     with pytest.raises(NotImplementedError, match="out of scope"):
@@ -269,15 +269,15 @@ def test_clones_are_shallow_and_defaults_match_java(record: HealthRecord) -> Non
     instance = series.instances[0]
     instance.sop_class = Code("s", "c", "Class")
     assert instance.clone().sop_class is instance.sop_class
-    assert Allergy(0, "a", record=record).reactions is None
-    device = Device(0, "d", record=record)
+    assert record.new_entry(lambda: Allergy(0, "a")).reactions is None
+    device = record.new_entry(lambda: Device(0, "d"))
     assert device.udi_date(1451606400000) == "160101"
     assert device.udi_date(1514678400000) == "181231"
     assert device.trim_long(-(1 << 63), 14) == "92233720368547"
 
 
 def test_costs_delegate_and_truncate_toward_zero(record: HealthRecord) -> None:
-    entry = Entry(0, "costed", record=record)
+    entry = record.new_entry(lambda: Entry(0, "costed"))
     with patch(
         "synthea.world.concepts.costs.Costs.determine_cost_of_entry", return_value=-1.239
     ) as cost:
@@ -329,7 +329,7 @@ def test_current_encounter_empty_record_calls_encounter_module(record: HealthRec
 def test_device_draw_order_at_utilities_boundary(record: HealthRecord) -> None:
     rng = DefaultRandomNumberGenerator(42)
     reference = DefaultRandomNumberGenerator(42)
-    device = Device(1_600_000_000_000, "device", record=record)
+    device = record.new_entry(lambda: Device(1600000000000, "device"))
     with patch(
         "synthea.helpers.utilities.Utilities.convert_time",
         side_effect=[1_814_400_000, 788_940_000_000],
@@ -344,3 +344,34 @@ def test_device_draw_order_at_utilities_boundary(record: HealthRecord) -> None:
     assert device.lot_number == lot[:lot_length]
     assert device.serial_number == serial[:serial_length]
     assert rng.get_count() == reference.get_count() == 5
+
+
+def test_careplan_json_goal_equality_distinguishes_boolean_from_number(
+    record: HealthRecord,
+) -> None:
+    plan = record.new_entry(lambda: CarePlan(0, "plan"))
+    plan.goals.add({"target": True})
+    plan.goals.add({"target": 1})
+    plan.goals.add({"target": 1.0})
+    assert list(plan.goals) == [{"target": True}, {"target": 1}]
+    plan.goals.discard({"target": 1})
+    assert list(plan.goals) == [{"target": True}]
+
+
+def test_outer_instance_binding_is_nested_and_exception_safe() -> None:
+    first, _ = record_boundary(1)
+    second, _ = record_boundary(2)
+    inner = first.new_entry(lambda: second.new_entry(lambda: Entry(0, "inner")))
+    assert inner.record is second
+    with pytest.raises(LookupError):
+        Entry(0, "unbound")
+
+    def failing_factory() -> Entry:
+        entry = Entry(0, "before failure")
+        assert entry.record is first
+        raise ValueError("construction failed")
+
+    with pytest.raises(ValueError, match="construction failed"):
+        first.new_entry(failing_factory)
+    with pytest.raises(LookupError):
+        Entry(0, "still unbound")

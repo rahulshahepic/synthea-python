@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Iterable, Iterator, MutableSet
+import math
+from collections.abc import Callable, Iterable, Iterator, MutableSet
+from contextvars import ContextVar
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from enum import StrEnum
@@ -32,6 +34,24 @@ if TYPE_CHECKING:
 
 
 _MISSING = object()
+_CURRENT_RECORD: ContextVar[HealthRecord] = ContextVar("health_record_owner")
+
+
+def _set_equal(left: object, right: object) -> bool:
+    """Java: Gson JsonElement#equals for LinkedHashSet<JsonObject> goals."""
+    if isinstance(left, bool) or isinstance(right, bool):
+        return type(left) is type(right) and left == right
+    if isinstance(left, dict) and isinstance(right, dict):
+        return left.keys() == right.keys() and all(
+            _set_equal(left[key], right[key]) for key in left
+        )
+    if isinstance(left, list) and isinstance(right, list):
+        return len(left) == len(right) and all(
+            _set_equal(a, b) for a, b in zip(left, right, strict=True)
+        )
+    if isinstance(left, float) and isinstance(right, float):
+        return left == right or (math.isnan(left) and math.isnan(right))
+    return left == right
 
 
 class OrderedSet[T](MutableSet[T]):
@@ -49,7 +69,7 @@ class OrderedSet[T](MutableSet[T]):
 
     def __contains__(self, value: object) -> bool:
         """Java: LinkedHashSet#contains."""
-        return value in self._values
+        return any(_set_equal(value, item) for item in self._values)
 
     def __iter__(self) -> Iterator[T]:
         """Java: LinkedHashSet#iterator."""
@@ -66,8 +86,10 @@ class OrderedSet[T](MutableSet[T]):
 
     def discard(self, value: T) -> None:
         """Java: LinkedHashSet#remove."""
-        if value in self:
-            self._values.remove(value)
+        for index, item in enumerate(self._values):
+            if _set_equal(value, item):
+                del self._values[index]
+                break
 
 
 class HealthRecord:
@@ -92,6 +114,19 @@ class HealthRecord:
         self.demographics_at_record_creation: JavaHashMap[str, object] | None = None
         if person.attributes.get(person.HOUSEHOLD) is not None:
             self.demographics_at_record_creation = JavaHashMap(person.attributes)
+
+    def new_entry[T: Entry](self, factory: Callable[[], T]) -> T:
+        """Java: HealthRecord's lexical outer-instance binding (record.new Entry).
+
+        Bind constructors without altering their Java positional signatures.
+        The context is restored even when a later-task constructor raises, and
+        nested construction can safely bind a different record.
+        """
+        token = _CURRENT_RECORD.set(self)
+        try:
+            return factory()
+        finally:
+            _CURRENT_RECORD.reset(token)
 
     def provider_count(self) -> int:
         """Java: HealthRecord#providerCount.
@@ -189,7 +224,7 @@ class HealthRecord:
         Java overloads:
         (long time, String type, int numberOfObservations)
         """
-        observation = Observation(time, type, None, record=self)
+        observation = self.new_entry(lambda: Observation(time, type, None))
         encounter = self.current_encounter(time)
         count = number_of_observations
         if len(encounter.observations) >= number_of_observations:
@@ -218,7 +253,7 @@ class HealthRecord:
         (long time, String primaryCode)
         """
         if primary_code not in self.present:
-            condition = Entry(time, primary_code, record=self)
+            condition = self.new_entry(lambda: Entry(time, primary_code))
             encounter = self.current_encounter(time)
             encounter.conditions.append(condition)
             encounter.claim.add_line_item(condition)
@@ -271,7 +306,7 @@ class HealthRecord:
         (long time, String primaryCode)
         """
         if primary_code not in self.present:
-            allergy = Allergy(time, primary_code, record=self)
+            allergy = self.new_entry(lambda: Allergy(time, primary_code))
             self.current_encounter(time).allergies.append(allergy)
             self.present[primary_code] = allergy
         return cast(Allergy, self.present[primary_code])
@@ -313,7 +348,7 @@ class HealthRecord:
         Java overloads:
         (long time, String type)
         """
-        procedure = Procedure(time, type, record=self)
+        procedure = self.new_entry(lambda: Procedure(time, type))
         encounter = self.current_encounter(time)
         encounter.procedures.append(procedure)
         encounter.claim.add_line_item(procedure)
@@ -326,7 +361,7 @@ class HealthRecord:
         Java overloads:
         (long time, String type)
         """
-        device = Device(time, type, record=self)
+        device = self.new_entry(lambda: Device(time, type))
         device.generate_udi(cast("RandomNumberGenerator", self.person))
         encounter = self.current_encounter(time)
         encounter.devices.append(device)
@@ -364,7 +399,7 @@ class HealthRecord:
         (long time, Code code, int quantity)
         """
         encounter = self.current_encounter(time)
-        supply = Supply(time, code.display, record=self)
+        supply = self.new_entry(lambda: Supply(time, code.display))
         supply.codes.append(code)
         supply.quantity = quantity
         encounter.supplies.append(supply)
@@ -385,7 +420,7 @@ class HealthRecord:
             observations = encounter.observations[start:]
         else:
             observations = list(encounter.observations)
-        report = Report(time, type, observations, record=self)
+        report = self.new_entry(lambda: Report(time, type, observations))
         encounter.reports.append(report)
         encounter.claim.add_line_item(report)
         for obs in observations:
@@ -398,7 +433,7 @@ class HealthRecord:
         Java overloads:
         (long time, EncounterType type)
         """
-        encounter = Encounter(time, type.to_string(), record=self)
+        encounter = self.new_entry(lambda: Encounter(time, type.to_string()))
         self.encounters.append(encounter)
         return encounter
 
@@ -430,7 +465,7 @@ class HealthRecord:
         Java overloads:
         (long time, String type)
         """
-        immunization = Immunization(time, type, record=self)
+        immunization = self.new_entry(lambda: Immunization(time, type))
         encounter = self.current_encounter(time)
         encounter.immunizations.append(immunization)
         encounter.claim.add_line_item(immunization)
@@ -443,7 +478,7 @@ class HealthRecord:
         (long time, String type, boolean chronic)
         """
         if type not in self.present:
-            medication = Medication(time, type, record=self)
+            medication = self.new_entry(lambda: Medication(time, type))
             medication.chronic = chronic
             self.current_encounter(time).medications.append(medication)
             self.present[type] = medication
@@ -459,7 +494,7 @@ class HealthRecord:
         Java overloads:
         (long time, String type)
         """
-        medication = Medication(time, type, record=self)
+        medication = self.new_entry(lambda: Medication(time, type))
         medication.stop = time
         medication.administration = True
         self.current_encounter(time).medications.append(medication)
@@ -516,7 +551,7 @@ class HealthRecord:
         (long time, String type)
         """
         if type not in self.present:
-            careplan = CarePlan(time, type, record=self)
+            careplan = self.new_entry(lambda: CarePlan(time, type))
             self.current_encounter(time).careplans.append(careplan)
             self.present[type] = careplan
         else:
@@ -563,7 +598,7 @@ class HealthRecord:
         Java overloads:
         (long time, String type, List series)
         """
-        study = ImagingStudy(self.person, time, type, record=self)
+        study = self.new_entry(lambda: ImagingStudy(self.person, time, type))
         study.series = series
         self.assign_imaging_study_dicom_uids(time, study)
         self.current_encounter(time).imaging_studies.append(study)
@@ -683,14 +718,14 @@ class Code:
 class Entry:
     """Java: Entry."""
 
-    def __init__(self, start: int, type: str, *, record: HealthRecord) -> None:
+    def __init__(self, start: int, type: str) -> None:
         """Java: Entry#Entry.
 
         Java overloads:
         (long start, String type)
         """
-        self.record: HealthRecord = record
-        self.uuid: UUID | str = record.person.rand_uuid()
+        self.record: HealthRecord = _CURRENT_RECORD.get()
+        self.uuid: UUID | str = self.record.person.rand_uuid()
         self.full_url: str | None = None
         self.name: str | None = None
         self.start: int = start
@@ -758,13 +793,13 @@ class Entry:
 class EntryWithReasons(Entry):
     """Java: EntryWithReasons."""
 
-    def __init__(self, time: int, type: str, *, record: HealthRecord) -> None:
+    def __init__(self, time: int, type: str) -> None:
         """Java: EntryWithReasons#EntryWithReasons.
 
         Java overloads:
         (long time, String type)
         """
-        super().__init__(time, type, record=record)
+        super().__init__(time, type)
         self.reasons: list[Code] = []
 
     def merge_reason_list(self, other_codes: list[Code]) -> None:
@@ -789,13 +824,13 @@ class EntryWithReasons(Entry):
 class Observation(Entry):
     """Java: Observation."""
 
-    def __init__(self, time: int, type: str, value: object, *, record: HealthRecord) -> None:
+    def __init__(self, time: int, type: str, value: object) -> None:
         """Java: Observation#Observation.
 
         Java overloads:
         (long time, String type, Object value)
         """
-        super().__init__(time, type, record=record)
+        super().__init__(time, type)
         self.value: object = value
         self.category: str | None = None
         self.unit: str | None = None
@@ -806,22 +841,20 @@ class Observation(Entry):
 class Report(Entry):
     """Java: Report."""
 
-    def __init__(
-        self, time: int, type: str, observations: list[Observation], *, record: HealthRecord
-    ) -> None:
+    def __init__(self, time: int, type: str, observations: list[Observation]) -> None:
         """Java: Report#Report.
 
         Java overloads:
         (long time, String type, List observations)
         """
-        super().__init__(time, type, record=record)
+        super().__init__(time, type)
         self.observations: list[Observation] = observations
 
 
 class Medication(EntryWithReasons):
     """Java: Medication."""
 
-    def __init__(self, time: int, type: str, *, record: HealthRecord) -> None:
+    def __init__(self, time: int, type: str) -> None:
         """Java: Medication#Medication.
 
         Java overloads:
@@ -829,12 +862,12 @@ class Medication(EntryWithReasons):
         """
         from synthea.world.concepts.claim import Claim
 
-        super().__init__(time, type, record=record)
+        super().__init__(time, type)
         self.stop_reason: Code | None = None
         self.prescription_details: dict[str, object] | None = None
         self.administration: bool = False
         self.chronic: bool = False
-        self.claim: Claim = Claim(self, record.person)
+        self.claim: Claim = Claim(self, self.record.person)
 
     def write_object(self, oos: IO[bytes]) -> None:
         """Java: Medication#writeObject.
@@ -884,26 +917,26 @@ class Medication(EntryWithReasons):
 class Immunization(Entry):
     """Java: Immunization."""
 
-    def __init__(self, start: int, type: str, *, record: HealthRecord) -> None:
+    def __init__(self, start: int, type: str) -> None:
         """Java: Immunization#Immunization.
 
         Java overloads:
         (long start, String type)
         """
-        super().__init__(start, type, record=record)
+        super().__init__(start, type)
         self.series: int = -1
 
 
 class Procedure(EntryWithReasons):
     """Java: Procedure."""
 
-    def __init__(self, time: int, type: str, *, record: HealthRecord) -> None:
+    def __init__(self, time: int, type: str) -> None:
         """Java: Procedure#Procedure.
 
         Java overloads:
         (long time, String type)
         """
-        super().__init__(time, type, record=record)
+        super().__init__(time, type)
         self.stop = to_int64(self.start + 15 * 60_000)
         self.provider: Provider | None = None
         self.clinician: Clinician | None = None
@@ -912,13 +945,13 @@ class Procedure(EntryWithReasons):
 class CarePlan(EntryWithReasons):
     """Java: CarePlan."""
 
-    def __init__(self, time: int, type: str, *, record: HealthRecord) -> None:
+    def __init__(self, time: int, type: str) -> None:
         """Java: CarePlan#CarePlan.
 
         Java overloads:
         (long time, String type)
         """
-        super().__init__(time, type, record=record)
+        super().__init__(time, type)
         self.activities: OrderedSet[Code] = OrderedSet()
         self.goals: OrderedSet[dict[str, object]] = OrderedSet()
         self.stop_reason: Code | None = None
@@ -943,13 +976,13 @@ class CarePlan(EntryWithReasons):
 class ImagingStudy(Entry):
     """Java: ImagingStudy."""
 
-    def __init__(self, person: Person, time: int, type: str, *, record: HealthRecord) -> None:
+    def __init__(self, person: Person, time: int, type: str) -> None:
         """Java: ImagingStudy#ImagingStudy.
 
         Java overloads:
         (Person person, long time, String type)
         """
-        super().__init__(time, type, record=record)
+        super().__init__(time, type)
         self.dicom_uid: str = Utilities.random_dicom_uid(
             cast("RandomNumberGenerator", person), time, 0, 0
         )
@@ -1006,13 +1039,13 @@ class Instance:
 class Device(Entry):
     """Java: Device."""
 
-    def __init__(self, start: int, type: str, *, record: HealthRecord) -> None:
+    def __init__(self, start: int, type: str) -> None:
         """Java: Device#Device.
 
         Java overloads:
         (long start, String type)
         """
-        super().__init__(start, type, record=record)
+        super().__init__(start, type)
         self.manufacturer: str | None = None
         self.model: str | None = None
         self.udi: str | None = None
@@ -1063,13 +1096,13 @@ class Device(Entry):
 class Supply(Entry):
     """Java: Supply."""
 
-    def __init__(self, start: int, type: str, *, record: HealthRecord) -> None:
+    def __init__(self, start: int, type: str) -> None:
         """Java: Supply#Supply.
 
         Java overloads:
         (long start, String type)
         """
-        super().__init__(start, type, record=record)
+        super().__init__(start, type)
         self.quantity: int = 0
 
 
@@ -1120,7 +1153,7 @@ class EncounterType(StrEnum):
 class Encounter(Entry):
     """Java: Encounter."""
 
-    def __init__(self, time: int, type: str, *, record: HealthRecord) -> None:
+    def __init__(self, time: int, type: str) -> None:
         """Java: Encounter#Encounter.
 
         Java overloads:
@@ -1128,7 +1161,7 @@ class Encounter(Entry):
         """
         from synthea.world.concepts.claim import Claim
 
-        super().__init__(time, type, record=record)
+        super().__init__(time, type)
         if type.lower() == "emergency":
             minutes = 60
         elif type.lower() in ("inpatient", "hospice", "snf"):
@@ -1155,7 +1188,7 @@ class Encounter(Entry):
         self.provider: Provider | None = None
         self.clinician: Clinician | None = None
         self.clinical_note: str | None = None
-        self.claim: Claim = Claim(self, record.person)
+        self.claim: Claim = Claim(self, self.record.person)
 
     def add_observation(
         self, time: int, type: str, value: object, display: str | object | None = _MISSING
@@ -1166,7 +1199,7 @@ class Encounter(Entry):
         (long time, String type, Object value)
         (long time, String type, Object value, String display)
         """
-        observation = Observation(time, type, value, record=self.record)
+        observation = self.record.new_entry(lambda: Observation(time, type, value))
         self.observations.append(observation)
         if display is not _MISSING:
             observation.codes.append(Code("LOINC", type, cast(str, display)))
@@ -1240,13 +1273,13 @@ class ReactionSeverity(StrEnum):
 class Allergy(Entry):
     """Java: Allergy."""
 
-    def __init__(self, start: int, type: str, *, record: HealthRecord) -> None:
+    def __init__(self, start: int, type: str) -> None:
         """Java: Allergy#Allergy.
 
         Java overloads:
         (long start, String type)
         """
-        super().__init__(start, type, record=record)
+        super().__init__(start, type)
         self.allergy_type: str | None = None
         self.category: str | None = None
         self.reactions: JavaHashMap[Code, ReactionSeverity] | None = None

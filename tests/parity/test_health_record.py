@@ -44,40 +44,40 @@ def code(value: str) -> Code:
 def entry_scenario(i: int) -> dict[str, object]:
     record, rng = record_boundary(i - 32, household=i % 2 == 0)
     time = -2208988800000 + i * 86400000
-    entry = Entry(time, "condition", record=record)
+    entry = record.new_entry(lambda: Entry(time, "condition"))
     entry.name, entry.note = "state", "note " + str(i)
     entry.merge_code_list([code("a"), code("a"), code("b")])
     record.present["condition"] = entry
-    obs = Observation(time + 1, "lab", -0.0 if i == 0 else i * 0.125, record=record)
+    obs = record.new_entry(lambda: Observation(time + 1, "lab", -0.0 if i == 0 else i * 0.125))
     obs.unit, obs.category = "mg", "laboratory"
-    obs.observations.append(Observation(time + 2, "child", code("v"), record=record))
-    report = Report(time + 3, "report", [obs], record=record)
+    obs.observations.append(record.new_entry(lambda: Observation(time + 2, "child", code("v"))))
+    report = record.new_entry(lambda: Report(time + 3, "report", [obs]))
     obs.report = report
     record.present["lab"], record.present["report"] = obs, report
-    allergy = Allergy(time + 4, "allergy", record=record)
+    allergy = record.new_entry(lambda: Allergy(time + 4, "allergy"))
     allergy.name, allergy.allergy_type, allergy.category = "allergy state", "allergy", "food"
     allergy.reactions = JavaHashMap()
     allergy.reactions[code("reaction1")] = ReactionSeverity.MILD
     allergy.reactions[code("reaction2")] = ReactionSeverity.SEVERE
     record.present["allergy"] = allergy
-    procedure = Procedure(time + 5, "procedure", record=record)
+    procedure = record.new_entry(lambda: Procedure(time + 5, "procedure"))
     procedure.reasons.append(code("r"))
     procedure.merge_reason_list([code("r"), code("other"), code("other")])
     record.present["procedure"] = procedure
-    vaccine = Immunization(time + 6, "vaccine", record=record)
+    vaccine = record.new_entry(lambda: Immunization(time + 6, "vaccine"))
     vaccine.series = i % 3
     record.present["vaccine"] = vaccine
-    plan = CarePlan(time + 7, "plan", record=record)
+    plan = record.new_entry(lambda: CarePlan(time + 7, "plan"))
     plan.activities.add(code("activity"))
     plan.activities.add(code("activity"))
     goal = {"target": i, "unit": "days"}
     plan.goals.add(goal)
     plan.goals.add(dict(goal))
     record.present["plan"] = plan
-    device = Device(time + 8, "device", record=record)
+    device = record.new_entry(lambda: Device(time + 8, "device"))
     device.manufacturer, device.model = "Acme", "Model " + str(i)
     record.present["device"] = device
-    supply = Supply(time + 9, "supply", record=record)
+    supply = record.new_entry(lambda: Supply(time + 9, "supply"))
     supply.quantity = i
     record.present["supply"] = supply
     if i % 3 == 0:
@@ -140,7 +140,7 @@ def full_scenario(i: int) -> dict[str, object]:
     record.careplan_start(time + 15, "plan")
     record.use_supply(time + 16, code("supply"), i + 1)
     record.device_implant(time + 17, "device").name = "device state"
-    ImagingStudy(person, time + 18, "prototype", record=record)
+    record.new_entry(lambda: ImagingStudy(person, time + 18, "prototype"))
     series, instance = Series(), Instance()
     instance.title, instance.sop_class = "Image", code("sop")
     series.instances = [instance]
