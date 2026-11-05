@@ -27,7 +27,7 @@ from synthea.world.concepts.health_record import (
 )
 
 
-def record_boundary(
+def person_double(
     seed: int, household: bool = False
 ) -> tuple[HealthRecord, DefaultRandomNumberGenerator]:
     """Supply only Person's attributes/RNG boundary until T09 is merged.
@@ -59,7 +59,7 @@ def record_boundary(
 
 @pytest.fixture
 def record() -> HealthRecord:
-    return record_boundary(42)[0]
+    return person_double(42)[0]
 
 
 @pytest.fixture
@@ -359,11 +359,11 @@ def test_careplan_json_goal_equality_distinguishes_boolean_from_number(
 
 
 def test_outer_instance_binding_is_nested_and_exception_safe() -> None:
-    first, _ = record_boundary(1)
-    second, _ = record_boundary(2)
+    first, _ = person_double(1)
+    second, _ = person_double(2)
     inner = first.new_entry(lambda: second.new_entry(lambda: Entry(0, "inner")))
     assert inner.record is second
-    with pytest.raises(LookupError):
+    with pytest.raises(RuntimeError, match=r"record\.new_entry"):
         Entry(0, "unbound")
 
     def failing_factory() -> Entry:
@@ -373,5 +373,49 @@ def test_outer_instance_binding_is_nested_and_exception_safe() -> None:
 
     with pytest.raises(ValueError, match="construction failed"):
         first.new_entry(failing_factory)
-    with pytest.raises(LookupError):
+    with pytest.raises(RuntimeError, match=r"record\.new_entry"):
         Entry(0, "still unbound")
+
+
+@pytest.mark.parametrize(
+    "definition,expected",
+    [
+        ({"system": "RxNorm", "code": 1437975, "display": "x"}, ("RxNorm", "1437975", "x")),
+        ({"system": 123, "code": True, "display": False}, ("123", "true", "false")),
+    ],
+)
+def test_code_json_primitive_string_coercion(
+    definition: dict[str, object], expected: tuple[str, str, str]
+) -> None:
+    actual = Code(definition)
+    equivalent = Code(*expected)
+    assert (actual.system, actual.code, actual.display) == expected
+    assert actual == equivalent
+    assert actual.hash_code() == equivalent.hash_code()
+    assert actual.compare_to(equivalent) == 0
+    assert JavaHashMap([(actual, "value")])[equivalent] == "value"
+
+
+@pytest.mark.parametrize("value", [1.0, None, [], {}])
+def test_code_json_unsupported_tokens_fail_explicitly(value: object) -> None:
+    with pytest.raises(TypeError, match="Code JSON fields require"):
+        Code({"system": "s", "code": value, "display": "x"})
+
+
+def test_entry_timestamp_pads_years_below_one_thousand(record: HealthRecord) -> None:
+    from datetime import UTC, datetime
+
+    time = (
+        int(
+            (
+                datetime(999, 1, 2, 3, 4, 5, tzinfo=UTC) - datetime(1970, 1, 1, tzinfo=UTC)
+            ).total_seconds()
+        )
+        * 1000
+    )
+    entry = record.new_entry(lambda: Entry(time, "historic"))
+    assert entry.to_string() == "0999-01-02T03:04:05Z historic"
+
+
+def test_entry_uuid_is_person_uuid(record: HealthRecord) -> None:
+    assert isinstance(record.new_entry(lambda: Entry(0, "entry")).uuid, UUID)

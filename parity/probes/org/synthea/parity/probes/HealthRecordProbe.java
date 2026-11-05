@@ -182,6 +182,82 @@ public class HealthRecordProbe {
     }
   }
 
+
+  static void collectValueSets(JsonElement element, Set<String> urls) {
+    if (element.isJsonObject()) {
+      for (Map.Entry<String, JsonElement> field : element.getAsJsonObject().entrySet()) {
+        JsonElement value = field.getValue();
+        if (field.getKey().equals("value_set") && value.isJsonPrimitive()
+            && value.getAsJsonPrimitive().isString()) {
+          urls.add(value.getAsString());
+        }
+        collectValueSets(value, urls);
+      }
+    } else if (element.isJsonArray()) {
+      for (JsonElement child : element.getAsJsonArray()) { collectValueSets(child, urls); }
+    }
+  }
+
+  static Set<String> urlCases() throws Exception {
+    Set<String> cases = new LinkedHashSet<>();
+    cases.add(null); cases.add(""); cases.add("urn:oid:1.2.3");
+    String[] hosts = {"example.org", "EXAMPLE.ORG", "localhost", "invalid", "example.invalid",
+      "a.c", "127.0.0.1", "256.0.0.1", "01.2.3.4", "[::1]", "[2001:db8::1]",
+      "[::ffff:192.0.2.1]", "[::FFFF:192.0.2.1]", "[fe80::1%25eth0]", "bücher.de", "例子.中国",
+      "example.org.", "-bad.example.org", "bad-.example.org", "example..org", "example.org:",
+      "example.org:0", "example.org:65535", "example.org:65536", "example.org:-1",
+      "example.org:abc", "example.org:00080", "example.org:99999999999999999999"};
+    for (String scheme : new String[]{"http", "https", "ftp", "HTTP", "HtTp", "file", "gopher", "1http"}) {
+      for (String host : hosts) { cases.add(scheme + "://" + host + "/ValueSet"); }
+    }
+    String[] paths = {"", "/", "//", "///a", "/a//b", "/../", "/..", "/../../a", "/a/../b",
+      "/a/../../b", "/a/./b", "/a/..", "/a%20b", "/a%2fb", "/a%ZZ", "/a b", "/a\\b",
+      "/a[0]", "/<a>", "/{a}", "/café", "/é", "/a;b", "/a:b", "/a|b", "/a^b", "/a`b",
+      "/a@b", "/a!b", "/a'b", "/a(b)", "/a+b", "/a$b", "/a_b", "/a~b", "/a*b"};
+    for (String path : paths) {
+      cases.add("http://example.org" + path);
+      cases.add("https://example.org" + path + "?x=1");
+      cases.add("ftp://example.org" + path + "#fragment");
+    }
+    String[] users = {"user", "user:pass", "user:", ":pass", "", "u%20ser:p%40ss", "u:p:a",
+      "u@v", "u!$&'()*+,;=~_-:p", "u name", "üser", "user%ZZ"};
+    for (String user : users) {
+      for (String host : new String[]{"example.org", "127.0.0.1", "[::1]"}) {
+        cases.add("http://" + user + "@" + host + "/a");
+      }
+    }
+    String[] tails = {"", "x=1", "fhir_vs=ecl%2F%3C%3C131148009", "a/b?x=1", "white space",
+      "line\nfeed", "tab\tchar", "a%20b", "%ZZ", "[x]", "{x}", "a|b", "café", "a#b"};
+    for (String tail : tails) {
+      cases.add("http://example.org/?" + tail);
+      cases.add("http://example.org/#" + tail);
+      cases.add("http://example.org/?a=1#" + tail);
+    }
+    try (var files = Files.walk(Path.of("src/main/resources/modules"))) {
+      for (Path file : files.filter(f -> f.toString().endsWith(".json")).sorted().toList()) {
+        collectValueSets(JsonParser.parseString(Files.readString(file)), cases);
+      }
+    }
+    if (cases.size() < 150) { throw new IllegalStateException("URL coverage below 150"); }
+    return cases;
+  }
+
+  static void jsonCodes(PrintWriter writer) {
+    for (String definition : new String[]{
+        "{\"system\":\"RxNorm\",\"code\":1437975,\"display\":\"x\"}",
+        "{\"system\":123,\"code\":true,\"display\":false}",
+        "{\"system\":\"s\",\"code\":-9223372036854775808,\"display\":0}"}) {
+      JsonObject input = JsonParser.parseString(definition).getAsJsonObject();
+      Code actual = new Code(input);
+      Code equivalent = new Code(actual.system, actual.code, actual.display);
+      JsonObject result = new JsonObject();
+      result.add("definition", input); result.add("code", Canonical.code(actual));
+      result.addProperty("hash", actual.hashCode()); result.addProperty("equals", actual.equals(equivalent));
+      result.addProperty("compare", actual.compareTo(equivalent));
+      writer.println(GSON.toJson(result));
+    }
+  }
+
   public static void main(String[] args) throws Exception {
     PayerManager.loadNoInsurance();
     Path path = Path.of(args[0]); Files.createDirectories(path);
@@ -192,18 +268,14 @@ public class HealthRecordProbe {
     try (PrintWriter entries = new PrintWriter(Files.newBufferedWriter(path.resolve("entries.jsonl"), StandardCharsets.UTF_8));
          PrintWriter full = new PrintWriter(Files.newBufferedWriter(path.resolve("records.jsonl"), StandardCharsets.UTF_8));
          PrintWriter codes = new PrintWriter(Files.newBufferedWriter(path.resolve("codes.jsonl"), StandardCharsets.UTF_8));
+         PrintWriter jsonCodes = new PrintWriter(Files.newBufferedWriter(path.resolve("json_codes.jsonl"), StandardCharsets.UTF_8));
          PrintWriter urls = new PrintWriter(Files.newBufferedWriter(path.resolve("urls.jsonl"), StandardCharsets.UTF_8))) {
       for (int i = 0; i < 64; i++) { entries.println(GSON.toJson(entryScenario(i))); }
       for (int i = 0; i < 60; i++) { full.println(GSON.toJson(fullScenario(i))); }
       offline(codes);
+      jsonCodes(jsonCodes);
       UrlValidator validator = new UrlValidator(UrlValidator.ALLOW_2_SLASHES);
-      String[] inputs = {"", "urn:oid:1.2.3", "http://localhost/vs", "https://example.org//vs?x=1",
-        "ftp://example.org/a", "http://127.0.0.1/a", "http://[::1]/a", "http://example.org:65536/a",
-        "http://example.invalid/a", "http://example.org/../../a", "http://example.org/a/../b",
-        "http://example.org/a%20b", "http://example.org/a\\b", "https://user:p@example.org/x",
-        "http://example.org/#white space", "http://example.org/a?white space", "http://a.c/a",
-        "http://example.org./a", "http://256.0.0.1/a", "https://bücher.de/a"};
-      for (String input : inputs) {
+      for (String input : urlCases()) {
         JsonObject result = new JsonObject(); result.addProperty("url", input);
         result.addProperty("valid", validator.isValid(input)); urls.println(GSON.toJson(result));
       }

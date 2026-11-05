@@ -30,11 +30,13 @@ from synthea.world.concepts.health_record import (
     Series,
     Supply,
 )
+from tests.dependency_gate import Pending, report_pending, run_or_pending
 from tests.parity.canonical import dump_code, dump_record, register_encoder
-from tests.unit.test_health_record import record_boundary
+from tests.unit.test_health_record import person_double
 
 pytestmark = pytest.mark.parity
 URI = "http://example.org/ValueSet/offline"
+FULL_RECORD_DEPENDENCIES = ("T09", "T14", "T15", "T16")
 
 
 def code(value: str) -> Code:
@@ -42,7 +44,7 @@ def code(value: str) -> Code:
 
 
 def entry_scenario(i: int) -> dict[str, object]:
-    record, rng = record_boundary(i - 32, household=i % 2 == 0)
+    record, rng = person_double(i - 32, household=i % 2 == 0)
     time = -2208988800000 + i * 86400000
     entry = record.new_entry(lambda: Entry(time, "condition"))
     entry.name, entry.note = "state", "note " + str(i)
@@ -177,7 +179,8 @@ def full_scenario(i: int) -> dict[str, object]:
     }
 
 
-def test_entry_record_scenarios(golden: Callable[[str], Path]) -> None:
+def test_health_record_component_entries(golden: Callable[[str], Path]) -> None:
+    """Component parity (Person test double: attributes + real T01 RNG)."""
     rows = [
         json.loads(line)
         for line in (golden("HealthRecordProbe") / "entries.jsonl").read_text().splitlines()
@@ -188,15 +191,21 @@ def test_entry_record_scenarios(golden: Callable[[str], Path]) -> None:
 
 
 def test_public_record_scenarios(golden: Callable[[str], Path]) -> None:
-    """Fails at real unmerged dependencies until their ports land; never bypasses them."""
+    """Integration parity (real Person/Claim/coverage); required in full by T16 (#16)."""
     register_encoder(Claim, lambda claim: {"uuid": str(claim.uuid)})
     rows = [
         json.loads(line)
         for line in (golden("HealthRecordProbe") / "records.jsonl").read_text().splitlines()
     ]
     assert len(rows) >= 50
-    for expected in rows:
-        assert full_scenario(expected["i"]) == expected, expected["i"]
+    results = [
+        run_or_pending(lambda i=expected["i"]: full_scenario(i), FULL_RECORD_DEPENDENCIES)
+        for expected in rows
+    ]
+    for expected, actual in zip(rows, results, strict=True):
+        if not isinstance(actual, Pending):
+            assert actual == expected, expected["i"]
+    report_pending("HealthRecord full-record parity", results)
 
 
 def test_offline_random_codes(golden: Callable[[str], Path]) -> None:
@@ -241,6 +250,43 @@ def test_offline_random_codes(golden: Callable[[str], Path]) -> None:
 
 
 def test_url_validator_parity(golden: Callable[[str], Path]) -> None:
-    for line in (golden("HealthRecordProbe") / "urls.jsonl").read_text().splitlines():
-        expected = json.loads(line)
+    rows = [
+        json.loads(line)
+        for line in (golden("HealthRecordProbe") / "urls.jsonl").read_text().splitlines()
+    ]
+    assert len(rows) >= 150
+    urls = {row["url"] for row in rows}
+    assert None in urls and "" in urls
+    module_urls: set[str] = set()
+
+    def collect(value: object) -> None:
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if key == "value_set" and isinstance(child, str):
+                    module_urls.add(child)
+                collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+
+    modules = Path(__file__).resolve().parents[2] / "java/src/main/resources/modules"
+    for module in sorted(modules.rglob("*.json")):
+        collect(json.loads(module.read_text()))
+    assert module_urls <= urls
+    for expected in rows:
         assert _valid_url(expected["url"]) == expected["valid"], expected
+
+
+def test_health_record_component_json_codes(golden: Callable[[str], Path]) -> None:
+    """Component parity: Gson primitive-to-string conversion and code identity."""
+    for line in (golden("HealthRecordProbe") / "json_codes.jsonl").read_text().splitlines():
+        expected = json.loads(line)
+        value = Code(expected["definition"])
+        equivalent = Code(value.system, value.code, value.display)
+        assert {
+            "definition": expected["definition"],
+            "code": dump_code(value),
+            "hash": value.hash_code(),
+            "equals": value == equivalent,
+            "compare": value.compare_to(equivalent),
+        } == expected

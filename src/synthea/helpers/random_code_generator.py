@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ipaddress
 import re
+from contextlib import suppress
 from typing import ClassVar, cast
 from urllib.parse import urlsplit
 
@@ -135,43 +136,59 @@ _TLDS = frozenset(_TLD_TEXT.split())
 
 
 def _valid_url(value: str | None) -> bool:
-    """Java: UrlValidator#isValid with ALLOW_2_SLASHES and default schemes.
+    """Java: URI constructor then UrlValidator(ALLOW_2_SLASHES)#isValid.
 
-    Reject local hosts, malformed authorities, fragments containing whitespace,
-    invalid ports and paths that traverse above root before consulting the cache.
+    Retain Apache's raw-authority pattern (including its IPv6/userinfo and port
+    branches) and IDNA conversion of the whole authority before domain checks.
     """
-    if not value or re.search(r"\s", value):
+    if not value or re.search(r"[\s\x00-\x1f\x7f-\x9f<>\"{}|\\^`]", value):
+        return False
+    if re.search(r"%(?![0-9a-fA-F]{2})", value) or value.count("#") > 1:
         return False
     try:
         parts = urlsplit(value)
-        if parts.scheme.lower() not in ("http", "https", "ftp") or not parts.hostname:
+        if parts.scheme.lower() not in ("http", "https", "ftp") or not parts.netloc:
             return False
-        if parts.port is not None and not 0 <= parts.port <= 65535:
+        authority = parts.netloc
+        if not authority.isascii():
+            # DomainValidator.unicodeToASCII retains input on IDN failure.
+            with suppress(UnicodeError):
+                authority = authority.encode("idna").decode("ascii")
+        user = r"[a-zA-Z0-9%\-._~!$&'()*+,;=]+(?::[a-zA-Z0-9%\-._~!$&'()*+,;=]*)?@"
+        ipv6 = r"::FFFF:(?:[0-9]{1,3}\.){3}[0-9]{1,3}|[0-9a-fA-F:]+"
+        match = re.fullmatch(
+            rf"(?:\[({ipv6})\]|(?:(?:{user})?([A-Za-z0-9.\-]*)))(?::([0-9]*))?(.*)?",
+            authority,
+        )
+        if match is None:
             return False
-        host = parts.hostname
-        try:
-            ipaddress.ip_address(host)
-        except ValueError:
-            host = host.encode("idna").decode("ascii").removesuffix(".")
-            labels = host.split(".")
-            if len(labels) < 2 or len(host) > 253:
+        address6, host, port, extra = match.groups()
+        if extra and extra.strip():
+            return False
+        if address6 is not None:
+            ipaddress.IPv6Address(address6)
+            # URI's server-authority parse constrains IPv6 port syntax/int range;
+            # Apache's IPv6 branch does not apply its 65535 check to this port.
+            if port and int(port) > (1 << 31) - 1:
                 return False
-            if any(
-                not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
-                for label in labels
-            ):
-                return False
-            if labels[-1].lower() not in _TLDS:
+        else:
+            try:
+                ipaddress.IPv4Address(host)
+            except ValueError:
+                host = host.removesuffix(".")
+                labels = host.split(".")
+                if len(labels) < 2 or len(host) > 253:
+                    return False
+                if any(
+                    not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
+                    for label in labels
+                ):
+                    return False
+                if labels[-1].lower() not in _TLDS:
+                    return False
+            if port and int(port) > 65535:
                 return False
         if not re.fullmatch(r"(?:/[-\w:@&?=+,.!/~*'%$_;()]*)?", parts.path, re.ASCII):
-            return False
-        if parts.username is not None:
-            userinfo = parts.netloc.rsplit("@", 1)[0]
-            if not re.fullmatch(
-                r"[a-zA-Z0-9%\-._~!$&'()*+,;=]+(?::[a-zA-Z0-9%\-._~!$&'()*+,;=]*)?", userinfo
-            ):
-                return False
-        if re.search(r"\s", parts.query):
             return False
         depth = 0
         for component in parts.path.split("/"):

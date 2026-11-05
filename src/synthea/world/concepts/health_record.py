@@ -37,6 +37,23 @@ _MISSING = object()
 _CURRENT_RECORD: ContextVar[HealthRecord] = ContextVar("health_record_owner")
 
 
+def _code_json_string(value: object) -> str:
+    """Java: Gson JsonPrimitive#getAsString for HealthRecord.Code JSON fields.
+
+    Parsed floats cannot preserve the original Gson numeric token spelling;
+    reject them explicitly rather than silently choose a different code.
+    """
+    if isinstance(value, str):
+        return value
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int):
+        return str(value)
+    raise TypeError(
+        "Code JSON fields require a string, integer or boolean; float tokens unsupported"
+    )
+
+
 def _set_equal(left: object, right: object) -> bool:
     """Java: Gson JsonElement#equals for LinkedHashSet<JsonObject> goals."""
     if isinstance(left, bool) or isinstance(right, bool):
@@ -637,9 +654,9 @@ class Code:
         (JsonObject definition)
         """
         if isinstance(system_or_definition, dict):
-            self.system: str = cast(str, system_or_definition["system"])
-            self.code: str = cast(str, system_or_definition["code"])
-            self.display: str = cast(str, system_or_definition["display"])
+            self.system: str = _code_json_string(system_or_definition["system"])
+            self.code: str = _code_json_string(system_or_definition["code"])
+            self.display: str = _code_json_string(system_or_definition["display"])
         else:
             self.system = system_or_definition
             self.code = cast(str, code)
@@ -724,8 +741,14 @@ class Entry:
         Java overloads:
         (long start, String type)
         """
-        self.record: HealthRecord = _CURRENT_RECORD.get()
-        self.uuid: UUID | str = self.record.person.rand_uuid()
+        try:
+            self.record: HealthRecord = _CURRENT_RECORD.get()
+        except LookupError as exc:
+            raise RuntimeError(
+                "Construct entries with record.new_entry(lambda: X(...)) "
+                "(Java record.new X(...)) to bind their owning HealthRecord"
+            ) from exc
+        self.uuid: UUID = self.record.person.rand_uuid()
         self.full_url: str | None = None
         self.name: str | None = None
         self.start: int = start
@@ -784,7 +807,7 @@ class Entry:
         """
         seconds, millis = divmod(self.start, 1000)
         dt = datetime(1970, 1, 1, tzinfo=UTC) + timedelta(seconds=seconds)
-        text = dt.strftime("%Y-%m-%dT%H:%M:%S")
+        text = f"{dt.year:04d}-" + dt.strftime("%m-%dT%H:%M:%S")
         if millis:
             text += f".{millis:03}"
         return f"{text}Z {self.type}"
