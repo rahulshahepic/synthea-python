@@ -28,13 +28,19 @@ start like this:
 git fetch origin --prune
 ```
 
-Then find your open work. List open PRs that carry the label `agent:<your-name>`. Use the
-GitHub UI/API, or `git branch -r` together with the PR list.
+Then list your open PRs (label `agent:<your-name>`) and deal with them **in this order**:
 
-* **If you have an open PR**, that is your task. Go to step 5 if it has `review:needed`
-  (you are waiting for review), step 7 if it has `review:changes-requested`, or step 4 if it
-  has neither (still in progress). **Never start a second task while you own an open PR.**
-* **If you have none**, go to step 2.
+1. **`review:changes-requested`** (or an automated 🔴 bounce): go to step 7.
+2. **`waiting:deps` whose issue is now `status:ready`**: its dependencies have merged. Remove
+   `waiting:deps`, pull, make CI green, and ask for review (step 5).
+3. **An active PR** (no `waiting:deps`, `review:needed` or `review:approved` label): that's
+   the task you were in the middle of. Go to step 4.
+4. **Nothing above?** Start a new task: go to step 2. PRs that are parked (`waiting:deps`) or
+   waiting for review (`review:needed` / `review:approved`) don't stop you.
+
+You may have **one active PR** at a time, plus any number of parked or in-review PRs, up to
+**4 open PRs** in total. At 4, only handle items 1–2 above, and if there are none, stop and
+tell the user "at PR limit, waiting on reviews/dependencies".
 
 ## 2. Pick a task
 
@@ -45,13 +51,11 @@ GitHub UI/API, or `git branch -r` together with the PR list.
 
 What the labels mean (a bot keeps them current; trust them):
 * `status:ready`: every dependency is merged. Port, test and ask for review.
-* `status:startable`: every dependency is merged **or claimed by an agent**. Claim it and port
-  now. Code you depend on may still be a T04 stub; the skeleton fixes every class and
-  method signature, so program against it. Parity tests that hit a stub will fail until
-  that dependency merges. That's expected, and the PR stays a **draft** until then. As
-  soon as the issue turns `status:ready` (the bot merges `main` into your branch for you),
-  make CI green and ask for review (§5).
-* `status:blocked`: some dependency isn't even claimed yet. Don't take it.
+* `status:startable`: some dependency isn't merged yet. **Claim it and port it anyway.** The T04
+  skeleton fixes every class and method signature, so program against it, even where the
+  code behind it is still a stub. Write the probe and the parity tests too. Tests that hit
+  an unmerged dependency fail until it merges; that's expected. When the port is done,
+  **park** the PR (step 5) and take another task. Nothing is ever blocked.
 
 If nothing is ready or startable, **stop and tell the user "no ready tasks"**. Do not invent work.
 
@@ -151,6 +155,16 @@ commit:
 3. Comment on the PR: `Ready for review at <short-sha>. Agent: <your-name>`, plus a
    one-line summary per acceptance criterion showing how it is met.
 
+**If the issue is still `status:startable`** (some dependency isn't merged), you can't get CI
+green yet. Instead **park** it:
+1. Push everything; keep the PR a **draft**; make sure the only failures are tests that hit
+   unmerged dependencies.
+2. Add the label `waiting:deps` and comment `Parked at <short-sha>: waiting on #<dep>, …
+   Agent: <your-name>`.
+3. Go back to step 1 and take another task. The bot merges `main` into your branch as
+   dependencies land. The issue turns `status:ready` when the last one merges, and the
+   RESUME check brings you back.
+
 If you add `review:needed` while CI is red, automation bounces the PR straight back with an
 automated `🔴 CHANGES REQUESTED` comment. Treat that like any other review (§7).
 
@@ -160,17 +174,15 @@ normal and not a failure; your job is to get the other checks green.
 **Do not** add `review:approved` yourself, ever. Only the reviewer adds it. Adding it
 yourself is a protocol violation, and the PR will be closed.
 
-## 6. Wait for the verdict, and keep checking
+## 6. While the reviewer looks at it: take the next task
 
-The reviewer runs on a schedule. While you wait, **stay on this PR**. Don't start another
-task. Check the PR periodically. If your session must end, the RESUME check (step 1) brings
-you back here.
-
-The reviewer answers with a PR comment whose first line is one of:
+You don't wait idle. After step 5, go back to step 1 and continue with other work. The RESUME
+check brings you back here when the reviewer answers with a PR comment whose first line is
+one of:
 * `🔴 CHANGES REQUESTED`: the label is also switched to `review:changes-requested`. Go to step 7.
-* `🟢 ALL CLEAR`: the label `review:approved` is added. You are done. The reviewer merges the
-  PR. **Do not push anything else to the branch** (a new commit revokes the approval
-  automatically). Go back to step 1 for the next task.
+* `🟢 ALL CLEAR`: the label `review:approved` is added. You are done. The PR merges
+  automatically. **Do not push anything else to the branch** (a new commit revokes the
+  approval).
 
 ## 7. Address requested changes
 
@@ -191,7 +203,8 @@ The reviewer answers with a PR comment whose first line is one of:
   allows it.
 * Never fake parity: no hard-coded expected values copied from goldens, and no special-casing
   of probe seeds.
-* One task at a time per agent. Never take a task claimed by someone else, even if it looks stale.
+* One **active** task at a time per agent, at most 4 open PRs (§1). Never take a task claimed by
+  someone else, even if it's marked `status:stale`. The user or reviewer reassigns it.
 * If you are stuck for real (the spec is ambiguous, or the Java seems non-deterministic, …),
   write a PR comment that starts with `❓ QUESTION:`, add the label `review:needed`, and wait.
   The reviewer answers like a review.

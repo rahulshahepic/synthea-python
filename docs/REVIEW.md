@@ -7,9 +7,9 @@ This file is both the reviewer's runbook and the instructions for the scheduled 
 | Label | On | Meaning | Set by |
 |---|---|---|---|
 | `type:task` | issue | a porting task | reviewer |
-| `status:blocked` | issue | some dependency not claimed yet; do not take | `unblock-tasks` bot |
 | `status:ready` | issue | all dependencies merged; may be claimed | `unblock-tasks` bot |
-| `status:startable` | issue | all dependencies merged or claimed; may be claimed and ported against stubs | `unblock-tasks` bot |
+| `status:startable` | issue | some dependency not merged yet; may be claimed and ported against the T04 stubs | `unblock-tasks` bot |
+| `waiting:deps` | PR | port done, parked until its dependencies merge; the agent has moved on | agent |
 | `status:stale` | issue | claimed, but no push for 24h; reviewer/user may reassign | `unblock-tasks` bot |
 | `status:claimed` | issue | an agent owns it (branch `task/<N>` exists) | agent |
 | `agent:muse` / `agent:chatgpt` | issue + PR | who owns it | agent |
@@ -29,7 +29,7 @@ push and come first. The reviewer only looks at PRs whose CI is green.
 ## Routine (each scheduled run)
 
 1. **Housekeeping**
-   * Promoting `status:blocked` → `status:ready` is automatic (`unblock-tasks.yml`, on every
+   * Task status labels (`status:startable` → `status:ready`) are automatic (`unblock-tasks.yml`, on every
      issue close and hourly). Only check that it ran; fix labels by hand if it didn't.
    * For every `status:claimed` issue: if the branch `task/<N>` does not exist, or nothing was
      pushed for > 72h and the PR is not in review, comment on the issue and tell the user.
@@ -67,7 +67,7 @@ push and come first. The reviewer only looks at PRs whose CI is green.
 3. **Problems found**: for every real issue an agent reports under "Problems found", open a
    fix task (an issue with acceptance criteria) owned by the module's task ID, labelled
    `status:ready`. Link it from the PR.
-4. Post a short summary for the user: merged, reviewed, blocked, stale.
+4. Post a short summary for the user: merged, reviewed, parked (waiting:deps), stale.
 
 ## Merge policy
 
