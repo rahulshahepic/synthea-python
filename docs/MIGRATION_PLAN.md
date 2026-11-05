@@ -39,10 +39,11 @@ consume the CSV/FHIR output, so they need no simulation changes).
 3. **Skeleton first** (T04): every class is stubbed with its full signature early on. Because
    Java's import cycles are pre-broken, later tasks can proceed in parallel and depend on
    *interfaces* instead of finished code.
-4. **Dependencies**: an issue is `status:ready` when every dependency is merged, and
-   `status:startable` when every dependency is merged *or claimed*. Startable work is ported
-   against the T04 stubs and reviewed once its dependencies merge, so tasks overlap instead
-   of queueing. A claim with no push for 24h is flagged `status:stale`.
+4. **Dependencies gate review, not work**: every task can be claimed and ported at any time
+   against the T04 stubs (`status:startable`). It becomes `status:ready` once its
+   dependencies merge, and only then is it reviewed. Agents park finished-but-waiting PRs
+   (`waiting:deps`) and keep working, so the agents run at full parallelism. A claim with no
+   push for 24h (excluding parked or in-review PRs) is flagged `status:stale`.
 
 ## Phases and tasks
 
