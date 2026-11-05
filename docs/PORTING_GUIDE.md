@@ -126,3 +126,39 @@ deviation, Java quirk you reproduced, or suspected libm/precision issue:
 ```
 
 Never edit another task's notes file. One file per task means parallel PRs can't conflict.
+
+## 10. Component boundary and integration gates
+
+Java's classes form cycles (`HealthRecord` ↔ `Person` ↔ `CoverageRecord` ↔ `Claim`), so a task
+often can't run its own code end to end until tasks that depend on it have merged. Each issue
+therefore separates two kinds of evidence:
+
+**Component parity** (required for the task's own review). The task's code is driven through
+its public API and compared with a probe's golden exactly. Collaborators owned by tasks that
+haven't merged (or that depend on this task) may be replaced by a **test double**, with
+these rules:
+
+* Doubles live only in `tests/` (never in `src/`), are named `*_double`, and are listed in the
+  PR body. Production code keeps every real dependency call, unconditionally.
+* A double supplies only plumbing the Java reads (attributes, the RNG, an id). It never
+  reimplements another task's behaviour, and it never fabricates values the golden checks.
+* The tests say "component" (name `test_<area>_component_*` or docstring). They are never
+  described as full-record or integration parity.
+* Unit tests may additionally isolate an unported callee with `unittest.mock` to test control
+  flow. Those never feed a parity comparison.
+
+**Integration parity** (real objects, no doubles). Scenarios that must run through other
+tasks call `tests.dependency_gate.run_or_pending(scenario, DEPENDENCIES)` and finish with
+`report_pending(...)`. `DEPENDENCIES` is the list in the issue. Per scenario:
+
+* it stops at a genuine T04 stub (`raise NotImplementedError("Java: X#y — pending T<nn>")` as
+  the whole body) of a listed task that still has stubs → **pending**: reported as a
+  `PendingIntegrationWarning` in the pytest summary, with the count compared exactly;
+* it finishes → it must equal the golden exactly;
+* anything else (another task's stub, "out of scope", a raise from test code) → fails.
+
+When the last listed task merges, nothing can be pending, so every scenario is required. The
+issue names that last task as the **integration task**: its PR must run the scenarios with 0
+pending and green. It may fix the scenario code in the test file only to call real APIs
+correctly, never to weaken a comparison; parity bugs it finds in earlier tasks go to
+"Problems found" as usual.
