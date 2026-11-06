@@ -252,14 +252,18 @@ class ExportHelper:
     @staticmethod
     def sampled_data_to_value_string(sampled_data: SampledData) -> str:
         """Java: ExportHelper#sampledDataToValueString(SampledData)."""
-        num_samples = len(sampled_data.series[0].get_values())
+        series_list = sampled_data.series
+        if series_list is None:
+            # Java throws NullPointerException here (series.get(0) on null).
+            raise TypeError("Java NullPointerException: SampledData.series is null")
+        num_samples = len(series_list[0].get_values())
         if sampled_data.decimal_format is not None:
             df = _decimal_format(sampled_data.decimal_format)
         else:
             df = _decimal_format(None)
         sb: list[str] = []
         for i in range(num_samples):
-            for series in sampled_data.series:
+            for series in series_list:
                 num = series.get_values()[i]
                 sb.append(df.format(num))
                 sb.append(" ")
