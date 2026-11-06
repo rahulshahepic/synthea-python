@@ -13,6 +13,7 @@ from synthea.engine.expressed_symptom import ExpressedSymptom
 from synthea.helpers.config import Config
 from synthea.helpers.constant_value_generator import ConstantValueGenerator
 from synthea.helpers.default_random_number_generator import DefaultRandomNumberGenerator
+from synthea.helpers.random_number_generator import RandomNumberGeneratorDefaults
 from synthea.helpers.utilities import Utilities
 from synthea.helpers.value_generator import ValueGenerator
 from synthea.javacompat import bigdecimal
@@ -148,7 +149,7 @@ class Point2DDouble:
         return self.y
 
 
-class Person:
+class Person(RandomNumberGeneratorDefaults):
     """Java: org.mitre.synthea.world.agents.Person; implements RandomNumberGenerator."""
 
     serialVersionUID: ClassVar[int] = 4322116644425686379
@@ -264,8 +265,8 @@ class Person:
         if self.loss_of_care_enabled:
             self.loss_of_care_record = HealthRecord(self)
 
-    def rand(self) -> float:
-        """Java: Person#rand."""
+    def _rand(self) -> float:
+        """Java: Person#rand primitive used by inherited RNG default overloads."""
         return self.random.rand()
 
     def rand_boolean(self) -> bool:
