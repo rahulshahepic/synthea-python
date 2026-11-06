@@ -1,43 +1,24 @@
-"""Java API skeleton:
-java/src/main/java/org/mitre/synthea/world/geography/quadtree/QuadTreeElement.java.
-"""
+"""Java: org.mitre.synthea.world.geography.quadtree.QuadTreeElement."""
 
 from __future__ import annotations
 
+import math
 from typing import Protocol
 
 
 class QuadTreeElement(Protocol):
-    """Java: QuadTreeElement; pending T10."""
-
-    def __init__(self) -> None:
-        """Java: QuadTreeElement#QuadTreeElement.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: QuadTreeElement#QuadTreeElement — pending T10")
+    """Java: QuadTreeElement; structural coordinates and default Euclidean distance."""
 
     def get_x(self) -> float:
-        """Java: QuadTreeElement#getX.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: QuadTreeElement#getX — pending T10")
+        """Java: QuadTreeElement#getX."""
+        ...
 
     def get_y(self) -> float:
-        """Java: QuadTreeElement#getY.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: QuadTreeElement#getY — pending T10")
+        """Java: QuadTreeElement#getY."""
+        ...
 
     def distance(self, element: QuadTreeElement) -> float:
-        """Java: QuadTreeElement#distance.
-
-        Java overloads:
-        (QuadTreeElement element)
-        """
-        raise NotImplementedError("Java: QuadTreeElement#distance — pending T10")
+        """Java: QuadTreeElement#distance."""
+        dx = self.get_x() - element.get_x()
+        dy = self.get_y() - element.get_y()
+        return math.sqrt(dx * dx + dy * dy)
