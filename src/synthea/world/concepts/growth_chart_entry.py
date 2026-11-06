@@ -38,7 +38,7 @@ class GrowthChartEntry:
         percentile_to_use = self.MAX_PERCENTILE if percentile > self.MAX_PERCENTILE else percentile
         z = GrowthChart.calculate_z_score(percentile_to_use)
         if self.lbox_cox == 0:
-            return self.median * math.exp(self.scov * z)
+            return self.median * _java_exp(self.scov * z)
         expression_term = self.lbox_cox * self.scov * z
         return self.median * _java_pow(1 + expression_term, 1.0 / self.lbox_cox)
 
@@ -1153,6 +1153,248 @@ _POW_DATA_B85 = (
 _POW_DATA = _pow_zlib.decompress(_pow_base64.b85decode(_POW_DATA_B85))
 _POW_MASK64 = (1 << 64) - 1
 
+
+# /*
+# * Copyright (c) 2016, 2021, Intel Corporation. All rights reserved.
+# * Copyright (C) 2021, Tencent. All rights reserved.
+# * Intel Math Library (LIBM) Source Code
+# *
+# * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+# *
+# * This code is free software; you can redistribute it and/or modify it
+# * under the terms of the GNU General Public License version 2 only, as
+# * published by the Free Software Foundation.
+# *
+# * This code is distributed in the hope that it will be useful, but WITHOUT
+# * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# * version 2 for more details (a copy is included in the LICENSE file that
+# * accompanied this code).
+# *
+# * You should have received a copy of the GNU General Public License version
+# * 2 along with this work; if not, write to the Free Software Foundation,
+# * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+# *
+# * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+# * or visit www.oracle.com if you need additional information or have any
+# * questions.
+# *
+# */
+#
+# Primary source: https://github.com/openjdk/jdk21u/blob/jdk-21.0.13%2B9/src/hotspot/cpu/x86/stubGenerator_x86_64_exp.cpp
+# SHA-256: 67e3429063e390810012458b5955847c35d9a4d09504f2fa6bc0fbc8cbdc8e5a
+
+# /*
+#  * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+#  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#  *
+#  * This code is free software; you can redistribute it and/or modify it
+#  * under the terms of the GNU General Public License version 2 only, as
+#  * published by the Free Software Foundation.
+#  *
+#  * This code is distributed in the hope that it will be useful, but WITHOUT
+#  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#  * version 2 for more details (a copy is included in the LICENSE file that
+#  * accompanied this code).
+#  *
+#  * You should have received a copy of the GNU General Public License version
+#  * 2 along with this work; if not, write to the Free Software Foundation,
+#  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+#  *
+#  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+#  * or visit www.oracle.com if you need additional information or have any
+#  * questions.
+#  *
+#  */
+#
+# Shared SHIFTER/ONE/ZERO source: stubGenerator_x86_64_constants.cpp at same JDK tag.
+# SHA-256: 96eb85599c11ec91706faf5e177c78ed8173fed438a2c8bf03cb6303fb8bb4e4
+_EXP_OPS: tuple[tuple[str, tuple[_PowArg, ...]], ...] = (
+    ("subq", ("rsp", 24)),
+    ("movsd", (("m", "rsp", 0, 1, 8), "xmm0")),
+    ("unpcklpd", ("xmm0", "xmm0")),
+    ("movdqu", ("xmm1", ("m", 65536, 0, 1, 0), "r11")),
+    ("movdqu", ("xmm2", ("m", 65552, 0, 1, 0), "r11")),
+    ("movdqu", ("xmm3", ("m", 65568, 0, 1, 0), "r11")),
+    ("movdqu", ("xmm6", ("m", 66768, 0, 1, 0), "r11")),
+    ("pextrw", ("rax", "xmm0", 3)),
+    ("andl", ("rax", 32767)),
+    ("movl", ("rdx", 16527)),
+    ("subl", ("rdx", "rax")),
+    ("subl", ("rax", 15504)),
+    ("orl", ("rdx", "rax")),
+    ("cmpl", ("rdx", -2147483648)),
+    ("jcc", ("aboveEqual", 151)),
+    ("mulpd", ("xmm1", "xmm0")),
+    ("addpd", ("xmm1", "xmm6")),
+    ("movapd", ("xmm7", "xmm1")),
+    ("subpd", ("xmm1", "xmm6")),
+    ("mulpd", ("xmm2", "xmm1")),
+    ("movdqu", ("xmm4", ("m", 65600, 0, 1, 0), "r11")),
+    ("mulpd", ("xmm3", "xmm1")),
+    ("movdqu", ("xmm5", ("m", 65616, 0, 1, 0), "r11")),
+    ("subpd", ("xmm0", "xmm2")),
+    ("movdl", ("rax", "xmm7")),
+    ("movl", ("rcx", "rax")),
+    ("andl", ("rcx", 63)),
+    ("shll", ("rcx", 4)),
+    ("sarl", ("rax", 6)),
+    ("movl", ("rdx", "rax")),
+    ("movdqu", ("xmm6", ("m", 65632, 0, 1, 0), "r11")),
+    ("pand", ("xmm7", "xmm6")),
+    ("movdqu", ("xmm6", ("m", 65648, 0, 1, 0), "r11")),
+    ("paddq", ("xmm7", "xmm6")),
+    ("psllq", ("xmm7", 46)),
+    ("subpd", ("xmm0", "xmm3")),
+    ("lea", ("r11", 65664)),
+    ("movdqu", ("xmm2", ("m", "rcx", "r11", 1, 0))),
+    ("mulpd", ("xmm4", "xmm0")),
+    ("movapd", ("xmm6", "xmm0")),
+    ("movapd", ("xmm1", "xmm0")),
+    ("mulpd", ("xmm6", "xmm6")),
+    ("mulpd", ("xmm0", "xmm6")),
+    ("addpd", ("xmm5", "xmm4")),
+    ("mulsd", ("xmm0", "xmm6")),
+    ("mulpd", ("xmm6", ("m", 65584, 0, 1, 0), "r11")),
+    ("addsd", ("xmm1", "xmm2")),
+    ("unpckhpd", ("xmm2", "xmm2")),
+    ("mulpd", ("xmm0", "xmm5")),
+    ("addsd", ("xmm1", "xmm0")),
+    ("por", ("xmm2", "xmm7")),
+    ("unpckhpd", ("xmm0", "xmm0")),
+    ("addsd", ("xmm0", "xmm1")),
+    ("addsd", ("xmm0", "xmm6")),
+    ("addl", ("rdx", 894)),
+    ("cmpl", ("rdx", 1916)),
+    ("jcc", ("above", 60)),
+    ("mulsd", ("xmm0", "xmm2")),
+    ("addsd", ("xmm0", "xmm2")),
+    ("jmp", (160,)),
+    ("xorpd", ("xmm3", "xmm3")),
+    ("movdqu", ("xmm4", ("m", 66688, 0, 1, 0), "r11")),
+    ("movl", ("rdx", -1022)),
+    ("subl", ("rdx", "rax")),
+    ("movdl", ("xmm5", "rdx")),
+    ("psllq", ("xmm4", "xmm5")),
+    ("movl", ("rcx", "rax")),
+    ("sarl", ("rax", 1)),
+    ("pinsrw", ("xmm3", "rax", 3)),
+    ("movdqu", ("xmm6", ("m", 66704, 0, 1, 0), "r11")),
+    ("psllq", ("xmm3", 4)),
+    ("psubd", ("xmm2", "xmm3")),
+    ("mulsd", ("xmm0", "xmm2")),
+    ("cmpl", ("rdx", 52)),
+    ("jcc", ("greater", 118)),
+    ("pand", ("xmm4", "xmm2")),
+    ("paddd", ("xmm3", "xmm6")),
+    ("subsd", ("xmm2", "xmm4")),
+    ("addsd", ("xmm0", "xmm2")),
+    ("cmpl", ("rcx", 1023)),
+    ("jcc", ("greaterEqual", 111)),
+    ("pextrw", ("rcx", "xmm0", 3)),
+    ("andl", ("rcx", 32768)),
+    ("orl", ("rdx", "rcx")),
+    ("cmpl", ("rdx", 0)),
+    ("jcc", ("equal", 108)),
+    ("movapd", ("xmm6", "xmm0")),
+    ("addsd", ("xmm0", "xmm4")),
+    ("mulsd", ("xmm0", "xmm3")),
+    ("pextrw", ("rcx", "xmm0", 3)),
+    ("andl", ("rcx", 32752)),
+    ("cmpl", ("rcx", 0)),
+    ("jcc", ("equal", 94)),
+    ("jmp", (160,)),
+    ("mulsd", ("xmm6", "xmm3")),
+    ("mulsd", ("xmm4", "xmm3")),
+    ("movdqu", ("xmm0", "xmm6")),
+    ("pxor", ("xmm6", "xmm4")),
+    ("psrad", ("xmm6", 31)),
+    ("pshufd", ("xmm6", "xmm6", 85)),
+    ("psllq", ("xmm0", 1)),
+    ("psrlq", ("xmm0", 1)),
+    ("pxor", ("xmm0", "xmm6")),
+    ("psrlq", ("xmm6", 63)),
+    ("paddq", ("xmm0", "xmm6")),
+    ("paddq", ("xmm0", "xmm4")),
+    ("movl", (("m", "rsp", 0, 1, 0), 15)),
+    ("jmp", (158,)),
+    ("addsd", ("xmm0", "xmm4")),
+    ("mulsd", ("xmm0", "xmm3")),
+    ("jmp", (160,)),
+    ("addsd", ("xmm0", "xmm4")),
+    ("mulsd", ("xmm0", "xmm3")),
+    ("pextrw", ("rcx", "xmm0", 3)),
+    ("andl", ("rcx", 32752)),
+    ("cmpl", ("rcx", 32752)),
+    ("jcc", ("aboveEqual", 130)),
+    ("jmp", (160,)),
+    ("paddd", ("xmm3", "xmm6")),
+    ("addpd", ("xmm0", "xmm2")),
+    ("mulsd", ("xmm0", "xmm3")),
+    ("movl", (("m", "rsp", 0, 1, 0), 15)),
+    ("jmp", (158,)),
+    ("cmpl", ("rax", 2146435072)),
+    ("jcc", ("aboveEqual", 136)),
+    ("movl", ("rax", ("m", "rsp", 0, 1, 12))),
+    ("cmpl", ("rax", -2147483648)),
+    ("jcc", ("aboveEqual", 132)),
+    ("movsd", ("xmm0", ("m", 66720, 0, 1, 0), "r11")),
+    ("mulsd", ("xmm0", "xmm0")),
+    ("movl", (("m", "rsp", 0, 1, 0), 14)),
+    ("jmp", (158,)),
+    ("movsd", ("xmm0", ("m", 66736, 0, 1, 0), "r11")),
+    ("mulsd", ("xmm0", "xmm0")),
+    ("movl", (("m", "rsp", 0, 1, 0), 15)),
+    ("jmp", (158,)),
+    ("movl", ("rdx", ("m", "rsp", 0, 1, 8))),
+    ("cmpl", ("rax", 2146435072)),
+    ("jcc", ("above", 148)),
+    ("cmpl", ("rdx", 0)),
+    ("jcc", ("notEqual", 148)),
+    ("movl", ("rax", ("m", "rsp", 0, 1, 12))),
+    ("cmpl", ("rax", 2146435072)),
+    ("jcc", ("notEqual", 146)),
+    ("movsd", ("xmm0", ("m", 66752, 0, 1, 0), "r11")),
+    ("jmp", (160,)),
+    ("movsd", ("xmm0", ("m", 66800, 0, 1, 0), "r11")),
+    ("jmp", (160,)),
+    ("movsd", ("xmm0", ("m", "rsp", 0, 1, 8))),
+    ("addsd", ("xmm0", "xmm0")),
+    ("jmp", (160,)),
+    ("movl", ("rax", ("m", "rsp", 0, 1, 12))),
+    ("andl", ("rax", 2147483647)),
+    ("cmpl", ("rax", 1083179008)),
+    ("jcc", ("aboveEqual", 123)),
+    ("movsd", (("m", "rsp", 0, 1, 8), "xmm0")),
+    ("addsd", ("xmm0", ("m", 66784, 0, 1, 0), "r11")),
+    ("jmp", (160,)),
+    ("movq", (("m", "rsp", 0, 1, 16), "xmm0")),
+    ("movq", ("xmm0", ("m", "rsp", 0, 1, 16))),
+    ("addq", ("rsp", 24)),
+    ("ret", (0,)),
+)
+_EXP_DATA_B85 = (
+    "c-rmM`%?{g7{~GFbn2YWsk9;+YZW7@R2!+b9vu={l+bZ0bWviY&~1oCS1CCiqKob+T~u3(EW2r~nPw%bbuVphnXM(v*1FX)rZL;!"
+    "@Ol06p6_M8-`^f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    "00000000000000000000000000000000000000000000000000000000000000000000000001@fhbddXWf;vhf4Hjz|lNTHdH(N"
+    "><bzF<7W+ZVDO_3*-*XHraoL#zd~l1?J1YbPsp^dDK6@c+$YORbpNovEW7yO*2jN7_tU>a9nK|8IHE4{6npQDaLAZOG^#IP=CYO~"
+    "4vp1qty)dw)9}Q{wcnc?GQ;%d#S;ZaMz1Z(IL6uuuLD<|CTc!zv31rj4xHcII=$y1(d`TCCj>1mU^h>l>w-}NinQ&W;(oc1JIqQd"
+    "G8_eTMz+j%`O*^JxpX(zZWmD9@=>y+ghURz65Q=sARsRbJBR+B3@$yl(K7xI0Uf+l<TNMv0N+gV-ES{ap(7_xK75~ilx=;(f_B=f"
+    "(916UG*joj+`j99|GdpAWLYNJ(%B!yo%i+s$;wut8mZ>?D4Rsq5I!o3ZBd~!WmPU=F43%e)>1kk64JtdTi1TueuxLh_*JX3kc@Zh"
+    "H6~f)@$V&eHpSb7l(;T2#JHuH`*I#z-76N-mc=H;3vyz4l9kTlqWeNpQ)U^?uRY1e=KT|;V^m3}{8#V4*Ux3M1Rrm8S5?{}%)8s!"
+    "7{u4P{&aqvDpghPJl~`UXCo8q8+YqeNn$cJvoSiCi>76TSHD&zaaU=5mE;8PTavZH)Jlz#Z@t%3n|YY;8lARw4pt+H`}hZ)>lJM5"
+    "zMx%PrbaU_`k6kNeuNiHJf$1lrAE@E-t-uqT#k|3Ree8MM54A3itkP5$&=(!w!R|TCePJ!Ihf9k_IoyD=ZYxKxhd|P=?OL;=g-w0"
+    "A}Z4gHc%QAaEMpW(=dH86%~J(Jjo}Q8v-0xbbE;@E@#60a;JQb6Lg1+&J&Y7@Mc+Ow?F&3UbBAnKup&I2G8dV9A%xR#pwx#>eL}<"
+    "7(H4)m3x#<nRhm-(~p1k)?1uC$oFzh93Pjflatr0)zN*CY#pJSUhzVmc&h05Pu>Om=<?Mn8yg9g`o1=3ewxZlT<_;Z?Us;HQ;O-k"
+    "%5ALZEr?3_O+r7LXRNZ?lF5FL*G6v8l+xa`+KgRBsl3L}p;{=HQjJGQP|T(nu6w^jzByY;@iVR{BgQ51saB8loTpMc`n6fxhRON-"
+    "Mt4bV{tOMOP)q&6d}JQaU-$N9_#O?q+U_O2H5ke*^@|h}8a1d!v+|pYpb$R3EVey!tR|JOmNXywGlmy6uQY!Vph+9YDg&o&4&Y6S"
+    "=WPaOHK``O!&<WSFh?ec7n+H+s8~F!D7GM!;|t%m>8;YDa%KGuH;-hFoqkXFq(qC9#}<wcIiJSsG9zakd#6RM`|Z3{&xCTHEV0Yn"
+    "Z3IpEPNFmlPT@O>!u-m@5u|QVI_JWrWH$2fdG^(t5%es!*|Nm%0MDKm<QeX!O<7k{T<jAf__iW@UwyGQ4G!~Z3iQf``f2z1p8rpY"
+    "FNRHx-eKpqbN}C=_dfd%V<7sB"
+)
+_EXP_DATA = _pow_zlib.decompress(_pow_base64.b85decode(_EXP_DATA_B85))
+
 # Adapted from Bochs cpu/sse_rcp.cc, approximate_rcp.
 # Copyright (c) 2003-2018 Stanislav Shwartsman.
 # Licensed under GNU Lesser General Public License version 2 or later.
@@ -1183,18 +1425,22 @@ def _pow_reciprocal(bits: int) -> int:
 
 
 def _pow_f64(x: int) -> float:
+    """Java: HotSpot libmPow integer/SSE lane operation support."""
     return float(_pow_struct.unpack("<d", (x & _POW_MASK64).to_bytes(8, "little"))[0])
 
 
 def _pow_b64(x: float) -> int:
+    """Java: HotSpot libmPow integer/SSE lane operation support."""
     return int.from_bytes(_pow_struct.pack("<d", x), "little")
 
 
 def _pow_f32(x: int) -> float:
+    """Java: HotSpot libmPow integer/SSE lane operation support."""
     return float(_pow_struct.unpack("<f", (x & 0xFFFFFFFF).to_bytes(4, "little"))[0])
 
 
 def _pow_b32(x: float) -> int:
+    """Java: HotSpot libmPow integer/SSE lane operation support."""
     try:
         return int.from_bytes(_pow_struct.pack("<f", x), "little")
     except OverflowError:
@@ -1202,24 +1448,33 @@ def _pow_b32(x: float) -> int:
 
 
 def _pow_signed(x: int, w: int) -> int:
+    """Java: HotSpot libmPow integer/SSE lane operation support."""
     return (x & ((1 << (w - 1)) - 1)) - (x & (1 << (w - 1)))
 
 
 def _pow_div(a: float, b: float) -> float:
+    """Java: HotSpot libmPow integer/SSE lane operation support."""
+    if _pow_math.isnan(a) or _pow_math.isnan(b):
+        return _pow_math.nan
     if b == 0:
         return (
             _pow_math.nan
             if a == 0
             else _pow_math.copysign(
                 _pow_math.inf,
-                a * b if a * b else _pow_math.copysign(1, a) * _pow_math.copysign(1, b),
+                _pow_math.copysign(1, a) * _pow_math.copysign(1, b),
             )
         )
     return a / b
 
 
-def _java_pow(x: float, y: float) -> float:
-    """Java: Math.pow, OpenJDK21 HotSpot libmPow including its SSE fast paths."""
+def _pow_run(
+    ops: tuple[tuple[str, tuple[_PowArg, ...]], ...],
+    data: bytes,
+    x: float,
+    y: float = 0.0,
+) -> float:
+    """Java: HotSpot libmPow/libmExp ordered integer and SSE instruction execution."""
     regs = {r: 0 for r in ("rax", "rcx", "rdx", "r8", "r9", "r10", "r11", "rsp")}
     regs["rsp"] = 1024
     vec = {f"xmm{i}": 0 for i in range(8)}
@@ -1229,22 +1484,25 @@ def _java_pow(x: float, y: float) -> float:
     zf = sf = cf = of = False
 
     def address(a: _PowMemory) -> int:
+        """Java: HotSpot libmPow integer/SSE lane operation support."""
         _, base, index, scale, offset = a
         b = regs[base] if isinstance(base, str) else base
         ind = regs[index] if isinstance(index, str) else index
         return b + ind * scale + offset
 
     def rd(a: _PowArg | None, w: int) -> int:
+        """Java: HotSpot libmPow integer/SSE lane operation support."""
         assert a is not None
         if isinstance(a, tuple):
             off = address(a)
-            v = _POW_DATA if off >= 65536 else mem
+            v = data if off >= 65536 else mem
             return int.from_bytes(v[off : off + w // 8], "little")
         if isinstance(a, str):
             return (vec[a] if a.startswith("xmm") else regs[a]) & ((1 << w) - 1)
         return a & ((1 << w) - 1)
 
     def wr(a: _PowArg, v: int, w: int, keep: bool = False) -> None:
+        """Java: HotSpot libmPow integer/SSE lane operation support."""
         mask = (1 << w) - 1
         v &= mask
         if isinstance(a, tuple):
@@ -1256,6 +1514,7 @@ def _java_pow(x: float, y: float) -> float:
         target[a] = (target[a] & ~mask) | v if keep else v
 
     def fl(v: int, w: int, c: bool = False, o: bool = False) -> None:
+        """Java: HotSpot libmPow integer/SSE lane operation support."""
         nonlocal zf, sf, cf, of
         zf = (v & ((1 << w) - 1)) == 0
         sf = bool(v & (1 << (w - 1)))
@@ -1264,11 +1523,11 @@ def _java_pow(x: float, y: float) -> float:
 
     ip = 0
     steps = 0
-    while ip < len(_POW_OPS):
+    while ip < len(ops):
         steps += 1
         if steps > 2000:
             raise RuntimeError("loop")
-        op, a = _POW_OPS[ip]
+        op, a = ops[ip]
         ip += 1
         if op == "ret":
             return _pow_f64(vec["xmm0"])
@@ -1286,6 +1545,8 @@ def _java_pow(x: float, y: float) -> float:
                 "below": cf,
                 "less": sf != of,
                 "lessEqual": zf or sf != of,
+                "greater": not zf and sf == of,
+                "greaterEqual": sf == of,
             }[cond]
             if yes:
                 ip = cast(int, a[1])
@@ -1326,14 +1587,19 @@ def _java_pow(x: float, y: float) -> float:
             n = cast(int, a[2]) * 16
             wr(d, (rd(d, 128) & ~(65535 << n)) | ((rd(src, 16) & 65535) << n), 128)
             continue
-        if op in ("psllq", "psrlq", "psrld"):
-            w = 32 if op == "psrld" else 64
-            n = cast(int, src)
+        if op in ("psllq", "psrlq", "psrld", "psrad"):
+            w = 32 if op in ("psrld", "psrad") else 64
+            n = rd(src, 64)
             v = rd(d, 128)
             out = 0
             for k in range(128 // w):
                 lane = (v >> (w * k)) & ((1 << w) - 1)
-                lane = lane << n if op == "psllq" else lane >> n
+                if op == "psrad":
+                    lane = _pow_signed(lane, w) >> min(n, w - 1)
+                elif n >= w:
+                    lane = 0
+                else:
+                    lane = lane << n if op == "psllq" else lane >> n
                 out |= (lane & ((1 << w) - 1)) << (w * k)
             wr(d, out, 128)
             continue
@@ -1347,17 +1613,29 @@ def _java_pow(x: float, y: float) -> float:
         if op == "unpcklpd":
             wr(d, rd(d, 64) | (rd(src, 64) << 64), 128)
             continue
-        if op in ("pand", "por", "xorpd"):
-            left, right = rd(d, 128), rd(src, 128)
-            bits = left & right if op == "pand" else left | right if op == "por" else left ^ right
-            wr(d, bits, 128)
+        if op == "unpckhpd":
+            wr(d, (rd(d, 128) >> 64) | ((rd(src, 128) >> 64) << 64), 128)
             continue
-        if op in ("paddd", "paddq"):
+        if op in ("pand", "por", "xorpd", "pxor"):
+            left, right = rd(d, 128), rd(src, 128)
+            wr(
+                d,
+                left & right if op == "pand" else left | right if op == "por" else left ^ right,
+                128,
+            )
+            continue
+        if op in ("paddd", "paddq", "psubd"):
             w = 32 if op == "paddd" else 64
             v = 0
             mask = (1 << w) - 1
             for k in range(128 // w):
-                v |= (((rd(d, 128) >> (k * w)) + (rd(src, 128) >> (k * w))) & mask) << (k * w)
+                v |= (
+                    (
+                        (rd(d, 128) >> (k * w))
+                        + (-1 if op == "psubd" else 1) * (rd(src, 128) >> (k * w))
+                    )
+                    & mask
+                ) << (k * w)
             wr(d, v, 128)
             continue
         if op in (
@@ -1366,6 +1644,7 @@ def _java_pow(x: float, y: float) -> float:
             "mulsd",
             "divsd",
             "addpd",
+            "subpd",
             "mulpd",
             "mulss",
             "sqrtsd",
@@ -1374,7 +1653,7 @@ def _java_pow(x: float, y: float) -> float:
             v = rd(d, 128)
             rv = rd(src, 128)
             mask = (1 << w) - 1
-            for k in range(2 if op in ("addpd", "mulpd") else 1):
+            for k in range(2 if op in ("addpd", "subpd", "mulpd") else 1):
                 decode = _pow_f32 if w == 32 else _pow_f64
                 encode = _pow_b32 if w == 32 else _pow_b64
                 left_float, right_float = decode(v >> (k * w)), decode(rv >> (k * w))
@@ -1461,3 +1740,13 @@ def _java_pow(x: float, y: float) -> float:
             continue
         raise NotImplementedError((ip - 1, op, a))
     raise RuntimeError("no return")
+
+
+def _java_pow(x: float, y: float) -> float:
+    """Java: Math.pow, OpenJDK21 HotSpot libmPow including SSE fast paths."""
+    return _pow_run(_POW_OPS, _POW_DATA, x, y)
+
+
+def _java_exp(x: float) -> float:
+    """Java: Math.exp, OpenJDK21 HotSpot libmExp including extreme tails."""
+    return _pow_run(_EXP_OPS, _EXP_DATA, x)

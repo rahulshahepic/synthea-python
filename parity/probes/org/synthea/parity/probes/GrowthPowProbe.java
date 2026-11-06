@@ -9,6 +9,8 @@ import java.util.Random;
 
 /** Direct actual Math.pow and StrictMath.pow evidence for T12's private compatibility helper. */
 public class GrowthPowProbe {
+  private static volatile double warmupSink;
+
   private static void emit(PrintWriter out, double x, double y) {
     JsonObject row = new JsonObject();
     row.addProperty("x", Long.toHexString(Double.doubleToRawLongBits(x)));
@@ -19,6 +21,9 @@ public class GrowthPowProbe {
   }
 
   public static void main(String[] args) throws Exception {
+    for (int i = 0; i < 30000; i++) {
+      warmupSink = Math.pow(0.5 + (i % 1000) / 1000.0, -4.0 + (i % 17));
+    }
     double[] bases = {0.0, -0.0, 1.0, -1.0, 2.0, -2.0, Double.MIN_VALUE,
         Double.MAX_VALUE, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NaN, 0.5};
     double[] powers = {Double.NEGATIVE_INFINITY, -3, -2, -0.5, -0.0, 0.0,
