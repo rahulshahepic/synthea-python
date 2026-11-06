@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from synthea.javacompat.hashing import string_compare_to_ignore_case
 from synthea.world.agents.person import Point2DDouble
 from synthea.world.geography.quadtree.quad_tree_element import QuadTreeElement
 
@@ -19,7 +20,10 @@ class Place(QuadTreeElement):
 
     def same_state(self, state: str) -> bool:
         """Java: Place#sameState."""
-        return state.lower() in (self.state.lower(), self.abbreviation.lower())
+        return (
+            string_compare_to_ignore_case(self.state, state) == 0
+            or string_compare_to_ignore_case(self.abbreviation, state) == 0
+        )
 
     def get_x(self) -> float:
         """Java: Place#getX."""

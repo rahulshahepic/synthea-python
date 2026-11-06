@@ -12,6 +12,7 @@ from synthea.helpers.random_number_generator import RandomNumberGenerator
 from synthea.helpers.simple_csv import SimpleCSV
 from synthea.helpers.utilities import Utilities
 from synthea.javacompat.collections import JavaHashMap
+from synthea.javacompat.hashing import string_compare_to_ignore_case
 from synthea.world.agents.person import Person, Point2DDouble
 from synthea.world.concepts.employment import Employment
 from synthea.world.geography.cms_state_code_mapper import CMSStateCodeMapper
@@ -53,7 +54,7 @@ class Location:
         if not self.demographics:
             raise ValueError(f"The state {state} was not found in the demographics file.")
         if city is not None and not any(
-            d.city.lower() == city.lower() for d in self.demographics.values()
+            string_compare_to_ignore_case(d.city, city) == 0 for d in self.demographics.values()
         ):
             raise ValueError(
                 f"The city {city} was not found in the demographics file for state {state}."
@@ -78,7 +79,7 @@ class Location:
                 "generate.geography.sdoh.default_file", "geography/sdoh.csv"
             ):
                 row = source.copy()
-                if row.pop("STATE").lower() != state.lower():
+                if string_compare_to_ignore_case(row.pop("STATE"), state) != 0:
                     continue
                 row.pop("FIPS_CODE")
                 row.pop("COUNTY_CODE")
@@ -140,7 +141,11 @@ class Location:
         if self.city is not None:
             if self.fixed_city is None:
                 self.fixed_city = sorted(
-                    (d for d in self.demographics.values() if d.city.lower() == self.city.lower()),
+                    (
+                        d
+                        for d in self.demographics.values()
+                        if string_compare_to_ignore_case(d.city, self.city) == 0
+                    ),
                     key=cmp_to_key(Demographics.compare_to),
                 )[0]
             return self.fixed_city
@@ -258,7 +263,7 @@ class Location:
             (
                 name
                 for name, abbr in Location.stateAbbreviations.items()
-                if abbr.lower() == abbreviation.lower()
+                if string_compare_to_ignore_case(abbr, abbreviation) == 0
             ),
             None,
         )

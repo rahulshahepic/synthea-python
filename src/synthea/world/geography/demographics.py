@@ -13,6 +13,7 @@ from synthea.helpers.random_number_generator import RandomNumberGenerator
 from synthea.helpers.simple_csv import SimpleCSV
 from synthea.helpers.utilities import Utilities
 from synthea.javacompat.collections import JavaHashMap
+from synthea.javacompat.hashing import string_compare_to_ignore_case
 from synthea.javacompat.numbers import to_int32
 
 
@@ -232,7 +233,7 @@ class Demographics:
             raise ValueError("Missing generate.demographics.default_file")
         table: dict[str, dict[str, Demographics]] = {}
         for row in _demographic_rows(filename):
-            if state is not None and state.lower() == row["STNAME"].lower():
+            if state is not None and string_compare_to_ignore_case(state, row["STNAME"]) == 0:
                 table.setdefault(row["STNAME"], {})[row["ID"]] = (
                     Demographics.csv_line_to_demographics(row)
                 )
