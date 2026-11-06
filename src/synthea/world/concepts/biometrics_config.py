@@ -1,15 +1,15 @@
-"""Java API skeleton: BiometricsConfig.java."""
+"""Java: BiometricsConfig.java."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
-if TYPE_CHECKING:
-    from synthea.helpers.simple_yml import SimpleYML
+from synthea.helpers.simple_yml import SimpleYML
+from synthea.helpers.utilities import Utilities
 
 
 class BiometricsConfig:
-    """Java: BiometricsConfig; pending T11."""
+    """Java: BiometricsConfig."""
 
     biometrics: ClassVar[SimpleYML]  # Java initialization deferred to T11.
 
@@ -19,7 +19,7 @@ class BiometricsConfig:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: BiometricsConfig#BiometricsConfig — pending T11")
+        raise TypeError("BiometricsConfig is abstract")
 
     @staticmethod
     def load_yml() -> SimpleYML:
@@ -28,7 +28,7 @@ class BiometricsConfig:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: BiometricsConfig#loadYML — pending T11")
+        return SimpleYML(Utilities.read_resource("biometrics.yml"))
 
     @staticmethod
     def get(path: str, default_value: object | None = None) -> object:
@@ -38,7 +38,8 @@ class BiometricsConfig:
         (String path)
         (String path, Object defaultValue)
         """
-        raise NotImplementedError("Java: BiometricsConfig#get — pending T11")
+        value = BiometricsConfig.biometrics.get(path)
+        return default_value if value is None else value
 
     @staticmethod
     def ints(path: str) -> list[int]:
@@ -47,7 +48,10 @@ class BiometricsConfig:
         Java overloads:
         (String path)
         """
-        raise NotImplementedError("Java: BiometricsConfig#ints — pending T11")
+        values = BiometricsConfig.get(path)
+        if not isinstance(values, list) or any(type(v) is not int for v in values):
+            raise TypeError("expected List<Integer>")
+        return list(values)
 
     @staticmethod
     def doubles(path: str) -> list[float]:
@@ -56,4 +60,10 @@ class BiometricsConfig:
         Java overloads:
         (String path)
         """
-        raise NotImplementedError("Java: BiometricsConfig#doubles — pending T11")
+        values = BiometricsConfig.get(path)
+        if not isinstance(values, list) or any(type(v) not in (int, float) for v in values):
+            raise TypeError("expected List<Number>")
+        return [float(value) for value in values]
+
+
+BiometricsConfig.biometrics = BiometricsConfig.load_yml()
