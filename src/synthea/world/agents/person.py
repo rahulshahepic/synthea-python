@@ -559,7 +559,8 @@ class Person:
 
     def get_provider(self, type: EncounterType, time: int) -> Provider:
         """Java: Person#getProvider(EncounterType, long)."""
-        key = Person.PREFERREDYPROVIDER + type
+        # Java concatenates the enum itself: EncounterType.toString() lowercases.
+        key = Person.PREFERREDYPROVIDER + type.to_string()
         if key not in self.attributes:
             self.set_provider(type, time)
         else:
@@ -580,11 +581,11 @@ class Person:
             if found is None and Provider.USE_HOSPITAL_AS_DEFAULT:
                 found = Provider.find_service(self, EncounterType.INPATIENT, provider_or_time)
             if found is None:
-                raise RuntimeError(f"Unable to find provider: {type.name}")
+                raise RuntimeError(f"Unable to find provider: {type.to_string()}")
             provider_or_time = found
         if provider_or_time is None:
-            raise RuntimeError(f"Unable to find provider: {type.name}")
-        key = Person.PREFERREDYPROVIDER + type
+            raise RuntimeError(f"Unable to find provider: {type.to_string()}")
+        key = Person.PREFERREDYPROVIDER + type.to_string()
         self.attributes[key] = provider_or_time
 
     def add_current_provider(self, context: str, provider: Provider) -> None:

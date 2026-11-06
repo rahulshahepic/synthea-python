@@ -44,7 +44,8 @@ class EncounterDouble:
         self.uuid: UUID = person.rand_uuid()
         self.claim_uuid: UUID = person.rand_uuid()
         self.start: int = time
-        self.type: str = str(type)
+        # Java: Encounter's type is type.toString(), which lowercases the name.
+        self.type: str = type.to_string()
 
 
 class HealthRecordDouble:
@@ -88,15 +89,19 @@ class CoverageRecordDouble:
         raise AssertionError("CoverageRecordDouble.get_plan_at_time is T16 behaviour")
 
     def set_plan_to_no_insurance(self, time: int) -> None:
-        """Java: CoverageRecord#setPlanToNoInsurance, reduced to its Person-visible effect.
+        """Java: CoverageRecord#setPlanToNoInsurance, reduced to its Person-visible effects.
 
         Java enrols a no-insurance PlanRecord covering the encounter times
-        (its Claim constructor throws without one) and sets the person's
+        (its Claim constructor throws without one). Two effects are visible
+        on the Person and are mirrored: setPlanAtTime's first-plan age check
+        calls Person#ageInDecimalYears, which lazily caches
+        birthdate_as_localdate in the attributes; and it sets the person's
         insurance_status attribute to the plan's status, "none". The plan
         history itself is T16 behaviour and is not modelled here.
         """
         from synthea.world.agents.person import Person
 
+        self.person.age_in_decimal_years(time)
         self.no_insurance_from: int = time
         self.person.attributes[Person.INSURANCE_STATUS] = "none"
 
