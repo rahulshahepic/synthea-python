@@ -13,12 +13,12 @@ class QuadTree:
         self, x: float | None = None, y: float | None = None, r: float | None = None
     ) -> None:
         """Java: QuadTree#QuadTree."""
-        self.is_leaf = True
-        self.max_leaf_size = 50
+        self.is_leaf: bool = True
+        self.max_leaf_size: int = 50
         self.data: list[QuadTreeElement] = []
-        self.xcoord = 0.0 if x is None else x
-        self.ycoord = 0.0 if y is None else y
-        self.radius = 180.0 if r is None else r
+        self.xcoord: float = 0.0 if x is None else x
+        self.ycoord: float = 0.0 if y is None else y
+        self.radius: float = 180.0 if r is None else r
         self.branches: list[QuadTree] = []
 
     def has_bounds_around(self, item: QuadTreeElement, error: float | None = None) -> bool:

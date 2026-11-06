@@ -47,10 +47,12 @@ class Location:
     def __init__(self, state: str, city: str | None) -> None:
         """Java: Location#Location."""
         self._initialize()
-        self.city = city
-        self.state = state
+        self.city: str | None = city
+        self.state: str = state
         self.fixed_city: Demographics | None = None
-        self.demographics = JavaHashMap(Demographics.load(state).get(state, {}))
+        self.demographics: JavaHashMap[str, Demographics] = JavaHashMap(
+            Demographics.load(state).get(state, {})
+        )
         if not self.demographics:
             raise ValueError(f"The state {state} was not found in the demographics file.")
         if city is not None and not any(
@@ -59,7 +61,7 @@ class Location:
             raise ValueError(
                 f"The city {city} was not found in the demographics file for state {state}."
             )
-        self.total_population = 0
+        self.total_population: int = 0
         self.population_by_city: dict[str, int] = {}
         self.population_by_city_id: dict[str, int] = {}
         for d in sorted(self.demographics.values(), key=cmp_to_key(Demographics.compare_to)):

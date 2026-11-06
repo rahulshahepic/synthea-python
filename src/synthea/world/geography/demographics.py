@@ -65,14 +65,17 @@ class Demographics:
 
     def __init__(self) -> None:
         """Java: Demographics#Demographics (implicit constructor)."""
-        self.population = 0
-        self.id = self.city = self.state = self.county = ""
+        self.population: int = 0
+        self.id: str = ""
+        self.city: str = ""
+        self.state: str = ""
+        self.county: str = ""
         self.ages: MutableMapping[str, float] = JavaHashMap()
         self.gender: MutableMapping[str, float] = JavaHashMap()
         self.race: MutableMapping[str, float] = JavaHashMap()
         self.income: MutableMapping[str, float] = JavaHashMap()
         self.education: MutableMapping[str, float] = JavaHashMap()
-        self.ethnicity = 0.0
+        self.ethnicity: float = 0.0
         self.age_distribution: RandomCollection[str] | None = None
         self.gender_distribution: RandomCollection[str] | None = None
         self.race_distribution: RandomCollection[str] | None = None

@@ -22,12 +22,16 @@ class CMSStateCodeMapper:
 
     def __init__(self) -> None:
         """Java: CMSStateCodeMapper#CMSStateCodeMapper."""
-        self.provider_state_codes = self.build_provider_state_table()
-        self.state_to_abbrev = self.build_state_abbrev_table()
-        self.abbrev_to_state = {value: key for key, value in self.state_to_abbrev.items()}
-        self.ssa_table = self.build_ssa_table()
-        self.ssa_state_county_name_county_code = self.build_county_name_lookup()
-        self.fips_table = self.build_fips_table()
+        self.provider_state_codes: dict[str, str] = self.build_provider_state_table()
+        self.state_to_abbrev: dict[str, str] = self.build_state_abbrev_table()
+        self.abbrev_to_state: dict[str, str] = {
+            value: key for key, value in self.state_to_abbrev.items()
+        }
+        self.ssa_table: dict[str, str] = self.build_ssa_table()
+        self.ssa_state_county_name_county_code: dict[str, JavaHashMap[str, str]] = (
+            self.build_county_name_lookup()
+        )
+        self.fips_table: dict[str, str] = self.build_fips_table()
 
     def get_state_code(self, state: str) -> str:
         """Java: CMSStateCodeMapper#getStateCode."""

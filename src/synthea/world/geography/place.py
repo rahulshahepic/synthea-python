@@ -12,11 +12,11 @@ class Place(QuadTreeElement):
 
     def __init__(self, row: dict[str, str]) -> None:
         """Java: Place#Place."""
-        self.state = row["USPS"]
-        self.abbreviation = row["ST"]
-        self.name = row["NAME"]
-        self.postal_code = row["ZCTA5"]
-        self.coordinate = Point2DDouble(float(row["LON"]), float(row["LAT"]))
+        self.state: str = row["USPS"]
+        self.abbreviation: str = row["ST"]
+        self.name: str = row["NAME"]
+        self.postal_code: str = row["ZCTA5"]
+        self.coordinate: Point2DDouble = Point2DDouble(float(row["LON"]), float(row["LAT"]))
 
     def same_state(self, state: str) -> bool:
         """Java: Place#sameState."""
