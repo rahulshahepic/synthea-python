@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from enum import StrEnum
 
+from synthea.javacompat.hashing import string_compare_to_ignore_case
+
 
 class VitalSign(StrEnum):
     """Java: VitalSign."""
@@ -45,7 +47,7 @@ class VitalSign(StrEnum):
         (String text)
         """
         for sign in VitalSign:
-            if text.lower() == sign.to_string().lower():
+            if string_compare_to_ignore_case(text, sign.to_string()) == 0:
                 return sign
         return VitalSign[text]
 

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, ClassVar, cast
 from synthea.helpers.config import Config
 from synthea.helpers.simple_yml import SimpleYML
 from synthea.helpers.utilities import Utilities
-from synthea.javacompat.hashing import string_hash_code
+from synthea.javacompat.hashing import string_compare_to_ignore_case, string_hash_code
 from synthea.javacompat.numbers import irem
 
 if TYPE_CHECKING:
@@ -31,17 +31,25 @@ class Names:
         return SimpleYML(Utilities.read_resource("names.yml"))
 
     @staticmethod
-    def fake_first_name(gender: str, language: str, person: Person) -> str:
+    def fake_first_name(gender: str, language: str | None, person: Person) -> str:
         """Java: Names#fakeFirstName(String, String, Person)."""
-        language = "spanish" if language.lower() == "spanish" else "english"
+        language = (
+            "spanish"
+            if language is not None and string_compare_to_ignore_case(language, "spanish") == 0
+            else "english"
+        )
         choices = cast(list[str], Names.names.get(f"{language}.{gender}"))
         name = choices[person.rand_int(len(choices))]
         return Names.add_hash(name) if Names.append_numbers_to_names else name
 
     @staticmethod
-    def fake_last_name(language: str, person: Person) -> str:
+    def fake_last_name(language: str | None, person: Person) -> str:
         """Java: Names#fakeLastName(String, Person)."""
-        language = "spanish" if language.lower() == "spanish" else "english"
+        language = (
+            "spanish"
+            if language is not None and string_compare_to_ignore_case(language, "spanish") == 0
+            else "english"
+        )
         choices = cast(list[str], Names.names.get(f"{language}.family"))
         name = choices[person.rand_int(len(choices))]
         return Names.add_hash(name) if Names.append_numbers_to_names else name
