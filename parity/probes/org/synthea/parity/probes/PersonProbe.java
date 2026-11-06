@@ -14,6 +14,7 @@ import org.mitre.synthea.engine.State;
 import org.mitre.synthea.helpers.Config;
 import org.mitre.synthea.helpers.ValueGenerator;
 import org.mitre.synthea.modules.QualityOfLifeModule;
+import org.mitre.synthea.world.agents.PayerManager;
 import org.mitre.synthea.world.agents.Person;
 import org.mitre.synthea.world.agents.Provider;
 import org.mitre.synthea.world.concepts.HealthRecord.Code;
@@ -29,8 +30,10 @@ import org.synthea.parity.probes.support.CanonicalPerson;
  *
  * <p>The Python mirror is tests/parity/test_person_component.py (component
  * parity: HealthRecord, CoverageRecord, Provider and State are test doubles
- * there, because T08/T13/T16/T19 are not merged yet; the doubles supply only
- * the state Person reads or writes).
+ * there, because T13/T16/T19 are not merged yet and a real Python Encounter
+ * needs Claim (T14); the doubles supply only the state Person reads or
+ * writes). This Java side always runs the real classes, so it must enrol
+ * the person in the no-insurance plan before starting encounters.
  */
 public class PersonProbe {
 
@@ -61,6 +64,10 @@ public class PersonProbe {
   }
 
   public static void main(String[] args) throws Exception {
+    // Every Java Encounter creates a Claim, whose constructor requires a plan
+    // record at the encounter time; load the no-insurance plan up front (the
+    // HealthRecordProbe / HealthRecordTest setup) so records() can enrol.
+    PayerManager.loadNoInsurance();
     Path out = Path.of(args[0]);
     long[] seeds = new long[25];
     for (int i = 0; i < seeds.length; i++) {
@@ -222,6 +229,9 @@ public class PersonProbe {
     try {
       Person p = new Person(seed);
       p.attributes.put(Person.BIRTHDATE, 1000000L);
+      // Enrol at birth (age 0): Claim construction throws "Person does not
+      // have insurance at time ..." when no plan record covers the encounter.
+      p.coverage.setPlanToNoInsurance(1000000L);
       Provider p1 = new Provider();
       p1.uuid = "prov-" + seed + "-a";
       Provider p2 = new Provider();

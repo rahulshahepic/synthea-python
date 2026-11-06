@@ -2,8 +2,9 @@
 
 Mirrors PersonProbe scenario for scenario and compares the canonical dump
 exactly. This is *component* parity (PORTING_GUIDE §10): Person's production
-code calls its real collaborators, but HealthRecord (T08), CoverageRecord
-(T16), Provider (T13) and State (T19) have not merged yet, so tests/parity/
+code calls its real collaborators, but CoverageRecord (T16), Provider (T13)
+and State (T19) have not merged yet, and a real HealthRecord Encounter
+cannot be constructed until Claim (T14) lands, so tests/parity/
 person_doubles.py stand in for them, supplying only the state Person reads
 or writes. Doubles used: HealthRecordDouble, CoverageRecordDouble,
 ProviderDouble, StateDouble, CodeDouble.
@@ -203,6 +204,10 @@ def _records(out: dict[str, str], seed: int) -> None:
     try:
         p = Person(seed)
         p.attributes[Person.BIRTHDATE] = 1000000
+        # Mirror of the probe: enrol at birth (age 0). Java's Claim
+        # constructor (run for every Encounter) throws when no plan record
+        # covers the encounter time; the double supplies only this plumbing.
+        p.coverage.set_plan_to_no_insurance(1000000)  # type: ignore[attr-defined]
         p1 = ProviderDouble(f"prov-{seed}-a")
         p2 = ProviderDouble(f"prov-{seed}-b")
         p.set_provider(EncounterType.WELLNESS, p1)  # type: ignore[arg-type]

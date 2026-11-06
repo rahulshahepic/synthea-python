@@ -6,6 +6,7 @@ import math
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import TYPE_CHECKING, ClassVar, cast
+from uuid import UUID
 
 from synthea.engine.expressed_condition_record import ExpressedConditionRecord
 from synthea.engine.expressed_symptom import ExpressedSymptom
@@ -283,9 +284,14 @@ class Person:
         """Java: Person#randLong."""
         return self.random.rand_long()
 
-    def rand_uuid(self) -> str:
-        """Java: Person#randUUID (the T01 port represents UUIDs as strings)."""
-        return self.random.rand_uuid()
+    def rand_uuid(self) -> UUID:
+        """Java: Person#randUUID.
+
+        Java returns a UUID; the T01 RNG port represents UUIDs as strings
+        internally, so Person converts at its own API boundary (T08's
+        HealthRecord.Entry.uuid is typed UUID and relies on this).
+        """
+        return UUID(self.random.rand_uuid())
 
     def get_count(self) -> int:
         """Java: Person#getCount."""

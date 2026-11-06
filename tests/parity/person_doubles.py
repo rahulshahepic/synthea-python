@@ -10,7 +10,10 @@ yet, and supply only the state Person itself reads or writes:
   does (``record.person.randUUID()``). Behaviour that is T08's own (provider
   counts, last encounter time) raises instead of being reimplemented.
 * ``CoverageRecordDouble`` (T16): constructed by Person; its behaviour
-  (income, plans, premiums) is T16's and is not exercised by the probe.
+  (income, plans, premiums) is T16's and is not exercised by the probe,
+  except ``set_plan_to_no_insurance`` as enrolment plumbing: Java's Claim
+  constructor requires a plan record at encounter times, and the one
+  Person-visible effect (``insurance_status = "none"``) is mirrored.
 * ``ProviderDouble`` (T13): a resource id (``uuid``), the only Provider state
   Person reads.
 * ``StateDouble`` (T19): the ``name``/``exited`` fields Person reads.
@@ -21,6 +24,7 @@ yet, and supply only the state Person itself reads or writes:
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 if TYPE_CHECKING:
     from synthea.world.agents.person import Person
@@ -31,8 +35,14 @@ class EncounterDouble:
     """Java: HealthRecord.Encounter, reduced to what the probe dumps."""
 
     def __init__(self, person: Person, time: int, type: EncounterType) -> None:
-        """Java: Entry(long, String) — the uuid comes from the person's RNG."""
-        self.uuid: str = person.rand_uuid()
+        """Java: Entry(long, String) + Encounter(long, String).
+
+        Two RNG draws, in Java's order: the entry's own uuid (Entry field
+        initialiser), then the uuid of the Claim the Encounter constructor
+        creates (Claim is T14; only its draw is modelled, not the claim).
+        """
+        self.uuid: UUID = person.rand_uuid()
+        self.claim_uuid: UUID = person.rand_uuid()
         self.start: int = time
         self.type: str = str(type)
 
@@ -78,8 +88,17 @@ class CoverageRecordDouble:
         raise AssertionError("CoverageRecordDouble.get_plan_at_time is T16 behaviour")
 
     def set_plan_to_no_insurance(self, time: int) -> None:
-        """T16 behaviour; not part of T09 component parity."""
-        raise AssertionError("CoverageRecordDouble.set_plan_to_no_insurance is T16 behaviour")
+        """Java: CoverageRecord#setPlanToNoInsurance, reduced to its Person-visible effect.
+
+        Java enrols a no-insurance PlanRecord covering the encounter times
+        (its Claim constructor throws without one) and sets the person's
+        insurance_status attribute to the plan's status, "none". The plan
+        history itself is T16 behaviour and is not modelled here.
+        """
+        from synthea.world.agents.person import Person
+
+        self.no_insurance_from: int = time
+        self.person.attributes[Person.INSURANCE_STATUS] = "none"
 
     def pay_monthly_premiums_at_time(self, time: int, employer_level: float, income: int) -> None:
         """T16 behaviour; not part of T09 component parity."""
