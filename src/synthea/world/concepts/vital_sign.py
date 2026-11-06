@@ -1,4 +1,4 @@
-"""Java API skeleton: VitalSign.java."""
+"""Java: VitalSign.java."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from enum import StrEnum
 
 
 class VitalSign(StrEnum):
-    """Java: VitalSign; pending T11."""
+    """Java: VitalSign."""
 
     HEIGHT = "HEIGHT"
     WEIGHT = "WEIGHT"
@@ -44,7 +44,10 @@ class VitalSign(StrEnum):
         Java overloads:
         (String text)
         """
-        raise NotImplementedError("Java: VitalSign#fromString — pending T11")
+        for sign in VitalSign:
+            if text.lower() == sign.to_string().lower():
+                return sign
+        return VitalSign[text]
 
     def to_string(self) -> str:
         """Java: VitalSign#toString.
@@ -52,7 +55,11 @@ class VitalSign(StrEnum):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: VitalSign#toString — pending T11")
+        return VITAL_SIGN_DISPLAY_NAMES[self]
+
+    def __str__(self) -> str:
+        """Java: VitalSign#toString."""
+        return self.to_string()
 
 
 # Java static data initialization; constructors remain stubs.
