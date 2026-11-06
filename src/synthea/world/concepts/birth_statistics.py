@@ -9,6 +9,7 @@ from typing import IO, TYPE_CHECKING, ClassVar, cast
 from synthea.helpers.config import Config
 from synthea.helpers.random_number_generator import RandomNumberGenerator
 from synthea.helpers.utilities import Utilities
+from synthea.javacompat.hashing import string_compare_to_ignore_case
 from synthea.javacompat.numbers import double_to_string
 from synthea.resources import read_resource
 
@@ -128,7 +129,10 @@ class BirthStatistics:
     @staticmethod
     def is_hispanic(mother: Person) -> bool:
         """Java: BirthStatistics#isHispanic."""
-        return cast(str, mother.attributes.get("ethnicity")).lower() == "hispanic"
+        return (
+            string_compare_to_ignore_case(cast(str, mother.attributes.get("ethnicity")), "hispanic")
+            == 0
+        )
 
 
 BirthStatistics.OUTPUT = BirthStatistics.open_file()
