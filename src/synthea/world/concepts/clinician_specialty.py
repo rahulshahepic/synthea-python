@@ -1,4 +1,4 @@
-"""Java API skeleton: ClinicianSpecialty.java."""
+"""Java: ClinicianSpecialty.java."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import ClassVar
 
 
 class ClinicianSpecialty:
-    """Java: ClinicianSpecialty; pending T11."""
+    """Java: ClinicianSpecialty."""
 
     ADDICTION_MEDICINE: ClassVar[str] = "ADDICTION MEDICINE"
     ADVANCED_HEART_FAILURE_AND_TRANSPLANT_CARDIOLOGY: ClassVar[str] = (
@@ -100,7 +100,6 @@ class ClinicianSpecialty:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: ClinicianSpecialty#ClinicianSpecialty — pending T11")
 
     @staticmethod
     def get_specialties() -> list[str]:
@@ -109,7 +108,7 @@ class ClinicianSpecialty:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: ClinicianSpecialty#getSpecialties — pending T11")
+        return list(_CODES)
 
     @staticmethod
     def get_cms_provider_specialty_code(specialty: str) -> str:
@@ -118,6 +117,87 @@ class ClinicianSpecialty:
         Java overloads:
         (String specialty)
         """
-        raise NotImplementedError(
-            "Java: ClinicianSpecialty#getCMSProviderSpecialtyCode — pending T11"
-        )
+        return _CODES.get(specialty, "01")
+
+
+_CODES: dict[str, str] = {
+    "ADDICTION MEDICINE": "79",
+    "ADVANCED HEART FAILURE AND TRANSPLANT CARDIOLOGY": "C7",
+    "ALLERGY/IMMUNOLOGY": "03",
+    "ANESTHESIOLOGY": "05",
+    "ANESTHESIOLOGY ASSISTANT": "32",
+    "AUDIOLOGIST": "64",
+    "CARDIAC ELECTROPHYSIOLOGY": "21",
+    "CARDIAC SURGERY": "78",
+    "CARDIOVASCULAR DISEASE (CARDIOLOGY)": "06",
+    "CERTIFIED NURSE MIDWIFE": "42",
+    "CERTIFIED REGISTERED NURSE ANESTHETIST": "43",
+    "CHIROPRACTIC": "35",
+    "CLINICAL NURSE SPECIALIST": "89",
+    "CLINICAL PSYCHOLOGIST": "68",
+    "CLINICAL SOCIAL WORKER": "80",
+    "COLORECTAL SURGERY (PROCTOLOGY)": "28",
+    "CRITICAL CARE (INTENSIVISTS)": "81",
+    "DENTIST": "C5",
+    "DERMATOLOGY": "07",
+    "DIAGNOSTIC RADIOLOGY": "30",
+    "EMERGENCY MEDICINE": "93",
+    "ENDOCRINOLOGY": "46",
+    "FAMILY PRACTICE": "08",
+    "GASTROENTEROLOGY": "10",
+    "GENERAL PRACTICE": "01",
+    "GENERAL SURGERY": "02",
+    "GERIATRIC MEDICINE": "38",
+    "GERIATRIC PSYCHIATRY": "27",
+    "GYNECOLOGICAL ONCOLOGY": "98",
+    "HAND SURGERY": "40",
+    "HEMATOLOGY": "82",
+    "HEMATOLOGY/ONCOLOGY": "83",
+    "HEMATOPOIETIC CELL TRANSPLANTATION AND CELLULAR TH": "C9",
+    "HOSPICE/PALLIATIVE CARE": "17",
+    "HOSPITALIST": "C6",
+    "INFECTIOUS DISEASE": "44",
+    "INTERNAL MEDICINE": "11",
+    "INTERVENTIONAL CARDIOLOGY": "C3",
+    "INTERVENTIONAL PAIN MANAGEMENT": "72",
+    "INTERVENTIONAL RADIOLOGY": "94",
+    "MAXILLOFACIAL SURGERY": "85",
+    "MEDICAL ONCOLOGY": "90",
+    "NEPHROLOGY": "39",
+    "NEUROLOGY": "13",
+    "NEUROPSYCHIATRY": "86",
+    "NEUROSURGERY": "14",
+    "NUCLEAR MEDICINE": "36",
+    "NURSE PRACTITIONER": "50",
+    "OBSTETRICS/GYNECOLOGY": "16",
+    "OCCUPATIONAL THERAPY": "67",
+    "OPHTHALMOLOGY": "18",
+    "OPTOMETRY": "41",
+    "ORAL SURGERY": "19",
+    "ORTHOPEDIC SURGERY": "20",
+    "OSTEOPATHIC MANIPULATIVE MEDICINE": "12",
+    "OTOLARYNGOLOGY": "04",
+    "PAIN MANAGEMENT": "72",
+    "PATHOLOGY": "22",
+    "PEDIATRIC MEDICINE": "37",
+    "PERIPHERAL VASCULAR DISEASE": "76",
+    "PHYSICAL MEDICINE AND REHABILITATION": "25",
+    "PHYSICAL THERAPY": "65",
+    "PHYSICIAN ASSISTANT": "97",
+    "PLASTIC AND RECONSTRUCTIVE SURGERY": "24",
+    "PODIATRY": "48",
+    "PREVENTATIVE MEDICINE": "84",
+    "PSYCHIATRY": "26",
+    "PULMONARY DISEASE": "28",
+    "RADIATION ONCOLOGY": "92",
+    "REGISTERED DIETITIAN OR NUTRITION PROFESSIONAL": "71",
+    "RHEUMATOLOGY": "66",
+    "SLEEP MEDICINE": "C0",
+    "SPEECH LANGUAGE PATHOLOGIST": "15",
+    "SPORTS MEDICINE": "23",
+    "SURGICAL ONCOLOGY": "91",
+    "THORACIC SURGERY": "33",
+    "UNDEFINED PHYSICIAN TYPE (SPECIFY)": "01",
+    "UROLOGY": "34",
+    "VASCULAR SURGERY": "77",
+}
