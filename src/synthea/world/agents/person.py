@@ -265,19 +265,29 @@ class Person:
             self.loss_of_care_record = HealthRecord(self)
 
     @overload
-    def rand(self) -> float: ...
+    def rand(self) -> float:
+        """Java: Person#rand()."""
+        ...
 
     @overload
-    def rand(self, low: float, high: float) -> float: ...
+    def rand(self, low: float, high: float) -> float:
+        """Java: RandomNumberGenerator#rand(double,double)."""
+        ...
 
     @overload
-    def rand(self, low: float, high: float, decimals: int | None) -> float: ...
+    def rand(self, low: float, high: float, decimals: int | None) -> float:
+        """Java: RandomNumberGenerator#rand(double,double,Integer)."""
+        ...
 
     @overload
-    def rand(self, low: list[float] | list[int]) -> float: ...
+    def rand(self, low: list[float] | list[int]) -> float:
+        """Java: RandomNumberGenerator#rand(double[]) and #rand(int[])."""
+        ...
 
     @overload
-    def rand(self, low: str, *choices: str) -> str: ...
+    def rand(self, low: str, *choices: str) -> str:
+        """Java: RandomNumberGenerator#rand(String...)."""
+        ...
 
     def rand(
         self,
