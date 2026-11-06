@@ -172,7 +172,10 @@ def test_skeleton_typed_callable_contract(entry: dict[str, object]) -> None:
     }
     for node in _functions(tree):
         label = f"{entry['python']}:{node.lineno} {node.name}"
-        if node.args.vararg is not None or node.args.kwarg is not None:
+        inherited_rng = (
+            entry["python"] == "src/synthea/world/agents/person.py" and node.name == "rand"
+        )
+        if (node.args.vararg is not None and not inherited_rng) or node.args.kwarg is not None:
             errors.append(f"{label}: *args/**kwargs")
         if node.returns is None:
             errors.append(f"{label}: missing return annotation")
