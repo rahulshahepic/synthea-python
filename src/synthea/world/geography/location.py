@@ -209,8 +209,8 @@ class Location:
             key = list(self.zip_codes)[person.rand_int(len(self.zip_codes))]
             place = self.zip_codes[key][person.rand_int(len(self.zip_codes[key]))]
         # Java: RandomNumberGenerator#rand(double,double), exposed by Person.
-        dx = person.rand(-0.05, 0.05)  # type: ignore[call-arg]
-        dy = person.rand(-0.05, 0.05)  # type: ignore[call-arg]
+        dx = person.rand(-0.05, 0.05)  # type: ignore[call-arg,unused-ignore]
+        dy = person.rand(-0.05, 0.05)  # type: ignore[call-arg,unused-ignore]
         person.attributes[Person.COORDINATE] = Point2DDouble(
             place.coordinate.x + dx, place.coordinate.y + dy
         )
