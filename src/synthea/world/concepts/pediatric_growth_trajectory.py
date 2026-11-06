@@ -21,8 +21,8 @@ class YearInformation:
 
     def __init__(self) -> None:
         """Java: YearInformation#YearInformation."""
-        self.correlation = 0.0
-        self.diff = 0.0
+        self.correlation: float = 0.0
+        self.diff: float = 0.0
 
 
 class Point:
@@ -30,9 +30,9 @@ class Point:
 
     def __init__(self) -> None:
         """Java: Point#Point."""
-        self.age_in_months = 0
-        self.bmi = 0.0
-        self.time_in_simulation = 0
+        self.age_in_months: int = 0
+        self.bmi: float = 0.0
+        self.time_in_simulation: int = 0
 
     def to_string(self) -> str:
         """Java: Point#toString."""
@@ -60,13 +60,13 @@ class PediatricGrowthTrajectory:
 
     def __init__(self, person_seed: int, birth_time: int, sex: str | None = None) -> None:
         """Java: PediatricGrowthTrajectory#PediatricGrowthTrajectory (both overloads)."""
-        self.seed = person_seed
-        self.initial_sample = self.get_sample(person_seed, sex)
+        self.seed: int = person_seed
+        self.initial_sample: NHANESSample = self.get_sample(person_seed, sex)
         p = Point()
         p.age_in_months = self.initial_sample.agem
         p.bmi = self.initial_sample.bmi
         p.time_in_simulation = birth_time + Utilities.convert_time("months", p.age_in_months)
-        self.trajectory = [p]
+        self.trajectory: list[Point] = [p]
 
     @staticmethod
     def get_sample(person_seed: int, sex: str | None = None) -> NHANESSample:

@@ -52,8 +52,14 @@ class NHANESSample:
 
     def __init__(self) -> None:
         """Java: NHANESSample#NHANESSample (default field initialization)."""
-        self.id = self.sex = self.agem = 0
-        self.wt = self.ht = self.swt = self.bmi = self.prob = 0.0
+        self.id: int = 0
+        self.sex: int = 0
+        self.agem: int = 0
+        self.wt: float = 0.0
+        self.ht: float = 0.0
+        self.swt: float = 0.0
+        self.bmi: float = 0.0
+        self.prob: float = 0.0
         self.racec: str | None = None
 
     def to_string(self) -> str:

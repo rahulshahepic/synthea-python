@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from synthea.resources import read_resource
 
 if TYPE_CHECKING:
-    pass
+    from synthea.world.concepts.growth_chart_entry import GrowthChartEntry
 
 
 class ChartType(StrEnum):
@@ -35,12 +35,12 @@ class GrowthChart:
         """Java: GrowthChart#GrowthChart."""
         from synthea.world.concepts.growth_chart_entry import GrowthChartEntry
 
-        self.chart_type = chart_type
-        self.male_entries = {
+        self.chart_type: ChartType = chart_type
+        self.male_entries: dict[int, GrowthChartEntry] = {
             int(age): GrowthChartEntry(float(v["l"]), float(v["m"]), float(v["s"]))
             for age, v in raw_chart["M"].items()
         }
-        self.female_entries = {
+        self.female_entries: dict[int, GrowthChartEntry] = {
             int(age): GrowthChartEntry(float(v["l"]), float(v["m"]), float(v["s"]))
             for age, v in raw_chart["F"].items()
         }
