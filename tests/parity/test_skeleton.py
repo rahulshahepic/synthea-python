@@ -126,7 +126,11 @@ def test_skeleton_java_declared_signatures(golden: Callable[[str], Path]) -> Non
             params = list(signature(fn).parameters.values())
             if not is_static:
                 params = params[1:]
-            required = sum(p.default is Parameter.empty for p in params)
+            required = sum(
+                p.default is Parameter.empty
+                and p.kind not in (Parameter.VAR_POSITIONAL, Parameter.VAR_KEYWORD)
+                for p in params
+            )
             arities = [int(item["arity"]) for item in overloads]
             assert required == min(arities), f"{java}#{method}: minimum arity"
             if (java, method) not in INHERITED_RNG_OVERLOADS:
