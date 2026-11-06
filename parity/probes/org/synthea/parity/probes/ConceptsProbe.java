@@ -116,6 +116,16 @@ public class ConceptsProbe {
           distributions.add(List.of(pmf, samples));
         }
         result.put("distributions", distributions);
+        List<Object> boundaries = new ArrayList<>();
+        for (double draw : new double[]{0.0, Math.nextDown(0.25), 0.25, Math.nextUp(0.25), 0.5, 0.75, Math.nextDown(1.0)}) {
+          org.apache.commons.math3.random.Well19937c fixed = new org.apache.commons.math3.random.Well19937c(seed) {
+            @Override public double nextDouble() { return draw; }
+          };
+          EnumeratedDistribution<String> distribution = new EnumeratedDistribution<>(fixed, List.of(
+              new Pair<>("a", 0.25), new Pair<>("b", 0.25), new Pair<>("c", 0.25), new Pair<>("d", 0.25)));
+          boundaries.add(List.of(Double.toString(draw), distribution.sample()));
+        }
+        result.put("boundaries", boundaries);
         writer.println(GSON.toJson(result));
       }
     }

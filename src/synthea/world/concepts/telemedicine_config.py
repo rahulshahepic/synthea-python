@@ -66,7 +66,7 @@ class TelemedicineConfig:
 
     def __init__(self) -> None:
         """Java: TelemedicineConfig#TelemedicineConfig (implicit constructor)."""
-        self.telemedicine_start_time = 0
+        self.telemedicine_start_time: int = 0
         self.high_emergency_use_insurance_names: list[str] | None = None
         self.pre_telemed_high_emergency: EnumeratedDistribution | None = None
         self.pre_telemed_typical_emergency: EnumeratedDistribution | None = None
@@ -132,9 +132,9 @@ class TelemedicineProbabilities:
 
     def __init__(self, json: dict[str, float]) -> None:
         """Java: TelemedicineProbabilities#TelemedicineProbabilities(Map)."""
-        self.ambulatory = json[TelemedicineConfig.AMBULATORY]
-        self.emergency = json[TelemedicineConfig.EMERGENCY]
-        self.telemedicine = json.get(TelemedicineConfig.TELEMEDICINE, 0.0)
+        self.ambulatory: float = json[TelemedicineConfig.AMBULATORY]
+        self.emergency: float = json[TelemedicineConfig.EMERGENCY]
+        self.telemedicine: float = json.get(TelemedicineConfig.TELEMEDICINE, 0.0)
 
     def to_enumerated_distribution(self) -> EnumeratedDistribution:
         """Java: TelemedicineProbabilities#toEnumeratedDistribution."""

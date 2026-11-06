@@ -1,6 +1,7 @@
 """Java JUnit: ClinicianSpecialtyTest, TelemedicineConfigTest; T11 edge contracts."""
 
 import math
+from unittest.mock import Mock
 
 import pytest
 
@@ -99,3 +100,10 @@ def test_distribution_reseed_and_pmf_copy() -> None:
 def test_names_loaded_resource_and_hash_contract() -> None:
     assert Names.load_names().get("english.M") == Names.names.get("english.M")
     assert Names.add_hash("") == "0"
+
+
+def test_distribution_exact_boundary_matches_commons_math_binary_search() -> None:
+    """Math3.6.1 binarySearch returns equality index; strict check falls back last."""
+    distribution = EnumeratedDistribution([(value, 0.25) for value in "abcd"])
+    distribution._random = Mock(next_double=Mock(return_value=0.25))
+    assert distribution.sample() == "d"

@@ -17,6 +17,7 @@ from synthea.world.concepts.clinician_specialty import ClinicianSpecialty
 from synthea.world.concepts.names import Names
 from synthea.world.concepts.race_and_ethnicity import RaceAndEthnicity
 from synthea.world.concepts.telemedicine_config import (
+    EnumeratedDistribution,
     TelemedicineConfig,
     TelemedicineProbabilities,
 )
@@ -25,6 +26,16 @@ from synthea.world.concepts.vital_sign import VitalSign
 
 class Person_double(DefaultRandomNumberGenerator):  # noqa: N801
     """Only real T01 RNG plumbing; Person construction otherwise reaches T16 stub."""
+
+
+class Boundary_rng_double:  # noqa: N801
+    """Controlled RNG input, matching the Java probe's nextDouble override."""
+
+    def __init__(self, draw: float) -> None:
+        self.draw = draw
+
+    def next_double(self) -> float:
+        return self.draw
 
 
 def _biometrics() -> dict[str, object]:
@@ -142,4 +153,10 @@ def test_concepts_component_parity(golden, monkeypatch: pytest.MonkeyPatch) -> N
                 distribution.reseed_random_generator(seed)
                 distributions.append([pmf, [distribution.sample() for _ in range(1000)]])
             actual["distributions"] = distributions
+            boundaries = []
+            for draw_text, _ in expected["boundaries"]:
+                distribution = EnumeratedDistribution([(value, 0.25) for value in "abcd"])
+                distribution._random = Boundary_rng_double(float(draw_text))
+                boundaries.append([draw_text, distribution.sample()])
+            actual["boundaries"] = boundaries
             assert actual == expected
