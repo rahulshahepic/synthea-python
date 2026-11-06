@@ -18,7 +18,6 @@ def _source(symptom: ExpressedSymptom, name: str) -> SymptomSource:
 
 def test_symptom_info() -> None:
     """Java: ExpressedSymptomTest#testSymptomInfo."""
-    symptom = ExpressedSymptom("pain")
     info = SymptomInfo("test", 100, 0)
     assert info.get_cause() == "test"
     assert info.get_value() == 100

@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import TYPE_CHECKING, ClassVar, cast, overload
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from synthea.engine.expressed_condition_record import ExpressedConditionRecord
 from synthea.engine.expressed_symptom import ExpressedSymptom
@@ -33,6 +33,7 @@ from synthea.world.concepts.healthinsurance.insurance_plan import InsurancePlan
 from synthea.world.concepts.vital_sign import VITAL_SIGN_DISPLAY_NAMES, VitalSign
 
 if TYPE_CHECKING:
+    from synthea.engine.distribution import RandomSource
     from synthea.engine.module import Module
     from synthea.engine.state import State
 
@@ -262,47 +263,9 @@ class Person:
         if self.loss_of_care_enabled:
             self.loss_of_care_record = HealthRecord(self)
 
-    @overload
     def rand(self) -> float:
-        """Java: Person#rand()."""
-        ...
-
-    @overload
-    def rand(self, low: float, high: float) -> float:
-        """Java: RandomNumberGenerator#rand(double, double), via Person#rand."""
-        ...
-
-    @overload
-    def rand(self, low: float, high: float, decimals: int | None) -> float:
-        """Java: RandomNumberGenerator#rand(double, double, Integer), via Person#rand."""
-        ...
-
-    @overload
-    def rand(self, low: list[float] | list[int]) -> float:
-        """Java: RandomNumberGenerator#rand(double[]), via Person#rand."""
-        ...
-
-    @overload
-    def rand(self, low: str) -> str:
-        """Java: RandomNumberGenerator#rand(String...) with one choice, via Person#rand."""
-        ...
-
-    def rand(
-        self,
-        low: float | list[float] | list[int] | str | None = None,
-        high: float | None = None,
-        decimals: int | None = None,
-    ) -> float | str:
-        """Java: Person#rand and the RandomNumberGenerator default overloads."""
-        if isinstance(low, str):
-            return self.random.rand(low)
-        if low is None:
-            return self.random.rand()
-        if isinstance(low, list):
-            return self.random.rand(low)
-        if high is None:
-            raise TypeError("rand(low, high) requires both bounds")
-        return self.random.rand(low, high, decimals)
+        """Java: Person#rand."""
+        return self.random.rand()
 
     def rand_boolean(self) -> bool:
         """Java: Person#randBoolean."""
@@ -498,7 +461,7 @@ class Person:
             raise ValueError(
                 f"Vital signs must have finite values - {double_to_string(value)} is invalid"
             )
-        self.set_vital_sign(vital_sign, ConstantValueGenerator(self, value))
+        self.set_vital_sign(vital_sign, ConstantValueGenerator(cast("RandomSource", self), value))
 
     def record_death(self, time: int, cause: Code | None) -> None:
         """Java: Person#recordDeath(long, Code)."""
