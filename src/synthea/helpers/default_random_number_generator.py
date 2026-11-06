@@ -68,7 +68,8 @@ class DefaultRandomNumberGenerator(RandomNumberGeneratorDefaults):
             rounded = Decimal(str(value)).quantize(
                 Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_UP
             )
-            value = float(rounded)
+            # Java BigDecimal has no signed zero after setScale/doubleValue.
+            value = 0.0 if rounded == 0 else float(rounded)
         return value
 
     def get_seed(self) -> int:
