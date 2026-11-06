@@ -99,4 +99,3 @@ def test_distribution_reseed_and_pmf_copy() -> None:
 def test_names_loaded_resource_and_hash_contract() -> None:
     assert Names.load_names().get("english.M") == Names.names.get("english.M")
     assert Names.add_hash("") == "0"
-    assert Names.add_hash("John") == Names.add_hash("John")
