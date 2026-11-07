@@ -10,6 +10,7 @@ Person's own control flow; these tests never feed a parity comparison.
 
 from __future__ import annotations
 
+import math
 from decimal import Decimal
 from unittest import mock
 
@@ -18,6 +19,7 @@ import pytest
 import synthea.world.agents.person as person_module
 from synthea.helpers.config import Config
 from synthea.world.agents.person import Person
+from synthea.world.geography.quadtree.quad_tree import QuadTree
 from tests.parity.person_doubles import CoverageRecordDouble, HealthRecordDouble
 
 
@@ -83,3 +85,25 @@ def test_can_afford_plan(person: Person) -> None:
     plan.get_yearly_cost.return_value = Decimal(str(100000 * ratio + 1))
     assert person.can_afford_plan(plan) is False
     plan.get_yearly_cost.assert_called_with(100000)
+
+
+def test_distance_is_quad_tree_element_default(person: Person) -> None:
+    """Java: QuadTreeElement#distance, inherited by Person (T57)."""
+    other = Person(7)
+    person.attributes[Person.COORDINATE] = person_module.Point2DDouble(1.5, -2.25)
+    other.attributes[Person.COORDINATE] = person_module.Point2DDouble(-4.5, 5.75)
+    assert person.distance(other) == math.sqrt(6.0 * 6.0 + -8.0 * -8.0) == 10.0
+    assert other.distance(person) == 10.0
+    assert person.distance(person) == 0.0
+
+
+def test_person_as_quad_tree_query_point(person: Person) -> None:
+    """Java: QuadTree#query calls distance on the query point; a Person may be one."""
+    near = Person(1)
+    far = Person(2)
+    near.attributes[Person.COORDINATE] = person_module.Point2DDouble(1.0, 1.0)
+    far.attributes[Person.COORDINATE] = person_module.Point2DDouble(50.0, 50.0)
+    person.attributes[Person.COORDINATE] = person_module.Point2DDouble(0.0, 0.0)
+    tree = QuadTree()
+    assert tree.insert(near) and tree.insert(far)
+    assert tree.query(person, 5.0) == [near]

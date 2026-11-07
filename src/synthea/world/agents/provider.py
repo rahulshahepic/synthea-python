@@ -373,7 +373,7 @@ class Provider:
         Java overloads:
         (Person person, double distance)
         """
-        results = Provider.providerMap.query(person, distance)  # type: ignore[arg-type]
+        results = Provider.providerMap.query(person, distance)
         return [cast("Provider", item) for item in results]
 
     @staticmethod
@@ -385,7 +385,7 @@ class Provider:
         Java overloads:
         (Person person, double distance, List takenIds)
         """
-        results = Provider.providerMap.query(person, distance)  # type: ignore[arg-type]
+        results = Provider.providerMap.query(person, distance)
         providers: list[Provider] = []
         for item in results:
             provider = cast("Provider", item)

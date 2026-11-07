@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from synthea.engine.distribution import RandomSource
     from synthea.engine.module import Module
     from synthea.engine.state import State
+    from synthea.world.geography.quadtree.quad_tree_element import QuadTreeElement
 
 _EPOCH = date(1970, 1, 1)
 _MILLIS_PER_DAY = 86_400_000
@@ -723,6 +724,12 @@ class Person:
     def get_y(self) -> float:
         """Java: Person#getY (QuadTreeElement)."""
         return self.get_lon_lat().get_y()
+
+    def distance(self, element: QuadTreeElement) -> float:
+        """Java: QuadTreeElement#distance (the interface default Person inherits)."""
+        dx = self.get_x() - element.get_x()
+        dy = self.get_y() - element.get_y()
+        return math.sqrt(dx * dx + dy * dy)
 
     def get_lon_lat(self) -> Point2DDouble:
         """Java: Person#getLonLat."""
