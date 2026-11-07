@@ -23,7 +23,9 @@ done
 JAR="$("$ROOT/parity/build_java.sh" | tail -1)"
 CP="$JAR:$ROOT/parity/build/probes"
 # Fixed JVM environment: UTC, en-US, UTF-8. The Python port assumes exactly this.
-JAVA=(java -Duser.timezone=UTC -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8 -Xmx4g)
+# Math.log/Math.exp etc. are JIT intrinsics whose results vary by CPU and by interpreter/C1/C2; disabling the libm
+# intrinsics makes Math.* equal StrictMath (fdlibm), which the port reproduces (PORTING_GUIDE).
+JAVA=(java -XX:+UnlockDiagnosticVMOptions -XX:-UseLibmIntrinsic -Duser.timezone=UTC -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8 -Xmx4g)
 GOLDEN="$ROOT/parity/golden"
 mkdir -p "$GOLDEN"
 
