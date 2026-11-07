@@ -4,7 +4,7 @@ java/src/main/java/org/mitre/synthea/world/agents/behaviors/planfinder/IPlanFind
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Protocol, cast
 
 if TYPE_CHECKING:
     from synthea.helpers.random_number_generator import RandomNumberGenerator
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class IPlanFinder(Protocol):
-    """Java: IPlanFinder; pending T15."""
+    """Java: IPlanFinder."""
 
     def __init__(self) -> None:
         """Java: IPlanFinder#IPlanFinder.
@@ -22,7 +22,7 @@ class IPlanFinder(Protocol):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: IPlanFinder#IPlanFinder — pending T15")
+        pass
 
     def find(
         self, plans: list[InsurancePlan], person: Person, service: EncounterType, time: int
@@ -32,7 +32,7 @@ class IPlanFinder(Protocol):
         Java overloads:
         (List plans, Person person, EncounterType service, long time)
         """
-        raise NotImplementedError("Java: IPlanFinder#find — pending T15")
+        ...
 
     @staticmethod
     def meets_affordability_requirements(
@@ -43,7 +43,17 @@ class IPlanFinder(Protocol):
         Java overloads:
         (InsurancePlan plan, Person person, EncounterType service, long time)
         """
-        raise NotImplementedError("Java: IPlanFinder#meetsAffordabilityRequirements — pending T15")
+        from synthea.modules.health_insurance_module import HealthInsuranceModule
+        from synthea.world.agents.person import Person
+
+        occupation = float(cast(float, person.attributes[Person.OCCUPATION_LEVEL]))
+        return (
+            person.can_afford_plan(plan)
+            or (
+                time >= HealthInsuranceModule.mandateTime
+                and occupation >= HealthInsuranceModule.mandateOccupation
+            )
+        ) and plan.covers_service(None)
 
     def choose_random_plan(
         self, options: list[InsurancePlan], rand: RandomNumberGenerator
@@ -53,4 +63,8 @@ class IPlanFinder(Protocol):
         Java overloads:
         (List options, RandomNumberGenerator rand)
         """
-        raise NotImplementedError("Java: IPlanFinder#chooseRandomPlan — pending T15")
+        from synthea.world.agents.payer_manager import PayerManager
+
+        if not options:
+            return PayerManager.get_no_insurance_plan()
+        return options[rand.rand_int(len(options))]

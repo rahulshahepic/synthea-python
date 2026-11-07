@@ -14,9 +14,7 @@ if TYPE_CHECKING:
 
 
 class PayerAdjustmentNone:
-    """Java: PayerAdjustmentNone; pending
-    T15.
-    """
+    """Java: PayerAdjustmentNone."""
 
     serialVersionUID: ClassVar[int] = 3288715364746907944
 
@@ -26,7 +24,7 @@ class PayerAdjustmentNone:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: PayerAdjustmentNone#PayerAdjustmentNone — pending T15")
+        pass
 
     def adjust_claim(self, claim_entry: ClaimEntry, person: Person) -> Decimal:
         """Java: PayerAdjustmentNone#adjustClaim.
@@ -34,4 +32,6 @@ class PayerAdjustmentNone:
         Java overloads:
         (ClaimEntry claimEntry, Person person)
         """
-        raise NotImplementedError("Java: PayerAdjustmentNone#adjustClaim — pending T15")
+        from synthea.world.concepts.claim import Claim
+
+        return Claim.ZERO_CENTS

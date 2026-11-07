@@ -3,8 +3,22 @@
 from __future__ import annotations
 
 import builtins
+import hashlib
+import math
 from decimal import Decimal
 from typing import IO, TYPE_CHECKING, Protocol
+from uuid import UUID
+
+from synthea.helpers.utilities import Utilities
+from synthea.javacompat import bigdecimal as bd
+from synthea.javacompat.collections import JavaHashMap
+from synthea.javacompat.hashing import (
+    double_hash_code,
+    double_to_long_bits,
+    java_hash_code,
+    string_hash_code,
+)
+from synthea.javacompat.numbers import to_int32
 
 if TYPE_CHECKING:
     from synthea.world.agents.behaviors.payeradjustment.i_payer_adjustment import IPayerAdjustment
@@ -18,7 +32,7 @@ if TYPE_CHECKING:
 
 
 class Payer:
-    """Java: Payer; pending T15."""
+    """Java: Payer."""
 
     def __init__(
         self, name: str, id: int, states_covered: builtins.set[str], ownership: str
@@ -28,21 +42,29 @@ class Payer:
         Java overloads:
         (String name, int id, Set statesCovered, String ownership)
         """
+        if name is None or not name:
+            raise RuntimeError(f"ERROR: Payer must have a non-null name. Payer ID: {id}.")
+        from synthea.world.concepts.claim import Claim
+
         self.payer_adjustment: IPayerAdjustment
-        self.attributes: dict[str, object]
-        self.name: str
-        self.uuid: str
-        self.plans: list[InsurancePlan]
-        self.ownership: str
-        self.plan_link_id: int
-        self.states_covered: builtins.set[str]
-        self.revenue: Decimal
-        self.costs_covered: Decimal
-        self.costs_uncovered: Decimal
-        self.total_qols: float
-        self.customer_utilization: dict[str, AtomicInteger]
-        self.entry_utilization: dict[int, str]
-        raise NotImplementedError("Java: Payer#Payer — pending T15")
+        self.attributes: dict[str, object] = {}
+        self.name: str = name
+        self.uuid: str = str(
+            UUID(
+                bytes=hashlib.md5((str(id) + name).encode("utf-8"), usedforsecurity=False).digest(),
+                version=3,
+            )
+        )
+        self.plans: list[InsurancePlan] = []
+        self.ownership: str = ownership
+        self.plan_link_id: int = id
+        self.states_covered: builtins.set[str] = states_covered
+        self.revenue: Decimal = Claim.ZERO_CENTS
+        self.costs_covered: Decimal = Claim.ZERO_CENTS
+        self.costs_uncovered: Decimal = Claim.ZERO_CENTS
+        self.total_qols: float = 0.0
+        self.customer_utilization: JavaHashMap[str, int] = JavaHashMap()
+        self.entry_utilization: JavaHashMap[int, JavaHashMap[str, int]] = JavaHashMap()
 
     def write_object(self, oos: IO[bytes]) -> None:
         """Java: Payer#writeObject.
@@ -50,7 +72,7 @@ class Payer:
         Java overloads:
         (ObjectOutputStream oos)
         """
-        raise NotImplementedError("Java: Payer#writeObject — pending T15")
+        raise NotImplementedError("Java serialization is out of scope")
 
     def read_object(self, ois: IO[bytes]) -> None:
         """Java: Payer#readObject.
@@ -58,7 +80,7 @@ class Payer:
         Java overloads:
         (ObjectInputStream ois)
         """
-        raise NotImplementedError("Java: Payer#readObject — pending T15")
+        raise NotImplementedError("Java serialization is out of scope")
 
     def add_plan(self, new_plan: InsurancePlan) -> None:
         """Java: Payer#addPlan.
@@ -66,7 +88,7 @@ class Payer:
         Java overloads:
         (InsurancePlan newPlan)
         """
-        raise NotImplementedError("Java: Payer#addPlan — pending T15")
+        self.plans.append(new_plan)
 
     def is_government_payer(self) -> bool:
         """Java: Payer#isGovernmentPayer.
@@ -74,7 +96,9 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#isGovernmentPayer — pending T15")
+        from synthea.world.agents.payer_manager import PayerManager
+
+        return self.ownership == PayerManager.GOV_OWNERSHIP
 
     def get_resource_id(self) -> str:
         """Java: Payer#getResourceID.
@@ -82,7 +106,7 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getResourceID — pending T15")
+        return self.uuid
 
     def get_name(self) -> str:
         """Java: Payer#getName.
@@ -90,7 +114,7 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getName — pending T15")
+        return self.name
 
     def get_ownership(self) -> str:
         """Java: Payer#getOwnership.
@@ -98,7 +122,7 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getOwnership — pending T15")
+        return self.ownership
 
     def get_attributes(self) -> dict[str, object]:
         """Java: Payer#getAttributes.
@@ -106,7 +130,7 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getAttributes — pending T15")
+        return self.attributes
 
     def get_plans(self) -> list[InsurancePlan]:
         """Java: Payer#getPlans.
@@ -114,7 +138,7 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getPlans — pending T15")
+        return self.plans
 
     def covers_care(self, entry: Entry) -> bool:
         """Java: Payer#coversCare.
@@ -122,7 +146,7 @@ class Payer:
         Java overloads:
         (Entry entry)
         """
-        raise NotImplementedError("Java: Payer#coversCare — pending T15")
+        return self.plans[0].covers_service(entry)
 
     def adjust_claim(self, claim_entry: ClaimEntry, person: Person) -> Decimal:
         """Java: Payer#adjustClaim.
@@ -130,7 +154,7 @@ class Payer:
         Java overloads:
         (ClaimEntry claimEntry, Person person)
         """
-        raise NotImplementedError("Java: Payer#adjustClaim — pending T15")
+        return self.payer_adjustment.adjust_claim(claim_entry, person)
 
     def increment_customers(self, person_id: str) -> None:
         """Java: Payer#incrementCustomers.
@@ -138,7 +162,9 @@ class Payer:
         Java overloads:
         (String personId)
         """
-        raise NotImplementedError("Java: Payer#incrementCustomers — pending T15")
+        self.customer_utilization[person_id] = to_int32(
+            self.customer_utilization.get(person_id, 0) + 1
+        )
 
     def increment_covered_entries(self, entry: Entry) -> None:
         """Java: Payer#incrementCoveredEntries.
@@ -146,7 +172,12 @@ class Payer:
         Java overloads:
         (Entry entry)
         """
-        raise NotImplementedError("Java: Payer#incrementCoveredEntries — pending T15")
+        entry_type = self.get_entry_type(entry)
+        year = Utilities.get_year(entry.start)
+        self.increment_entries(year, "covered-" + entry_type)
+        self.increment_entries(
+            year, "covered-" + entry_type + "-" + ("null" if entry.type is None else entry.type)
+        )
 
     def increment_uncovered_entries(self, entry: Entry) -> None:
         """Java: Payer#incrementUncoveredEntries.
@@ -154,7 +185,12 @@ class Payer:
         Java overloads:
         (Entry entry)
         """
-        raise NotImplementedError("Java: Payer#incrementUncoveredEntries — pending T15")
+        entry_type = self.get_entry_type(entry)
+        year = Utilities.get_year(entry.start)
+        self.increment_entries(year, "uncovered-" + entry_type)
+        self.increment_entries(
+            year, "uncovered-" + entry_type + "-" + ("null" if entry.type is None else entry.type)
+        )
 
     def get_entry_type(self, entry: Entry) -> str:
         """Java: Payer#getEntryType.
@@ -162,7 +198,23 @@ class Payer:
         Java overloads:
         (Entry entry)
         """
-        raise NotImplementedError("Java: Payer#getEntryType — pending T15")
+        from synthea.world.concepts.health_record import (
+            Encounter,
+            HealthRecord,
+            Immunization,
+            Medication,
+            Procedure,
+        )
+
+        if isinstance(entry, Encounter):
+            return HealthRecord.ENCOUNTERS
+        if isinstance(entry, Medication):
+            return HealthRecord.MEDICATIONS
+        if isinstance(entry, Procedure):
+            return HealthRecord.PROCEDURES
+        if isinstance(entry, Immunization):
+            return HealthRecord.IMMUNIZATIONS
+        return "no_cost"
 
     def increment_entries(self, year: int, key: str) -> None:
         """Java: Payer#incrementEntries.
@@ -170,7 +222,10 @@ class Payer:
         Java overloads:
         (Integer year, String key)
         """
-        raise NotImplementedError("Java: Payer#incrementEntries — pending T15")
+        if year not in self.entry_utilization:
+            self.entry_utilization[year] = JavaHashMap()
+        counts = self.entry_utilization[year]
+        counts[key] = to_int32(counts.get(key, 0) + 1)
 
     def add_covered_cost(self, cost_to_payer: Decimal) -> None:
         """Java: Payer#addCoveredCost.
@@ -178,7 +233,7 @@ class Payer:
         Java overloads:
         (BigDecimal costToPayer)
         """
-        raise NotImplementedError("Java: Payer#addCoveredCost — pending T15")
+        self.costs_covered = bd.add(self.costs_covered, cost_to_payer)
 
     def add_uncovered_cost(self, cost_to_patient: Decimal) -> None:
         """Java: Payer#addUncoveredCost.
@@ -186,7 +241,7 @@ class Payer:
         Java overloads:
         (BigDecimal costToPatient)
         """
-        raise NotImplementedError("Java: Payer#addUncoveredCost — pending T15")
+        self.costs_uncovered = bd.add(self.costs_uncovered, cost_to_patient)
 
     def add_qols(self, qols: float) -> None:
         """Java: Payer#addQols.
@@ -194,7 +249,7 @@ class Payer:
         Java overloads:
         (double qols)
         """
-        raise NotImplementedError("Java: Payer#addQols — pending T15")
+        self.total_qols += qols
 
     def get_revenue(self) -> Decimal:
         """Java: Payer#getRevenue.
@@ -202,7 +257,7 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getRevenue — pending T15")
+        return self.revenue
 
     def get_customer_utilization(self, person_id: str) -> int:
         """Java: Payer#getCustomerUtilization.
@@ -210,7 +265,7 @@ class Payer:
         Java overloads:
         (String personId)
         """
-        raise NotImplementedError("Java: Payer#getCustomerUtilization — pending T15")
+        return self.customer_utilization.get(person_id, 0)
 
     def get_unique_customers(self) -> int:
         """Java: Payer#getUniqueCustomers.
@@ -218,7 +273,7 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getUniqueCustomers — pending T15")
+        return len(self.customer_utilization)
 
     def get_num_years_covered(self) -> int:
         """Java: Payer#getNumYearsCovered.
@@ -226,7 +281,7 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getNumYearsCovered — pending T15")
+        return to_int32(sum(self.customer_utilization.values()))
 
     def get_encounters_covered_count(self) -> int:
         """Java: Payer#getEncountersCoveredCount.
@@ -234,7 +289,9 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getEncountersCoveredCount — pending T15")
+        return to_int32(
+            sum(counts.get("covered-encounters", 0) for counts in self.entry_utilization.values())
+        )
 
     def get_encounters_uncovered_count(self) -> int:
         """Java: Payer#getEncountersUncoveredCount.
@@ -242,7 +299,9 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getEncountersUncoveredCount — pending T15")
+        return to_int32(
+            sum(counts.get("uncovered-encounters", 0) for counts in self.entry_utilization.values())
+        )
 
     def get_medications_covered_count(self) -> int:
         """Java: Payer#getMedicationsCoveredCount.
@@ -250,7 +309,9 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getMedicationsCoveredCount — pending T15")
+        return to_int32(
+            sum(counts.get("covered-medications", 0) for counts in self.entry_utilization.values())
+        )
 
     def get_medications_uncovered_count(self) -> int:
         """Java: Payer#getMedicationsUncoveredCount.
@@ -258,7 +319,11 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getMedicationsUncoveredCount — pending T15")
+        return to_int32(
+            sum(
+                counts.get("uncovered-medications", 0) for counts in self.entry_utilization.values()
+            )
+        )
 
     def get_procedures_covered_count(self) -> int:
         """Java: Payer#getProceduresCoveredCount.
@@ -266,7 +331,9 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getProceduresCoveredCount — pending T15")
+        return to_int32(
+            sum(counts.get("covered-procedures", 0) for counts in self.entry_utilization.values())
+        )
 
     def get_procedures_uncovered_count(self) -> int:
         """Java: Payer#getProceduresUncoveredCount.
@@ -274,7 +341,9 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getProceduresUncoveredCount — pending T15")
+        return to_int32(
+            sum(counts.get("uncovered-procedures", 0) for counts in self.entry_utilization.values())
+        )
 
     def get_immunizations_covered_count(self) -> int:
         """Java: Payer#getImmunizationsCoveredCount.
@@ -282,7 +351,11 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getImmunizationsCoveredCount — pending T15")
+        return to_int32(
+            sum(
+                counts.get("covered-immunizations", 0) for counts in self.entry_utilization.values()
+            )
+        )
 
     def get_immunizations_uncovered_count(self) -> int:
         """Java: Payer#getImmunizationsUncoveredCount.
@@ -290,7 +363,12 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getImmunizationsUncoveredCount — pending T15")
+        return to_int32(
+            sum(
+                counts.get("uncovered-immunizations", 0)
+                for counts in self.entry_utilization.values()
+            )
+        )
 
     def get_amount_covered(self) -> Decimal:
         """Java: Payer#getAmountCovered.
@@ -298,7 +376,7 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getAmountCovered — pending T15")
+        return self.costs_covered
 
     def get_amount_uncovered(self) -> Decimal:
         """Java: Payer#getAmountUncovered.
@@ -306,7 +384,7 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getAmountUncovered — pending T15")
+        return self.costs_uncovered
 
     def get_qols_average(self) -> float:
         """Java: Payer#getQolsAverage.
@@ -314,7 +392,10 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getQolsAverage — pending T15")
+        years = self.get_num_years_covered()
+        if years == 0:
+            return math.nan if self.total_qols == 0.0 else math.copysign(math.inf, self.total_qols)
+        return self.total_qols / years
 
     def hash_code(self) -> int:
         """Java: Payer#hashCode.
@@ -322,7 +403,27 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#hashCode — pending T15")
+        hash_value = 7
+        attributes_hash = to_int32(
+            sum(
+                to_int32(java_hash_code(key) ^ java_hash_code(value))
+                for key, value in self.attributes.items()
+            )
+        )
+        values = [
+            attributes_hash,
+            string_hash_code(self.name),
+            string_hash_code(self.uuid),
+            string_hash_code(self.ownership),
+            to_int32(sum(string_hash_code(state) for state in self.states_covered)),
+            _decimal_hash(self.revenue),
+            _decimal_hash(self.costs_covered),
+            _decimal_hash(self.costs_uncovered),
+            double_hash_code(self.total_qols),
+        ]
+        for value in values:
+            hash_value = to_int32(53 * hash_value + value)
+        return hash_value
 
     def equals(self, obj: object) -> bool:
         """Java: Payer#equals.
@@ -330,7 +431,23 @@ class Payer:
         Java overloads:
         (Object obj)
         """
-        raise NotImplementedError("Java: Payer#equals — pending T15")
+        if self is obj:
+            return True
+        if type(obj) is not type(self):
+            return False
+        assert isinstance(obj, Payer)
+        return (
+            bd.equals(self.revenue, obj.revenue)
+            and bd.equals(self.costs_covered, obj.costs_covered)
+            and bd.equals(self.costs_uncovered, obj.costs_uncovered)
+            and double_to_long_bits(self.total_qols) == double_to_long_bits(obj.total_qols)
+            and self.plans == obj.plans
+            and self.name == obj.name
+            and self.uuid == obj.uuid
+            and self.ownership == obj.ownership
+            and self.attributes == obj.attributes
+            and self.states_covered == obj.states_covered
+        )
 
     def set_payer_adjustment(self, payer_adjustment: IPayerAdjustment) -> None:
         """Java: Payer#setPayerAdjustment.
@@ -338,7 +455,7 @@ class Payer:
         Java overloads:
         (IPayerAdjustment payerAdjustment)
         """
-        raise NotImplementedError("Java: Payer#setPayerAdjustment — pending T15")
+        self.payer_adjustment = payer_adjustment
 
     def add_revenue(self, additional_revenue: Decimal) -> None:
         """Java: Payer#addRevenue.
@@ -346,7 +463,7 @@ class Payer:
         Java overloads:
         (BigDecimal additionalRevenue)
         """
-        raise NotImplementedError("Java: Payer#addRevenue — pending T15")
+        self.revenue = bd.add(self.revenue, additional_revenue)
 
     def get_government_payer_plan(self) -> InsurancePlan:
         """Java: Payer#getGovernmentPayerPlan.
@@ -354,7 +471,9 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getGovernmentPayerPlan — pending T15")
+        if not self.is_government_payer():
+            raise RuntimeError("Only government payers can call getGovernmentPayerPlan().")
+        return self.plans[0]
 
     def add_attribute(self, key: str, value: str) -> None:
         """Java: Payer#addAttribute.
@@ -362,7 +481,7 @@ class Payer:
         Java overloads:
         (String key, String value)
         """
-        raise NotImplementedError("Java: Payer#addAttribute — pending T15")
+        self.attributes[key] = value
 
     def is_no_insurance(self) -> bool:
         """Java: Payer#isNoInsurance.
@@ -370,7 +489,9 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#isNoInsurance — pending T15")
+        from synthea.world.agents.payer_manager import PayerManager
+
+        return self.name == PayerManager.NO_INSURANCE
 
     def get_plan_link_id(self) -> int:
         """Java: Payer#getPlanLinkId.
@@ -378,22 +499,37 @@ class Payer:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Payer#getPlanLinkId — pending T15")
+        return self.plan_link_id
 
 
 class UtilizationBean:
-    """Java: UtilizationBean; pending T15."""
+    """Java: UtilizationBean."""
 
-    def __init__(self, year: int, type: str, count: AtomicInteger) -> None:
+    def __init__(self, year: int, type: str, count: int) -> None:
         """Java: UtilizationBean#UtilizationBean.
 
         Java overloads:
         (Integer year, String type, AtomicInteger count)
         """
-        self.year: int
-        self.type: str
-        self.count: AtomicInteger
-        raise NotImplementedError("Java: UtilizationBean#UtilizationBean — pending T15")
+        self.year: int = year
+        self.type: str = type
+        self.count: int = count
 
 
 setattr(Payer, "UtilizationBean", UtilizationBean)  # noqa: B010
+
+
+def _decimal_hash(value: Decimal) -> int:
+    """Java: BigDecimal#hashCode, including arbitrary BigInteger magnitude."""
+    sign, digits, _ = value.as_tuple()
+    magnitude = int("".join(str(digit) for digit in digits))
+    words = []
+    while magnitude:
+        words.append(magnitude & 0xFFFFFFFF)
+        magnitude >>= 32
+    hashed = 0
+    for word in reversed(words):
+        hashed = to_int32(31 * hashed + word)
+    if sign:
+        hashed = to_int32(-hashed)
+    return to_int32(31 * hashed + bd.scale_of(value))
