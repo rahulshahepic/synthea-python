@@ -86,6 +86,8 @@ class CSVExporter:
 
     def __init__(self) -> None:
         """Java: CSVExporter#CSVExporter."""
+        self.file_manager: CSVFileManager
+        self.transaction_id: int
         self.init()
 
     def init(self) -> None:
