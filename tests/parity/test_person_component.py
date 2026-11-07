@@ -21,11 +21,15 @@ import pytest
 
 import synthea.world.agents.person as person_module
 from synthea.helpers.config import Config
+from synthea.helpers.default_random_number_generator import DefaultRandomNumberGenerator
 from synthea.helpers.value_generator import ValueGenerator
 from synthea.javacompat.collections import JavaHashMap
 from synthea.javacompat.numbers import double_to_string
+from synthea.javacompat.random import JavaRandom
 from synthea.modules.quality_of_life_module import QualityOfLifeModule
+from synthea.world.agents.clinician import Clinician
 from synthea.world.agents.person import Person
+from synthea.world.agents.provider import Provider
 from synthea.world.concepts.health_record import EncounterType
 from synthea.world.concepts.vital_sign import VitalSign
 from tests.parity.person_doubles import (
@@ -366,5 +370,53 @@ def test_person_component_rng_overloads(
             "manyChoices": person.rand("a", "b", "c", "d", "e"),
             "count": str(person.get_count()),
             "nextLong": str(person.rand_long()),
+        }
+        assert actual == expected
+
+
+def _coord(coords: JavaRandom, scale: float) -> float:
+    """Java: PersonProbe#coord."""
+    return (coords.next_double() * 360.0 - 180.0) * scale
+
+
+@pytest.mark.parity
+def test_person_component_distance(
+    golden: Callable[[str], Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Java: QuadTreeElement#distance on Person, Provider and Clinician (T57).
+
+    300 seeded coordinate triples at three scales; every receiver/argument
+    pairing matches Java exactly. Doubles supply Person constructor plumbing only.
+    """
+    monkeypatch.setattr(person_module, "HealthRecord", HealthRecordDouble)
+    monkeypatch.setattr(person_module, "CoverageRecord", CoverageRecordDouble)
+    rows = [
+        json.loads(line)
+        for line in (golden("PersonProbe") / "person-distance.jsonl").read_text().splitlines()
+    ]
+    assert len(rows) == 300
+    coords = JavaRandom(57)
+    person = Person(57)
+    provider = Provider()
+    clinician = Clinician(57, DefaultRandomNumberGenerator(57), 1, None)  # type: ignore[arg-type]
+    person_at = person_module.Point2DDouble()
+    clinician_at = person_module.Point2DDouble()
+    person.attributes[Person.COORDINATE] = person_at
+    clinician.attributes[Person.COORDINATE] = clinician_at
+    for i, expected in enumerate(rows):
+        scale = 1.0 if i < 100 else (1e-9 if i < 200 else 1e9)
+        person_at.x, person_at.y = _coord(coords, scale), _coord(coords, scale)
+        provider_at = provider.get_lon_lat()
+        provider_at.x, provider_at.y = _coord(coords, scale), _coord(coords, scale)
+        clinician_at.x, clinician_at.y = _coord(coords, scale), _coord(coords, scale)
+        actual = {
+            "i": i,
+            "personToProvider": double_to_string(person.distance(provider)),
+            "personToClinician": double_to_string(person.distance(clinician)),
+            "personToSelf": double_to_string(person.distance(person)),
+            "providerToPerson": double_to_string(provider.distance(person)),
+            "providerToClinician": double_to_string(provider.distance(clinician)),
+            "clinicianToPerson": double_to_string(clinician.distance(person)),
+            "clinicianToProvider": double_to_string(clinician.distance(provider)),
         }
         assert actual == expected
