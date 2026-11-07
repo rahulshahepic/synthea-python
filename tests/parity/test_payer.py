@@ -32,7 +32,7 @@ from synthea.world.agents.payer import Payer
 from synthea.world.agents.payer_manager import PayerManager
 from synthea.world.agents.person import Person
 from synthea.world.concepts.claim import ClaimEntry
-from synthea.world.concepts.health_record import Encounter, HealthRecord
+from synthea.world.concepts.health_record import Encounter, Entry, HealthRecord
 from synthea.world.concepts.healthinsurance.insurance_plan import InsurancePlan
 from synthea.world.geography.location import Location
 from tests.dependency_gate import report_pending, run_or_pending
@@ -77,12 +77,15 @@ class PayerPerson_double(Person):  # noqa: N801
             self.default_record.encounters.insert(0, encounter)
 
 
-class PayerClaimEntry_double:  # noqa: N801
-    """ClaimEntry's two mutable amount fields, without invoking unmerged T14's constructor."""
-
-    def __init__(self, cost: Decimal) -> None:
-        self.cost = cost
-        self.adjustment = Decimal("7.77")
+def _claim_entry(cost: Decimal) -> ClaimEntry:
+    """A real T14 ClaimEntry; its T08 entry has a separate owner RNG."""
+    owner = PayerPerson_double(0)
+    assert owner.default_record is not None
+    entry = owner.default_record.new_entry(lambda: Entry(TIME, "entry"))
+    claim = ClaimEntry(entry)
+    claim.cost = cost
+    claim.adjustment = Decimal("7.77")
+    return claim
 
 
 @pytest.fixture
@@ -218,7 +221,7 @@ def _strategies(i: int) -> dict[str, object]:
         PayerAdjustmentRandom(rates[i % 6]),
     ):
         person = PayerPerson_double(seed, i)
-        entry = cast(ClaimEntry, PayerClaimEntry_double(Decimal(str(i) + ".125")))
+        entry = _claim_entry(Decimal(str(i) + ".125"))
         amount = adjustment.adjust_claim(entry, person)
         adjusted.append(
             [

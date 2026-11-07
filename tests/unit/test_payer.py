@@ -24,7 +24,6 @@ from synthea.world.agents.behaviors.planfinder.plan_finder_priority import PlanF
 from synthea.world.agents.behaviors.planfinder.plan_finder_random import PlanFinderRandom
 from synthea.world.agents.payer import Payer, UtilizationBean
 from synthea.world.agents.payer_manager import PayerManager
-from synthea.world.concepts.claim import ClaimEntry
 from synthea.world.concepts.health_record import (
     Encounter,
     Entry,
@@ -34,9 +33,9 @@ from synthea.world.concepts.health_record import (
 )
 from tests.parity.test_payer import (
     TIME,
-    PayerClaimEntry_double,
     PayerEncounter_double,
     PayerPerson_double,
+    _claim_entry,
     _plan,
 )
 from tests.parity.test_payer import (
@@ -142,7 +141,7 @@ def test_payer_adjustment_rate_bounds(rate: float, expected: float) -> None:
 def test_payer_adjustments(payer_component_boundary: None) -> None:
     """All three PayerAdjustmentTest adjustment tests; mocked random branches remain unit tests."""
     person = PayerPerson_double(0)
-    entry = cast(ClaimEntry, PayerClaimEntry_double(Decimal("101.25")))
+    entry = _claim_entry(Decimal("101.25"))
     assert bd.equals(PayerAdjustmentNone().adjust_claim(entry, person), Decimal("0.00"))
     assert entry.adjustment == Decimal("7.77")
     assert bd.to_string(PayerAdjustmentFixed(0.5).adjust_claim(entry, person)) == "50.62"
