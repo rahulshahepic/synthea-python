@@ -9,6 +9,7 @@ import struct as _pow_struct
 import zlib as _pow_zlib
 from typing import ClassVar, cast
 
+from synthea.javacompat.random import _strict_log
 from synthea.world.concepts.growth_chart import GrowthChart
 
 
@@ -26,7 +27,9 @@ class GrowthChartEntry:
     def zscore_for_value(self, value: float) -> float:
         """Java: GrowthChartEntry#zscoreForValue."""
         if self.lbox_cox == 0:
-            return math.log(value / self.median) / self.scov
+            ratio = value / self.median
+            logged = -math.inf if ratio == 0.0 else math.nan if ratio < 0.0 else _strict_log(ratio)
+            return logged / self.scov
         return (_java_pow(value / self.median, self.lbox_cox) - 1) / (self.lbox_cox * self.scov)
 
     def percentile_for_value(self, value: float) -> float:
