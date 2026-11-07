@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import TYPE_CHECKING, ClassVar, cast
+from typing import TYPE_CHECKING, ClassVar, cast, overload
 from uuid import UUID
 
 from synthea.engine.expressed_condition_record import ExpressedConditionRecord
@@ -264,9 +264,42 @@ class Person:
         if self.loss_of_care_enabled:
             self.loss_of_care_record = HealthRecord(self)
 
+    @overload
     def rand(self) -> float:
-        """Java: Person#rand."""
-        return self.random.rand()
+        """Java: Person#rand()."""
+        ...
+
+    @overload
+    def rand(self, low: float, high: float) -> float:
+        """Java: RandomNumberGenerator#rand(double,double)."""
+        ...
+
+    @overload
+    def rand(self, low: float, high: float, decimals: int | None) -> float:
+        """Java: RandomNumberGenerator#rand(double,double,Integer)."""
+        ...
+
+    @overload
+    def rand(self, low: list[float] | list[int]) -> float:
+        """Java: RandomNumberGenerator#rand(double[]) and #rand(int[])."""
+        ...
+
+    @overload
+    def rand(self, low: str, *choices: str) -> str:
+        """Java: RandomNumberGenerator#rand(String...)."""
+        ...
+
+    def rand(
+        self,
+        low: float | list[float] | list[int] | str | None = None,
+        high: float | str | None = None,
+        decimals: int | str | None = None,
+        *rest: str,
+    ) -> float | str:
+        """Java: Person#rand and inherited RandomNumberGenerator default overloads."""
+        # The implementation forwards the shared dispatch signature unchanged;
+        # overload resolution sees only the narrower public call signatures.
+        return self.random.rand(low, high, decimals, *rest)  # type: ignore[arg-type]
 
     def rand_boolean(self) -> bool:
         """Java: Person#randBoolean."""

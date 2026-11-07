@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class IPayerAdjustment(Protocol):
-    """Java: IPayerAdjustment; pending T15."""
+    """Java: IPayerAdjustment."""
 
     def __init__(self) -> None:
         """Java: IPayerAdjustment#IPayerAdjustment.
@@ -22,7 +22,7 @@ class IPayerAdjustment(Protocol):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: IPayerAdjustment#IPayerAdjustment — pending T15")
+        pass
 
     def adjust_claim(self, claim_entry: ClaimEntry, person: Person) -> Decimal:
         """Java: IPayerAdjustment#adjustClaim.
@@ -30,4 +30,4 @@ class IPayerAdjustment(Protocol):
         Java overloads:
         (ClaimEntry claimEntry, Person person)
         """
-        raise NotImplementedError("Java: IPayerAdjustment#adjustClaim — pending T15")
+        ...
