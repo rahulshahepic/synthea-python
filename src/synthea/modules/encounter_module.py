@@ -82,7 +82,7 @@ class EncounterModule(Module):
     def __init__(self) -> None:
         """Java: EncounterModule#EncounterModule."""
         super().__init__()
-        self.name = self.NAME
+        self.name: str = self.NAME
 
     def clone(self) -> Module:
         """Java: EncounterModule#clone; stateless module shares its instance."""
