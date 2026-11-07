@@ -1,37 +1,73 @@
-"""Java API skeleton: State.java."""
+"""Java: org.mitre.synthea.engine.State (T19 base + control-flow states; T20 clinical states).
+
+Construction mirrors ``Utilities.getGson()`` (LOWER_CASE_WITH_UNDERSCORES
+field naming, ``InnerClassTypeAdapterFactory`` on the State ``type`` field
+and the Logic ``condition_type`` field): ``State.build`` creates the state
+without user code running (Java field defaults first), fills its fields
+from the module JSON, then calls ``initialize`` — exactly Gson's order.
+The real Gson analogue is out of scope for the port (see T06's
+``Utilities.get_gson``); this module carries the State-specific mirror.
+"""
 
 from __future__ import annotations
 
+import copy
+from abc import abstractmethod
 from enum import StrEnum
-from typing import IO, TYPE_CHECKING, ClassVar, Protocol
+from typing import IO, TYPE_CHECKING, ClassVar, Protocol, cast
 
-from synthea.world.concepts.health_record import Code
+from synthea.engine import logic as _logic_module
+from synthea.engine.components import (
+    Attachment,
+    Exact,
+    ExactWithUnit,
+    Range,
+    RangeWithUnit,
+    SampledData,
+)
+from synthea.engine.distribution import Distribution, RandomSource
+from synthea.engine.distribution import Kind as _DistributionKind
+from synthea.engine.logic import Logic
+from synthea.engine.transition import (
+    ComplexTransition,
+    ComplexTransitionOption,
+    ConditionalTransition,
+    ConditionalTransitionOption,
+    DirectTransition,
+    DistributedTransition,
+    DistributedTransitionOption,
+    LookupTableTransition,
+    LookupTableTransitionOption,
+    Transition,
+    TypeOfCareTransition,
+    TypeOfCareTransitionOptions,
+)
+from synthea.helpers.config import Config
+from synthea.helpers.telemedicine import Telemedicine
+from synthea.helpers.utilities import Utilities
+from synthea.javacompat.collections import JavaHashMap
+from synthea.javacompat.numbers import parse_double
+from synthea.modules.encounter_module import EncounterModule
+from synthea.world.concepts.clinician_specialty import ClinicianSpecialty
+from synthea.world.concepts.health_record import (
+    Code,
+    EncounterType,
+    Entry,
+    Instance,
+    ReactionSeverity,
+)
+from synthea.world.concepts.health_record import Series as HealthRecordSeries
+from synthea.world.concepts.vital_sign import VITAL_SIGN_DISPLAY_NAMES
 
 if TYPE_CHECKING:
-    from synthea.engine.components import (
-        Attachment,
-        Exact,
-        ExactWithUnit,
-        Range,
-        RangeWithUnit,
-        SampledData,
-    )
-    from synthea.engine.distribution import Distribution
-    from synthea.engine.logic import Logic
     from synthea.engine.module import Module
     from synthea.engine.reaction_probabilities import ReactionProbabilities
-    from synthea.engine.transition import (
-        ComplexTransitionOption,
-        ConditionalTransitionOption,
-        DistributedTransitionOption,
-        LookupTableTransitionOption,
-        Transition,
-        TypeOfCareTransitionOptions,
-    )
+    from synthea.helpers.expression_processor import ExpressionPerson
     from synthea.helpers.random_number_generator import RandomNumberGenerator
     from synthea.world.agents.person import Person
-    from synthea.world.concepts.health_record import Code, Entry, Medication
+    from synthea.world.concepts.health_record import CarePlan, Instance, Medication
     from synthea.world.concepts.health_record import Code as HealthRecordCode
+    from synthea.world.concepts.health_record import Device as DeviceEntry
     from synthea.world.concepts.health_record import Series as HealthRecordSeries
     from synthea.world.concepts.vital_sign import VitalSign as ConceptVitalSign
 
@@ -45,31 +81,556 @@ if TYPE_CHECKING:
         """Java boundary type: ThreadLocal; external to the mapped Python port."""
 
 
-class State:
-    """Java: State; pending T19/T20."""
-
-    ENABLE_PHYSIOLOGY_STATE: ClassVar[bool]  # Java initialization deferred to T19/T20.
+class _ThreadLocalShim:
+    """Single-threaded stand-in for Java ``ThreadLocal<ExpressionProcessor>``."""
 
     def __init__(self) -> None:
-        """Java: State#State.
+        """Java: ThreadLocal#ThreadLocal (single-threaded stand-in)."""
+        self._value: object = None
 
-        Java overloads:
-        ()
-        """
-        self.module: Module
-        self.name: str
-        self.entered: int
-        self.entry: Entry
-        self.exited: int
-        self._transition: Transition
-        self.direct_transition: str
-        self.conditional_transition: list[ConditionalTransitionOption]
-        self.distributed_transition: list[DistributedTransitionOption]
-        self.complex_transition: list[ComplexTransitionOption]
-        self.lookup_table_transition: list[LookupTableTransitionOption]
-        self.type_of_care_transition: TypeOfCareTransitionOptions
-        self.remarks: list[str]
-        raise NotImplementedError("Java: State#State — pending T19/T20")
+    def get(self) -> object:
+        """Java: ThreadLocal#get."""
+        return self._value
+
+    def set(self, value: object) -> None:
+        """Java: ThreadLocal#set."""
+        self._value = value
+
+
+# Java field defaults per State subclass, keyed by class name then field
+# name (object fields -> None, int/long -> 0, double -> 0.0, boolean ->
+# False), with three corrections to the T04 skeleton's annotations:
+# State.entered/exited and Delayable.next are Java Long (nullable), and
+# Symptom.probability is a Java Double (nullable; initialize defaults it).
+_FIELD_DEFAULTS: dict[str, dict[str, object]] = {
+    "State": {
+        "module": None,
+        "name": None,
+        "entered": None,
+        "entry": None,
+        "exited": None,
+        "_transition": None,
+        "direct_transition": None,
+        "conditional_transition": None,
+        "distributed_transition": None,
+        "complex_transition": None,
+        "lookup_table_transition": None,
+        "type_of_care_transition": None,
+        "remarks": None,
+    },
+    "CallSubmodule": {"submodule": None, "submodule_exited": 0},
+    "Physiology": {
+        "model": None,
+        "solver": None,
+        "step_size": 0.0,
+        "sim_duration": 0.0,
+        "lead_time": 0.0,
+        "alt_direct_transition": None,
+        "inputs": None,
+        "outputs": None,
+        "alt_transition": None,
+        "simulator": None,
+        "param_types": None,
+    },
+    "Delayable": {"next": None},
+    "LegacyStateWithUnitlessRV": {"range": None, "exact": None},
+    "Delay": {"range": None, "exact": None, "distribution": None, "unit": None},
+    "Guard": {"allow": None},
+    "SetAttribute": {
+        "attribute": None,
+        "value": None,
+        "value_code": None,
+        "value_attribute": None,
+        "range": None,
+        "expression": None,
+        "thread_exp_processor": None,
+        "series_data": None,
+        "period": 0.0,
+        "distribution": None,
+    },
+    "Counter": {
+        "attribute": None,
+        "action": None,
+        "increment": False,
+        "amount": 0,
+    },
+    "Encounter": {
+        "wellness": False,
+        "encounter_class": None,
+        "codes": None,
+        "reason": None,
+        "telemedicine_possibility": None,
+    },
+    "EncounterEnd": {"discharge_disposition": None},
+    "AttributeAssignableState": {"assign_to_attribute": None},
+    "OnsetState": {"diagnosed": False, "codes": None, "target_encounter": None},
+    "ConditionEnd": {
+        "codes": None,
+        "condition_onset": None,
+        "referenced_by_attribute": None,
+    },
+    "AllergyOnset": {"allergy_type": None, "category": None, "reactions": None},
+    "AllergyEnd": {
+        "codes": None,
+        "allergy_onset": None,
+        "referenced_by_attribute": None,
+    },
+    "MedicationOrder": {
+        "codes": None,
+        "reason": None,
+        "prescription": None,
+        "administration": False,
+        "chronic": False,
+    },
+    "MedicationEnd": {
+        "codes": None,
+        "medication_order": None,
+        "referenced_by_attribute": None,
+    },
+    "CarePlanStart": {
+        "codes": None,
+        "activities": None,
+        "goals": None,
+        "reason": None,
+    },
+    "CarePlanEnd": {
+        "codes": None,
+        "careplan": None,
+        "referenced_by_attribute": None,
+    },
+    "Procedure": {
+        "codes": None,
+        "reason": None,
+        "duration": None,
+        "assign_to_attribute": None,
+        "stop": 0,
+        "distribution": None,
+        "unit": None,
+    },
+    "VitalSign": {
+        "vital_sign": None,
+        "unit": None,
+        "expression": None,
+        "distribution": None,
+        "thread_exp_processor": None,
+    },
+    "Observation": {
+        "codes": None,
+        "value_code": None,
+        "attribute": None,
+        "vital_sign": None,
+        "sampled_data": None,
+        "attachment": None,
+        "category": None,
+        "unit": None,
+        "expression": None,
+        "distribution": None,
+        "thread_exp_processor": None,
+    },
+    "ObservationGroup": {"codes": None, "observations": None},
+    "MultiObservation": {"category": None},
+    "ImagingStudy": {
+        "procedure_code": None,
+        "series": None,
+        "min_number_series": 0,
+        "max_number_series": 0,
+    },
+    "Symptom": {
+        "symptom": None,
+        "cause": None,
+        "probability": None,
+        "addressed": False,
+        "distribution": None,
+    },
+    "Device": {"code": None, "manufacturer": None, "model": None},
+    "DeviceEnd": {
+        "codes": None,
+        "device": None,
+        "referenced_by_attribute": None,
+    },
+    "SupplyList": {"supplies": None},
+    "SupplyComponent": {"code": None, "quantity": 0},
+    "Death": {
+        "codes": None,
+        "condition_onset": None,
+        "referenced_by_attribute": None,
+        "range": None,
+        "exact": None,
+    },
+    "Vaccine": {"series": 0, "codes": None},
+}
+
+
+def _init_state_fields(state: State) -> None:
+    """Set every Java field of ``state`` to its Java default value."""
+    for klass in reversed(type(state).__mro__):
+        defaults = _FIELD_DEFAULTS.get(klass.__name__)
+        if defaults:
+            for field, default in defaults.items():
+                setattr(state, field, default)
+
+
+def _gson_string_codes(value: object) -> object:
+    """Gson fills Code.code (a String field) from a JSON number by taking
+    its literal text; mirror that before building nested objects."""
+    if isinstance(value, dict):
+        result = {k: _gson_string_codes(v) for k, v in value.items()}
+        codes = result.get("codes")
+        if isinstance(codes, list):
+            for entry in codes:
+                if isinstance(entry, dict) and isinstance(entry.get("code"), (int, float)):
+                    entry["code"] = str(int(cast(float, entry["code"])))
+        return result
+    if isinstance(value, list):
+        return [_gson_string_codes(v) for v in value]
+    return value
+
+
+def _build_code(definition: dict[str, object]) -> Code:
+    """Java: Gson construction of a HealthRecord.Code."""
+    raw_code = definition["code"]
+    if isinstance(raw_code, (int, float)) and not isinstance(raw_code, bool):
+        code_text = str(int(raw_code)) if float(raw_code).is_integer() else str(raw_code)
+    else:
+        code_text = cast(str, raw_code)
+    code = Code(
+        cast(str, definition["system"]),
+        code_text,
+        cast("str | None", definition.get("display")),
+    )
+    if definition.get("version") is not None:
+        code.version = cast(str, definition["version"])
+    return code
+
+
+def _gson_object_value(value: object) -> object:
+    """Gson deserialization of an Object-typed field: numbers become Double."""
+    if isinstance(value, bool) or value is None or isinstance(value, str):
+        return value
+    if isinstance(value, (int, float)):
+        return float(value)
+    return value
+
+
+_LOGIC_INT_FIELDS = {"year", "month", "minimum", "maximum"}
+_LOGIC_FLOAT_FIELDS = {"quantity", "value"}
+_VITAL_SIGNS_BY_DISPLAY = {display: vs for vs, display in VITAL_SIGN_DISPLAY_NAMES.items()}
+
+
+def _convert_logic_field(logic: Logic, key: str, value: object) -> object:
+    """Java: Gson field conversion for one Logic field (mirror of the
+    test-side builder in tests/logic_support.py, which T17 validated)."""
+    from synthea.engine.components import DateInput
+
+    if key == "codes":
+        return [_build_code(cast("dict[str, object]", c)) for c in cast(list, value)]
+    if key == "value_code":
+        return _build_code(cast("dict[str, object]", value))
+    if key == "conditions":
+        return [_build_logic(cast("dict[str, object]", c)) for c in cast(list, value)]
+    if key == "condition":
+        return _build_logic(cast("dict[str, object]", value))
+    if key == "date":
+        raw = cast("dict[str, object]", value)
+        date = DateInput()
+        for field in ("year", "month", "day", "hour", "minute", "second", "millisecond"):
+            if raw.get(field) is not None:
+                setattr(date, field, int(cast(float, raw[field])))
+        return date
+    if key == "within":
+        raw = cast("dict[str, object]", value)
+        within: ExactWithUnit[float] = ExactWithUnit()
+        within.quantity = float(cast(float, raw["quantity"]))
+        within.unit = cast(str, raw["unit"])
+        return within
+    if key == "vital_sign":
+        return _VITAL_SIGNS_BY_DISPLAY[cast(str, value)]
+    if key == "value" and type(logic).__name__ in ("Observation", "Attribute"):
+        return _gson_object_value(value)
+    if key in _LOGIC_INT_FIELDS:
+        return int(cast(float, value))
+    if key in _LOGIC_FLOAT_FIELDS:
+        return float(cast(float, value))
+    return value
+
+
+def _build_logic(definition: dict[str, object]) -> Logic:
+    """Java: Gson construction of a Logic object (``condition_type``
+    selects the subclass, per InnerClassTypeAdapterFactory)."""
+    definition = cast("dict[str, object]", _gson_string_codes(definition))
+    type_name = cast(str, definition["condition_type"]).replace(" ", "")
+    cls = getattr(_logic_module, type_name)
+    logic: Logic = cls()
+    for key, value in definition.items():
+        if key == "condition_type":
+            continue
+        setattr(logic, key, _convert_logic_field(logic, key, value))
+    return logic
+
+
+def _build_distribution(definition: dict[str, object]) -> Distribution:
+    """Java: Gson construction of a Distribution."""
+    distribution = Distribution()
+    kind = definition.get("kind")
+    if kind is not None:
+        distribution.kind = _DistributionKind(cast(str, kind))
+    if definition.get("round") is not None:
+        distribution.round = bool(definition["round"])
+    parameters = definition.get("parameters")
+    if isinstance(parameters, dict):
+        distribution.parameters = {str(k): float(cast(float, v)) for k, v in parameters.items()}
+    return distribution
+
+
+def _build_range(definition: dict[str, object], with_unit: bool) -> Range:
+    """Java: Gson construction of a Components.Range / RangeWithUnit."""
+    rng: Range = RangeWithUnit() if with_unit else Range()
+    if definition.get("low") is not None:
+        rng.low = float(cast(float, definition["low"]))
+    if definition.get("high") is not None:
+        rng.high = float(cast(float, definition["high"]))
+    if definition.get("decimals") is not None:
+        rng.decimals = int(cast(float, definition["decimals"]))
+    if with_unit:
+        cast(RangeWithUnit, rng).unit = cast("str | None", definition.get("unit"))
+    return rng
+
+
+def _build_exact(definition: dict[str, object], with_unit: bool) -> Exact:
+    """Java: Gson construction of a Components.Exact / ExactWithUnit."""
+    exact: Exact = ExactWithUnit() if with_unit else Exact()
+    quantity = definition.get("quantity")
+    if isinstance(quantity, (int, float)) and not isinstance(quantity, bool):
+        exact.quantity = float(quantity)
+    else:
+        exact.quantity = quantity
+    if with_unit:
+        cast(ExactWithUnit, exact).unit = cast("str | None", definition.get("unit"))
+    return exact
+
+
+def _distributed_option(definition: dict[str, object]) -> DistributedTransitionOption:
+    """Java: Gson construction of a DistributedTransitionOption."""
+    option = DistributedTransitionOption()
+    option.transition = cast(str, definition["transition"])
+    if "distribution" in definition:
+        distribution = definition["distribution"]
+        if isinstance(distribution, dict):
+            # Gson materializes the JSON object as a Map; NamedDistribution
+            # reads exactly these two entries (see T18's builder).
+            option.distribution = {
+                "attribute": cast(str, distribution["attribute"]),
+                "default": float(cast(float, distribution["default"])),
+            }
+        else:
+            option.distribution = float(cast(float, distribution))
+    return option
+
+
+def _fill_state_from_json(state: State, definition: dict[str, object]) -> None:
+    """Fill ``state``'s fields from its module-JSON definition, mirroring
+    Gson with LOWER_CASE_WITH_UNDERSCORES naming."""
+    defaults: dict[str, object] = {}
+    for klass in reversed(type(state).__mro__):
+        defaults.update(_FIELD_DEFAULTS.get(klass.__name__, {}))
+    for key, raw in definition.items():
+        if key == "type":
+            continue
+        value: object = raw
+        if key == "direct_transition":
+            value = cast(str, raw)
+        elif key == "distributed_transition":
+            value = [_distributed_option(cast("dict[str, object]", o)) for o in cast(list, raw)]
+        elif key == "conditional_transition":
+            conditional_options = []
+            for opt_def in cast("list[dict[str, object]]", raw):
+                option = ConditionalTransitionOption()
+                option.transition = cast(str, opt_def["transition"])
+                condition = opt_def.get("condition")
+                if isinstance(condition, dict):
+                    option.condition = _build_logic(condition)
+                conditional_options.append(option)
+            value = conditional_options
+        elif key == "complex_transition":
+            complex_options = []
+            for opt_def in cast("list[dict[str, object]]", raw):
+                x_option = ComplexTransitionOption()
+                if "transition" in opt_def:
+                    x_option.transition = cast(str, opt_def["transition"])
+                condition = opt_def.get("condition")
+                if isinstance(condition, dict):
+                    x_option.condition = _build_logic(condition)
+                distributions = opt_def.get("distributions")
+                if isinstance(distributions, list):
+                    x_option.distributions = [
+                        _distributed_option(cast("dict[str, object]", d)) for d in distributions
+                    ]
+                complex_options.append(x_option)
+            value = complex_options
+        elif key == "lookup_table_transition":
+            lookup_options = []
+            for opt_def in cast("list[dict[str, object]]", raw):
+                l_option = LookupTableTransitionOption()
+                l_option.transition = cast(str, opt_def["transition"])
+                l_option.lookup_table_name = cast(str, opt_def.get("lookup_table_name"))
+                l_option.default_probability = float(
+                    cast(float, opt_def.get("default_probability", 0.0))
+                )
+                lookup_options.append(l_option)
+            value = lookup_options
+        elif key == "type_of_care_transition":
+            toc_def = cast("dict[str, object]", raw)
+            toc_options = TypeOfCareTransitionOptions()
+            toc_options.ambulatory = cast(str, toc_def.get("ambulatory"))
+            toc_options.telemedicine = cast(str, toc_def.get("telemedicine"))
+            toc_options.emergency = cast(str, toc_def.get("emergency"))
+            value = toc_options
+        elif key in ("allow", "condition"):
+            value = _build_logic(cast("dict[str, object]", raw))
+        elif key == "codes" and isinstance(raw, list):
+            value = [_build_code(cast("dict[str, object]", c)) for c in raw]
+        elif key in ("value_code", "code", "procedure_code") and isinstance(raw, dict):
+            value = _build_code(cast("dict[str, object]", raw))
+        elif key == "distribution" and isinstance(raw, dict):
+            value = _build_distribution(cast("dict[str, object]", raw))
+        elif key == "range" and isinstance(raw, dict):
+            value = _build_range(
+                cast("dict[str, object]", raw),
+                "unit" in raw or type(state).__name__ in ("Delay", "Death"),
+            )
+        elif key == "exact" and isinstance(raw, dict):
+            value = _build_exact(
+                cast("dict[str, object]", raw),
+                "unit" in raw or type(state).__name__ in ("Delay", "Death"),
+            )
+        elif key == "duration" and isinstance(raw, dict):
+            value = _build_range(cast("dict[str, object]", raw), "unit" in raw)
+        elif key == "observations" and isinstance(raw, list):
+            observations = []
+            for obs_def in cast("list[dict[str, object]]", raw):
+                observation = Observation.__new__(Observation)
+                _init_state_fields(observation)
+                _fill_state_from_json(observation, obs_def)
+                observations.append(observation)
+            value = observations
+        elif key == "attachment" and isinstance(raw, dict):
+            attachment = Attachment()
+            for a_key, a_value in cast("dict[str, object]", raw).items():
+                setattr(attachment, a_key, a_value)
+            value = attachment
+        elif key == "sampled_data" and isinstance(raw, dict):
+            sampled = SampledData()
+            for s_key, s_value in cast("dict[str, object]", raw).items():
+                setattr(sampled, s_key, s_value)
+            value = sampled
+        elif key == "vital_sign" and isinstance(raw, str):
+            value = _VITAL_SIGNS_BY_DISPLAY[raw]
+        elif key == "activities" and isinstance(raw, list):
+            value = [_build_code(cast("dict[str, object]", c)) for c in raw]
+        elif key == "reactions" and isinstance(raw, list):
+            from synthea.engine.reaction_probabilities import (
+                ReactionProbabilities,
+                SeverityProbability,
+            )
+
+            reaction_list = []
+            for rp_def in cast("list[dict[str, object]]", raw):
+                severities = [
+                    SeverityProbability(cast(str, sp["level"]), float(cast(float, sp["value"])))
+                    for sp in cast("list[dict[str, object]]", rp_def["possible_severities"])
+                ]
+                reaction_list.append(
+                    ReactionProbabilities(
+                        _build_code(cast("dict[str, object]", rp_def["reaction"])), severities
+                    )
+                )
+            value = reaction_list
+        elif key == "supplies" and isinstance(raw, list):
+            supply_list = []
+            for supply_def in cast("list[dict[str, object]]", raw):
+                component = SupplyComponent.__new__(SupplyComponent)
+                component.code = _build_code(cast("dict[str, object]", supply_def["code"]))
+                component.quantity = int(cast(float, supply_def["quantity"]))
+                supply_list.append(component)
+            value = supply_list
+        elif key == "series" and isinstance(raw, list):
+            series_list = []
+            for series_def in cast("list[dict[str, object]]", raw):
+                series_entry = HealthRecordSeries()
+                if isinstance(series_def.get("modality"), dict):
+                    series_entry.modality = _build_code(
+                        cast("dict[str, object]", series_def["modality"])
+                    )
+                if isinstance(series_def.get("body_site"), dict):
+                    series_entry.body_site = _build_code(
+                        cast("dict[str, object]", series_def["body_site"])
+                    )
+                if series_def.get("dicom_uid") is not None:
+                    series_entry.dicom_uid = cast(str, series_def["dicom_uid"])
+                if isinstance(series_def.get("min_number_instances"), (int, float)):
+                    series_entry.min_number_instances = int(
+                        cast(float, series_def["min_number_instances"])
+                    )
+                if isinstance(series_def.get("max_number_instances"), (int, float)):
+                    series_entry.max_number_instances = int(
+                        cast(float, series_def["max_number_instances"])
+                    )
+                instance_list = []
+                for instance_def in cast(
+                    "list[dict[str, object]]", series_def.get("instances") or []
+                ):
+                    instance = Instance()
+                    if instance_def.get("title") is not None:
+                        instance.title = cast(str, instance_def["title"])
+                    if instance_def.get("dicom_uid") is not None:
+                        instance.dicom_uid = cast(str, instance_def["dicom_uid"])
+                    if isinstance(instance_def.get("sop_class"), dict):
+                        instance.sop_class = _build_code(
+                            cast("dict[str, object]", instance_def["sop_class"])
+                        )
+                    instance_list.append(instance)
+                series_entry.instances = instance_list
+                series_list.append(series_entry)
+            value = series_list
+        elif key == "value" and type(state).__name__ == "SetAttribute":
+            value = _gson_object_value(raw)
+        elif key == "probability" and isinstance(raw, (int, float)):
+            value = float(raw)
+        else:
+            default = defaults.get(key)
+            if isinstance(default, bool):
+                value = bool(raw)
+            elif isinstance(default, int) and isinstance(raw, (int, float)):
+                value = int(raw)
+            elif isinstance(default, float) and isinstance(raw, (int, float)):
+                value = float(raw)
+        setattr(state, key, value)
+
+
+class State:
+    """Java: State — base class for every generic-module state."""
+
+    ENABLE_PHYSIOLOGY_STATE: ClassVar[bool] = Config.get_as_boolean(
+        "physiology.state.enabled", False
+    )
+
+    def __init__(self) -> None:
+        """Java: State#State (implicit default constructor; fields take
+        Java defaults, then Gson fills them in ``build``)."""
+        _init_state_fields(self)
+        self.module: Module | None = None
+        self.name: str | None = None
+        self.entered: int | None = None
+        self.entry: Entry | None = None
+        self.exited: int | None = None
+        self._transition: Transition | None = None
+        self.direct_transition: str | None = None
+        self.conditional_transition: list[ConditionalTransitionOption] | None = None
+        self.distributed_transition: list[DistributedTransitionOption] | None = None
+        self.complex_transition: list[ComplexTransitionOption] | None = None
+        self.lookup_table_transition: list[LookupTableTransitionOption] | None = None
+        self.type_of_care_transition: TypeOfCareTransitionOptions | None = None
+        self.remarks: list[str] | None = None
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: State#initialize.
@@ -77,7 +638,22 @@ class State:
         Java overloads:
         (Module module, String name, JsonObject definition)
         """
-        raise NotImplementedError("Java: State#initialize — pending T19/T20")
+        self.module = module
+        self.name = name
+        if self.direct_transition is not None:
+            self._transition = DirectTransition(self.direct_transition)
+        elif self.distributed_transition is not None:
+            self._transition = DistributedTransition(self.distributed_transition)
+        elif self.conditional_transition is not None:
+            self._transition = ConditionalTransition(self.conditional_transition)
+        elif self.complex_transition is not None:
+            self._transition = ComplexTransition(self.complex_transition)
+        elif self.lookup_table_transition is not None:
+            self._transition = LookupTableTransition(self.lookup_table_transition)
+        elif self.type_of_care_transition is not None:
+            self._transition = TypeOfCareTransition(self.type_of_care_transition)
+        elif not isinstance(self, Terminal):
+            raise RuntimeError("State `" + name + "` has no transition.\n")
 
     @staticmethod
     def build(module: Module, name: str, definition: dict[str, object]) -> State:
@@ -86,7 +662,15 @@ class State:
         Java overloads:
         (Module module, String name, JsonObject definition)
         """
-        raise NotImplementedError("Java: State#build — pending T19/T20")
+        type_name = cast(str, definition["type"])
+        cls = globals().get(type_name)
+        if not (isinstance(cls, type) and issubclass(cls, State)):
+            raise RuntimeError(f"State type `{type_name}` does not exist")
+        state = cls.__new__(cls)
+        _init_state_fields(state)
+        _fill_state_from_json(state, definition)
+        state.initialize(module, name, definition)
+        return state
 
     def clone(self) -> State:
         """Java: State#clone.
@@ -94,7 +678,11 @@ class State:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: State#clone — pending T19/T20")
+        clone = copy.copy(self)
+        clone.entered = None
+        clone.exited = None
+        clone.entry = None
+        return clone
 
     def transition(self, person: Person, time: int) -> str:
         """Java: State#transition.
@@ -102,7 +690,8 @@ class State:
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: State#transition — pending T19/T20")
+        assert self._transition is not None
+        return self._transition.follow(person, time)
 
     def get_transition(self) -> Transition:
         """Java: State#getTransition.
@@ -110,15 +699,17 @@ class State:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: State#getTransition — pending T19/T20")
+        assert self._transition is not None
+        return self._transition
 
+    @abstractmethod
     def process(self, person: Person, time: int) -> bool:
-        """Java: State#process.
+        """Java: State#process — abstract in Java; every concrete
+        subclass implements it.
 
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: State#process — pending T19/T20")
 
     def run(self, person: Person, time: int, terminate_on_death: bool) -> bool:
         """Java: State#run.
@@ -126,7 +717,21 @@ class State:
         Java overloads:
         (Person person, long time, boolean terminateOnDeath)
         """
-        raise NotImplementedError("Java: State#run — pending T19/T20")
+        if terminate_on_death and not person.alive(time):
+            return False
+        if self.entered is None:
+            self.entered = time
+        exit_state = self.process(person, time)
+        if exit_state:
+            if isinstance(self, Delayable):
+                self.exited = self.next
+            elif isinstance(self, CallSubmodule):
+                self.exited = self.submodule_exited
+            else:
+                self.exited = time
+        elif isinstance(self, Terminal):
+            self.exited = time
+        return exit_state
 
     def to_string(self) -> str:
         """Java: State#toString.
@@ -134,11 +739,13 @@ class State:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: State#toString — pending T19/T20")
+        return type(self).__name__ + " '" + str(self.name) + "'"
+
+    __str__ = to_string
 
 
 class Initial(State):
-    """Java: Initial; pending T19/T20."""
+    """Java: Initial — the first state processed in a generic module."""
 
     def __init__(self) -> None:
         """Java: Initial#Initial.
@@ -146,7 +753,7 @@ class Initial(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Initial#Initial — pending T19/T20")
+        super().__init__()
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Initial#process.
@@ -154,11 +761,11 @@ class Initial(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Initial#process — pending T19/T20")
+        return True
 
 
 class Simple(State):
-    """Java: Simple; pending T19/T20."""
+    """Java: Simple — a state that performs no action and transitions on."""
 
     def __init__(self) -> None:
         """Java: Simple#Simple.
@@ -166,7 +773,7 @@ class Simple(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Simple#Simple — pending T19/T20")
+        super().__init__()
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Simple#process.
@@ -174,11 +781,11 @@ class Simple(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Simple#process — pending T19/T20")
+        return True
 
 
 class CallSubmodule(State):
-    """Java: CallSubmodule; pending T19/T20."""
+    """Java: CallSubmodule — processes a reusable submodule inline."""
 
     def __init__(self) -> None:
         """Java: CallSubmodule#CallSubmodule.
@@ -186,9 +793,9 @@ class CallSubmodule(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.submodule: str
         self.submodule_exited: int
-        raise NotImplementedError("Java: CallSubmodule#CallSubmodule — pending T19/T20")
 
     def clone(self) -> CallSubmodule:
         """Java: CallSubmodule#clone.
@@ -196,7 +803,7 @@ class CallSubmodule(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: CallSubmodule#clone — pending T19/T20")
+        return cast(CallSubmodule, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: CallSubmodule#process.
@@ -204,11 +811,62 @@ class CallSubmodule(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: CallSubmodule#process — pending T19/T20")
+        from synthea.engine.module import Module
+
+        # e.g. "submodule": "medications/otc_antihistamine"
+        module_history = person.history
+        submod = Module.get_module_by_path(self.submodule)
+        if submod is None:
+            raise RuntimeError("Unknown submodule: " + self.submodule)
+        # set the submodule name to have the same name as this parent
+        # module, that way the submodule is empowered (and vice versa)
+        # to act on encounters created using the same name.
+        assert self.module is not None
+        submod.name = self.module.name
+        completed = submod.process(person, time)
+
+        if completed:
+            # keep track of when the submodule exited,
+            # in case it was "rewinding time" when it completed
+            assert person.history is not None
+            first_state = person.history[0]
+            if first_state.exited is None:
+                # this happens when the patient dies in the submodule,
+                # so processing is going to stop anyway
+                # but just to be safe and not crash,
+                # we'll assume we exited at the current timestep
+                self.submodule_exited = time
+            else:
+                self.submodule_exited = first_state.exited
+
+            # add the history from the submodule to this module's history,
+            # at the front
+            if module_history is not person.history:
+                # if the submodule is a java module, it didn't create its
+                # own history
+                assert module_history is not None
+                module_history[0:0] = person.history
+            # clear the submodule history
+            assert submod.submodule_name is not None
+            person.attributes.pop(submod.submodule_name, None)
+            # reset person.history to this module's history
+            person.history = module_history
+            # add this state to history to indicate we returned to this
+            # module
+            person.history.insert(0, self)
+            return True
+        else:
+            # reset person.history to this module's history
+            person.history = module_history
+            # the submodule is still processing
+            # next time we call this state it should pick up where it left
+            # off
+            return False
 
 
 class Physiology(State):
-    """Java: Physiology; pending T19/T20."""
+    """Java: Physiology — physiology simulation state (disabled by
+    default; the simulation itself is out of scope, PORTING_GUIDE §8)."""
 
     def __init__(self) -> None:
         """Java: Physiology#Physiology.
@@ -216,6 +874,7 @@ class Physiology(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.model: str
         self.solver: str
         self.step_size: float
@@ -227,7 +886,6 @@ class Physiology(State):
         self.alt_transition: Transition
         self.simulator: PhysiologySimulator
         self.param_types: dict[str, str]
-        raise NotImplementedError("Java: Physiology#Physiology — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: Physiology#initialize.
@@ -235,15 +893,22 @@ class Physiology(State):
         Java overloads:
         (Module module, String name, JsonObject definition)
         """
-        raise NotImplementedError("Java: Physiology#initialize — pending T19/T20")
+        super().initialize(module, name, definition)
+        if not self.alt_direct_transition:
+            raise RuntimeError(
+                "All Physiology States MUST have an alt_direct_transition"
+                " defined in the event that Physiology States are disabled."
+            )
+        self.alt_transition = DirectTransition(self.alt_direct_transition)
+        if self.lead_time > self.sim_duration:
+            raise ValueError("Simulation lead time cannot be greater than sim duration!")
+        if State.ENABLE_PHYSIOLOGY_STATE:
+            self.setup()
 
     def setup(self) -> None:
-        """Java: Physiology#setup.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: Physiology#setup — pending T19/T20")
+        """Java: Physiology#setup — the physiology simulation is out of
+        scope for the Python port (PORTING_GUIDE §8)."""
+        raise NotImplementedError("physiology simulation is out of scope for the Python port")
 
     def clone(self) -> Physiology:
         """Java: Physiology#clone.
@@ -251,7 +916,12 @@ class Physiology(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Physiology#clone — pending T19/T20")
+        clone = cast(Physiology, super().clone())
+        clone.inputs = [copy.copy(mapper) for mapper in self.inputs]
+        clone.outputs = [copy.copy(mapper) for mapper in self.outputs]
+        if State.ENABLE_PHYSIOLOGY_STATE:
+            clone.setup()
+        return clone
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Physiology#process.
@@ -259,7 +929,9 @@ class Physiology(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Physiology#process — pending T19/T20")
+        if not State.ENABLE_PHYSIOLOGY_STATE:
+            return True
+        raise NotImplementedError("physiology simulation is out of scope for the Python port")
 
     def transition(self, person: Person, time: int) -> str:
         """Java: Physiology#transition.
@@ -267,11 +939,13 @@ class Physiology(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Physiology#transition — pending T19/T20")
+        if State.ENABLE_PHYSIOLOGY_STATE:
+            return super().transition(person, time)
+        return self.alt_transition.follow(person, time)
 
 
 class Terminal(State):
-    """Java: Terminal; pending T19/T20."""
+    """Java: Terminal — the end of a module's progression."""
 
     def __init__(self) -> None:
         """Java: Terminal#Terminal.
@@ -279,7 +953,7 @@ class Terminal(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Terminal#Terminal — pending T19/T20")
+        super().__init__()
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Terminal#process.
@@ -287,11 +961,30 @@ class Terminal(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Terminal#process — pending T19/T20")
+        assert self.module is not None
+        module = self.module
+        if (
+            person.has_current_encounter()
+            and not module.submodule  # only auto-close for top-level modules
+            and person.get_current_encounter_module() == module.name
+        ):
+            # End any encounter this module is accidentally leaving open
+            assert person.record is not None
+            encounter = person.record.current_encounter(time)
+            if encounter is not None:
+                from synthea.world.concepts.health_record import EncounterType
+
+                encounter_type = EncounterType.from_string(encounter.type)
+                person.record.encounter_end(time, encounter_type)
+            # reset current provider hash
+            assert module.name is not None
+            person.remove_current_provider(module.name)
+            person.release_current_encounter(time, module.name)
+        return False
 
 
 class Delayable(State):
-    """Java: Delayable; pending T19/T20."""
+    """Java: Delayable — a state that can be delayed."""
 
     def __init__(self) -> None:
         """Java: Delayable#Delayable.
@@ -299,8 +992,8 @@ class Delayable(State):
         Java overloads:
         ()
         """
-        self.next: int
-        raise NotImplementedError("Java: Delayable#Delayable — pending T19/T20")
+        super().__init__()
+        self.next: int | None
 
     def clone(self) -> Delayable:
         """Java: Delayable#clone.
@@ -308,15 +1001,17 @@ class Delayable(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Delayable#clone — pending T19/T20")
+        clone = cast(Delayable, super().clone())
+        clone.next = None
+        return clone
 
+    @abstractmethod
     def end_of_delay(self, time: int, person: Person) -> int:
-        """Java: Delayable#endOfDelay.
+        """Java: Delayable#endOfDelay — abstract in Java.
 
         Java overloads:
         (long time, Person person)
         """
-        raise NotImplementedError("Java: Delayable#endOfDelay — pending T19/T20")
 
     def process_once(self, person: Person, time: int) -> None:
         """Java: Delayable#processOnce.
@@ -324,7 +1019,8 @@ class Delayable(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Delayable#processOnce — pending T19/T20")
+        # do nothing. allow subclasses to override
+        return None
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Delayable#process.
@@ -332,11 +1028,18 @@ class Delayable(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Delayable#process — pending T19/T20")
+        if self.next is None:
+            self.process_once(person, time)
+            self.next = self.end_of_delay(time, person)
+            if self.next < time:
+                # Don't allow a negative delay
+                self.next = time
+        return (time >= self.next) and person.alive(self.next)
 
 
 class LegacyStateWithUnitlessRV(State):
-    """Java: LegacyStateWithUnitlessRV; pending T19/T20."""
+    """Java: LegacyStateWithUnitlessRV — base for GMF 1.0 states whose
+    random variable is a unitless range or exact value."""
 
     def __init__(self) -> None:
         """Java: LegacyStateWithUnitlessRV#LegacyStateWithUnitlessRV.
@@ -344,11 +1047,9 @@ class LegacyStateWithUnitlessRV(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.range: Range
         self.exact: Exact
-        raise NotImplementedError(
-            "Java: LegacyStateWithUnitlessRV#LegacyStateWithUnitlessRV — pending T19/T20"
-        )
 
     def clone(self) -> State:
         """Java: LegacyStateWithUnitlessRV#clone.
@@ -356,7 +1057,8 @@ class LegacyStateWithUnitlessRV(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: LegacyStateWithUnitlessRV#clone — pending T19/T20")
+        # Java re-assigns range/exact to themselves (shared references).
+        return super().clone()
 
     def is_legacy_gmf(self) -> bool:
         """Java: LegacyStateWithUnitlessRV#isLegacyGmf.
@@ -364,11 +1066,11 @@ class LegacyStateWithUnitlessRV(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: LegacyStateWithUnitlessRV#isLegacyGmf — pending T19/T20")
+        return self.exact is not None or self.range is not None
 
 
 class Delay(Delayable):
-    """Java: Delay; pending T19/T20."""
+    """Java: Delay — a pre-configured temporal delay in the timeline."""
 
     def __init__(self) -> None:
         """Java: Delay#Delay.
@@ -376,11 +1078,11 @@ class Delay(Delayable):
         Java overloads:
         ()
         """
+        super().__init__()
         self.range: RangeWithUnit[float]
         self.exact: ExactWithUnit[float]
         self.distribution: Distribution
         self.unit: str
-        raise NotImplementedError("Java: Delay#Delay — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: Delay#initialize.
@@ -388,7 +1090,9 @@ class Delay(Delayable):
         Java overloads:
         (Module module, String name, JsonObject definition)
         """
-        raise NotImplementedError("Java: Delay#initialize — pending T19/T20")
+        super().initialize(module, name, definition)
+        if self.distribution is not None and not self.distribution.validate():
+            raise RuntimeError(f"State {self.name} contains an invalid distribution")
 
     def clone(self) -> Delay:
         """Java: Delay#clone.
@@ -396,7 +1100,7 @@ class Delay(Delayable):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Delay#clone — pending T19/T20")
+        return cast(Delay, super().clone())
 
     def end_of_delay(self, time: int, person: Person) -> int:
         """Java: Delay#endOfDelay.
@@ -404,7 +1108,24 @@ class Delay(Delayable):
         Java overloads:
         (long time, Person person)
         """
-        raise NotImplementedError("Java: Delay#endOfDelay — pending T19/T20")
+        if self.is_legacy_gmf():
+            if self.exact is not None:
+                # use an exact quantity
+                return time + Utilities.convert_time(
+                    cast(str, self.exact.unit), cast(float, self.exact.quantity)
+                )
+            elif self.range is not None:
+                # use a range
+                return time + Utilities.convert_time(
+                    cast(str, self.range.unit),
+                    person.rand(cast(float, self.range.low), cast(float, self.range.high)),
+                )
+        else:
+            if self.distribution is not None:
+                return time + Utilities.convert_time(
+                    self.unit, int(self.distribution.generate(person))
+                )
+        raise RuntimeError("Delay state has no distribution properties: " + str(self))
 
     def is_legacy_gmf(self) -> bool:
         """Java: Delay#isLegacyGmf.
@@ -412,11 +1133,11 @@ class Delay(Delayable):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Delay#isLegacyGmf — pending T19/T20")
+        return self.exact is not None or self.range is not None
 
 
 class Guard(State):
-    """Java: Guard; pending T19/T20."""
+    """Java: Guard — passes only when its ``allow`` logic is met."""
 
     def __init__(self) -> None:
         """Java: Guard#Guard.
@@ -424,8 +1145,8 @@ class Guard(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.allow: Logic
-        raise NotImplementedError("Java: Guard#Guard — pending T19/T20")
 
     def clone(self) -> Guard:
         """Java: Guard#clone.
@@ -433,7 +1154,7 @@ class Guard(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Guard#clone — pending T19/T20")
+        return cast(Guard, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Guard#process.
@@ -441,11 +1162,14 @@ class Guard(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Guard#process — pending T19/T20")
+        exit_state = self.allow.test(person, time)
+        if exit_state:
+            self.exited = time
+        return exit_state
 
 
 class SetAttribute(State):
-    """Java: SetAttribute; pending T19/T20."""
+    """Java: SetAttribute — sets (or clears) a person attribute."""
 
     def __init__(self) -> None:
         """Java: SetAttribute#SetAttribute.
@@ -453,6 +1177,7 @@ class SetAttribute(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.attribute: str
         self.value: object
         self.value_code: Code
@@ -463,7 +1188,6 @@ class SetAttribute(State):
         self.series_data: str
         self.period: float
         self.distribution: Distribution
-        raise NotImplementedError("Java: SetAttribute#SetAttribute — pending T19/T20")
 
     def get_exp_processor(self) -> ThreadLocal:
         """Java: SetAttribute#getExpProcessor.
@@ -471,7 +1195,16 @@ class SetAttribute(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: SetAttribute#getExpProcessor — pending T19/T20")
+        # If the ThreadLocal instance hasn't been created yet, create it now
+        if self.thread_exp_processor is None:
+            self.thread_exp_processor = cast("ThreadLocal", _ThreadLocalShim())
+        # If there's an expression, create the processor for it
+        shim = cast(_ThreadLocalShim, self.thread_exp_processor)
+        if self.expression is not None and shim.get() is None:
+            from synthea.helpers.expression_processor import ExpressionProcessor
+
+            shim.set(ExpressionProcessor(self.expression))
+        return self.thread_exp_processor
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: SetAttribute#initialize.
@@ -479,7 +1212,17 @@ class SetAttribute(State):
         Java overloads:
         (Module module, String name, JsonObject definition)
         """
-        raise NotImplementedError("Java: SetAttribute#initialize — pending T19/T20")
+        super().initialize(module, name, definition)
+        # special handling for integers
+        if isinstance(self.value, float):
+            double_val = self.value
+            if double_val.is_integer():  # Java: doubleVal == Math.rint(doubleVal)
+                self.value = int(double_val)
+        # Series data default period is 1.0s
+        if self.period <= 0.0:
+            self.period = 1.0
+        if self.distribution is not None and not self.distribution.validate():
+            raise RuntimeError(f"State {self.name} contains an invalid distribution")
 
     def clone(self) -> SetAttribute:
         """Java: SetAttribute#clone.
@@ -487,7 +1230,7 @@ class SetAttribute(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: SetAttribute#clone — pending T19/T20")
+        return cast(SetAttribute, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: SetAttribute#process.
@@ -495,11 +1238,56 @@ class SetAttribute(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: SetAttribute#process — pending T19/T20")
+        from synthea.helpers.expression_processor import ExpressionProcessor
+        from synthea.helpers.time_series_data import TimeSeriesData
+
+        exp_processor = cast(_ThreadLocalShim, self.get_exp_processor())
+        processor = exp_processor.get()
+        if processor is not None:
+            self.value = cast(ExpressionProcessor, processor).evaluate(
+                cast("ExpressionPerson", person), time
+            )
+        elif self.range is not None:
+            self.value = person.rand(
+                cast(float, self.range.low),
+                cast(float, self.range.high),
+                self.range.decimals,
+            )
+        elif self.series_data is not None:
+            items = self.series_data.split(" ")
+            data = TimeSeriesData(len(items), self.period)
+            for item in items:
+                try:
+                    data.add_value(parse_double(item))
+                except ValueError:
+                    raise RuntimeError(
+                        'unable to parse "'
+                        + item
+                        + '" in SetAttribute state for "'
+                        + self.attribute
+                        + '"'
+                    ) from None
+            self.value = data
+        elif self.distribution is not None:
+            self.value = self.distribution.generate(person)
+        elif self.value_code is not None:
+            self.value = self.value_code
+        elif self.value_attribute is not None and self.value_attribute in person.attributes:
+            # the module is setting an attribute to be the value of an
+            # existing attribute
+            self.value = person.attributes.get(self.value_attribute)
+
+        if self.value is not None:
+            person.attributes[self.attribute] = self.value
+        elif self.attribute in person.attributes:
+            # intentionally clear out the variable
+            person.attributes.pop(self.attribute, None)
+
+        return True
 
 
 class Counter(State):
-    """Java: Counter; pending T19/T20."""
+    """Java: Counter — increments or decrements a numeric attribute."""
 
     def __init__(self) -> None:
         """Java: Counter#Counter.
@@ -507,11 +1295,11 @@ class Counter(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.attribute: str
         self.action: str
         self.increment: bool
         self.amount: int
-        raise NotImplementedError("Java: Counter#Counter — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: Counter#initialize.
@@ -519,7 +1307,11 @@ class Counter(State):
         Java overloads:
         (Module module, String name, JsonObject definition)
         """
-        raise NotImplementedError("Java: Counter#initialize — pending T19/T20")
+        super().initialize(module, name, definition)
+        self.increment = self.action == "increment"
+        if self.amount == 0:
+            # default to 1 for legacy compatibility
+            self.amount = 1
 
     def clone(self) -> Counter:
         """Java: Counter#clone.
@@ -527,7 +1319,7 @@ class Counter(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Counter#clone — pending T19/T20")
+        return cast(Counter, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Counter#process.
@@ -535,7 +1327,14 @@ class Counter(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Counter#process — pending T19/T20")
+        counter = 0.0
+        if self.attribute in person.attributes:
+            # this parse as double from the string form is to handle cases
+            # where the attribute is either a Double or an Integer
+            counter = parse_double(str(person.attributes.get(self.attribute)))
+        counter = counter + self.amount if self.increment else counter - self.amount
+        person.attributes[self.attribute] = counter
+        return True
 
 
 class TelemedicinePossibility(StrEnum):
@@ -547,7 +1346,7 @@ class TelemedicinePossibility(StrEnum):
 
 
 class Encounter(State):
-    """Java: Encounter; pending T19/T20."""
+    """Java: Encounter."""
 
     def __init__(self) -> None:
         """Java: Encounter#Encounter.
@@ -555,12 +1354,12 @@ class Encounter(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.wellness: bool
         self.encounter_class: str
         self.codes: list[Code]
         self.reason: str
         self.telemedicine_possibility: str
-        raise NotImplementedError("Java: Encounter#Encounter — pending T19/T20")
 
     def clone(self) -> Encounter:
         """Java: Encounter#clone.
@@ -568,7 +1367,7 @@ class Encounter(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Encounter#clone — pending T19/T20")
+        return cast(Encounter, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Encounter#process.
@@ -576,7 +1375,95 @@ class Encounter(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Encounter#process — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        if self.wellness:
+            if person.has_current_encounter() and (
+                person.get_current_encounter_module() == EncounterModule.NAME
+            ):
+                encounter = person.record.current_encounter(time)
+                self.entry = encounter
+                active_key = EncounterModule.ACTIVE_WELLNESS_ENCOUNTER + " " + self.module.name
+                if active_key in person.attributes:
+                    # check-in with the activeKey...
+                    status = cast(bool, person.attributes.get(active_key))
+                    if status is False:
+                        # mark that we have used our active key
+                        person.attributes[active_key] = True
+                        self.diagnose_past_conditions(person, time)
+                        if (
+                            not encounter.chronic_meds_renewed
+                            and len(person.chronic_medications) > 0
+                        ):
+                            self.renew_chronic_medications_at_wellness(person, time)
+                            encounter.chronic_meds_renewed = True
+                        return True
+                    # We have looped back to the current wellness encounter,
+                    # so block until the NEXT wellness encounter
+                    return False
+                # We should no longer be in a wellness encounter
+                return False
+            # Block until we're in a wellness encounter... then proceed.
+            return False
+        if person.has_current_encounter():
+            if person.get_current_encounter_module() == self.module.name:
+                # This module has the lock, but the previous encounter was not released...
+                encounter = person.record.current_encounter(time)
+                prior_type = EncounterType.from_string(encounter.type)
+                person.record.encounter_end(time, prior_type)
+                person.release_current_encounter(time, self.module.name)
+            else:
+                # Block until the other module finishes their encounter...
+                return False
+        encounter_type: EncounterType
+        if self.telemedicine_possibility is not None and len(self.telemedicine_possibility) > 0:
+            possibility = TelemedicinePossibility[self.telemedicine_possibility.upper()]
+            if possibility is TelemedicinePossibility.POSSIBLE:
+                if Telemedicine.should_encounter_be_virtual(person, time):
+                    encounter_type = EncounterType.VIRTUAL
+                else:
+                    encounter_type = EncounterType.from_string(self.encounter_class)
+            elif possibility is TelemedicinePossibility.ALWAYS:
+                encounter_type = EncounterType.VIRTUAL
+            else:
+                # NONE, and the switch default
+                encounter_type = EncounterType.from_string(self.encounter_class)
+        else:
+            encounter_type = EncounterType.from_string(self.encounter_class)
+        specialty = ClinicianSpecialty.GENERAL_PRACTICE
+        if self.module.specialty is not None:
+            specialty = self.module.specialty
+        encounter = EncounterModule.create_encounter(
+            person, time, encounter_type, specialty, cast(Code, None), self.module.name
+        )
+        self.entry = encounter
+        if self.codes is not None:
+            encounter.merge_code_list(self.codes)
+        encounter.name = self.name
+
+        self.diagnose_past_conditions(person, time)
+
+        if self.reason is not None:
+            if self.reason in person.attributes:
+                value = person.attributes.get(self.reason)
+                if isinstance(value, Entry):
+                    encounter.reason = value.codes[0]
+                elif isinstance(value, Code):
+                    encounter.reason = value
+            elif person.had_prior_state(self.reason):
+                # loop through the present conditions, the condition "name" will match
+                # the name of the ConditionOnset state (aka "reason")
+                for present_entry in person.record.present.values():
+                    if self.reason == present_entry.name:
+                        encounter.reason = present_entry.codes[0]
+                        break
+            elif self.reason in self.module.get_state_names():
+                state = self.module.get_state(self.reason)
+                if state is not None and isinstance(state, ConditionOnset):
+                    encounter.reason = state.codes[0]
+
+        return True
 
     def diagnose_past_conditions(self, person: Person, time: int) -> None:
         """Java: Encounter#diagnosePastConditions.
@@ -584,7 +1471,17 @@ class Encounter(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Encounter#diagnosePastConditions — pending T19/T20")
+        assert person.history is not None
+        # reminder: history[0] is current state, history[size-1] is Initial
+        for state in person.history:
+            if isinstance(state, OnsetState):
+                onset = state
+
+                if not onset.diagnosed and self.name == onset.target_encounter:
+                    onset.diagnose(person, time)
+            elif isinstance(state, Encounter) and state is not self and state.name == self.name:
+                # a prior instance of hitting this same state. no need to go back any further
+                break
 
     def renew_chronic_medications_at_wellness(self, person: Person, time: int) -> None:
         """Java: Encounter#renewChronicMedicationsAtWellness.
@@ -592,9 +1489,58 @@ class Encounter(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError(
-            "Java: Encounter#renewChronicMedicationsAtWellness — pending T19/T20"
-        )
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        # note that this code has some child codes for various different reasons,
+        # eg "medical aim achieved", "ineffective", "avoid interaction", "side effect", etc
+        expired_code = Code("SNOMED-CT", "182840001", "Drug treatment stopped - medical advice")
+
+        # We keep track of the meds we renewed to add them to the chronic list later
+        # as we can't modify the list of chronic meds while iterating.
+        renewed_medications: list[Medication] = []
+
+        # Go through each chronic medication and "reorder"
+        for chronic_medication in list(person.chronic_medications.values()):
+            # RxNorm code
+            primary_code = chronic_medication.type
+
+            # Removes from Chronic List as well; but won't affect iterator.
+            person.record.medication_end(time, primary_code, expired_code)
+
+            # IMPORTANT: 3rd par is false to prevent modification of chronic meds
+            # list as we iterate over it According to the documentation, the
+            # results of modifying the array (x remove) are undefined
+            medication = person.record.medication_start(time, primary_code, False)
+
+            # Copy over the characteristics from old medication to new medication
+            medication.name = chronic_medication.name
+            medication.merge_code_list(chronic_medication.codes)
+            medication.reasons.extend(chronic_medication.reasons)
+            medication.prescription_details = chronic_medication.prescription_details
+            medication.administration = chronic_medication.administration
+            # NB: The next one isn't present. Normally done by
+            # person.record.medicationStart, but we are avoiding modifying the
+            # chronic meds list until we are done iterating
+            medication.chronic = True
+            medication.claim.assign_costs()
+
+            # increment number of prescriptions prescribed by respective hospital
+            medication_provider = person.get_current_provider(self.module.name)
+            if medication_provider is None:
+                # no provider associated with encounter or medication order
+                medication_provider = person.get_provider(EncounterType.WELLNESS, time)
+            year = Utilities.get_year(time)
+            medication_provider.increment_prescriptions(year)
+
+            renewed_medications.append(medication)
+
+        # Reinitialize the chronic meds list with the meds we just created
+        # Perhaps not technically necessary, as we can just keep the old ones
+        # around, but this is safer.
+        person.chronic_medications.clear()
+        for renewed_medication in renewed_medications:
+            person.chronic_medications[renewed_medication.type] = renewed_medication
 
     def is_wellness(self) -> bool:
         """Java: Encounter#isWellness.
@@ -602,11 +1548,11 @@ class Encounter(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Encounter#isWellness — pending T19/T20")
+        return self.wellness
 
 
 class EncounterEnd(State):
-    """Java: EncounterEnd; pending T19/T20."""
+    """Java: EncounterEnd."""
 
     def __init__(self) -> None:
         """Java: EncounterEnd#EncounterEnd.
@@ -614,8 +1560,8 @@ class EncounterEnd(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.discharge_disposition: Code
-        raise NotImplementedError("Java: EncounterEnd#EncounterEnd — pending T19/T20")
 
     def clone(self) -> EncounterEnd:
         """Java: EncounterEnd#clone.
@@ -623,7 +1569,7 @@ class EncounterEnd(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: EncounterEnd#clone — pending T19/T20")
+        return cast(EncounterEnd, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: EncounterEnd#process.
@@ -631,11 +1577,42 @@ class EncounterEnd(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: EncounterEnd#process — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        active_key = EncounterModule.ACTIVE_WELLNESS_ENCOUNTER + " " + self.module.name
+        if person.has_current_encounter() and (
+            person.get_current_encounter_module() == self.module.name
+        ):
+            encounter = person.record.current_encounter(time)
+            if encounter is not None:
+                encounter_type = EncounterType.from_string(encounter.type)
+                person.record.encounter_end(time, encounter_type)
+                encounter.discharge = self.discharge_disposition
+            # reset current provider hash
+            person.remove_current_provider(self.module.name)
+            person.release_current_encounter(time, self.module.name)
+            return True
+        if person.has_current_encounter() and (
+            person.get_current_encounter_module() == EncounterModule.NAME
+        ):
+            # exit the current wellness encounter
+            person.attributes.pop(active_key, None)
+            return True
+        if active_key in person.attributes:
+            # possibly due to wellness encounters crossing a time-step boundary,
+            # it is possible for the EncounterModule to end a wellness encounter
+            # while a module did not hit the EncounterEnd state yet...
+            # so, as a backup, we check for the presence of the activeKey...
+            person.attributes.pop(active_key, None)
+            return True
+        # trying to end an encounter when another module has the reservation
+        # returns false; with no reservation at all it returns true
+        return not person.has_current_encounter()
 
 
 class AttributeAssignableState(State):
-    """Java: AttributeAssignableState; pending T19/T20."""
+    """Java: AttributeAssignableState."""
 
     def __init__(self) -> None:
         """Java: AttributeAssignableState#AttributeAssignableState.
@@ -643,10 +1620,8 @@ class AttributeAssignableState(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.assign_to_attribute: str
-        raise NotImplementedError(
-            "Java: AttributeAssignableState#AttributeAssignableState — pending T19/T20"
-        )
 
     def should_assign_attribute(self) -> bool:
         """Java: AttributeAssignableState#shouldAssignAttribute.
@@ -654,13 +1629,11 @@ class AttributeAssignableState(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError(
-            "Java: AttributeAssignableState#shouldAssignAttribute — pending T19/T20"
-        )
+        return self.assign_to_attribute is not None and len(self.assign_to_attribute) > 0
 
 
 class OnsetState(AttributeAssignableState):
-    """Java: OnsetState; pending T19/T20."""
+    """Java: OnsetState."""
 
     def __init__(self) -> None:
         """Java: OnsetState#OnsetState.
@@ -668,10 +1641,10 @@ class OnsetState(AttributeAssignableState):
         Java overloads:
         ()
         """
+        super().__init__()
         self.diagnosed: bool
         self.codes: list[Code]
         self.target_encounter: str
-        raise NotImplementedError("Java: OnsetState#OnsetState — pending T19/T20")
 
     def clone(self) -> OnsetState:
         """Java: OnsetState#clone.
@@ -679,7 +1652,7 @@ class OnsetState(AttributeAssignableState):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: OnsetState#clone — pending T19/T20")
+        return cast(OnsetState, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: OnsetState#process.
@@ -687,7 +1660,31 @@ class OnsetState(AttributeAssignableState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: OnsetState#process — pending T19/T20")
+        assert self.module is not None
+        assert person.record is not None
+        self.update_onset_info(person, time)
+        encounter = None
+        if person.has_current_encounter() and (
+            person.get_current_encounter_module() == self.module.name
+        ):
+            encounter = person.record.current_encounter(time)
+        if (
+            self.target_encounter is None
+            or len(self.target_encounter.strip()) == 0
+            or (encounter is not None and self.target_encounter == encounter.name)
+        ):
+            self.diagnose(person, time)
+        elif self.should_assign_attribute():
+            # create a temporary coded entry to use for reference in the attribute,
+            # which will be replaced if the thing is diagnosed
+
+            def _coded_entry() -> Entry:
+                coded = Entry(time, self.codes[0].code)
+                coded.merge_code_list(self.codes)
+                return coded
+
+            person.attributes[self.assign_to_attribute] = person.record.new_entry(_coded_entry)
+        return True
 
     def update_onset_info(self, person: Person, time: int) -> None:
         """Java: OnsetState#updateOnsetInfo.
@@ -695,19 +1692,19 @@ class OnsetState(AttributeAssignableState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: OnsetState#updateOnsetInfo — pending T19/T20")
+        return
 
+    @abstractmethod
     def diagnose(self, person: Person, time: int) -> None:
         """Java: OnsetState#diagnose.
 
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: OnsetState#diagnose — pending T19/T20")
 
 
 class ConditionOnset(OnsetState):
-    """Java: ConditionOnset; pending T19/T20."""
+    """Java: ConditionOnset."""
 
     def __init__(self) -> None:
         """Java: ConditionOnset#ConditionOnset.
@@ -715,7 +1712,7 @@ class ConditionOnset(OnsetState):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: ConditionOnset#ConditionOnset — pending T19/T20")
+        super().__init__()
 
     def update_onset_info(self, person: Person, time: int) -> None:
         """Java: ConditionOnset#updateOnsetInfo.
@@ -723,7 +1720,12 @@ class ConditionOnset(OnsetState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: ConditionOnset#updateOnsetInfo — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert self.name is not None
+        person.get_onset_condition_record().on_condition_onset(
+            self.module.name, self.name, self.codes[0].display, time
+        )
 
     def diagnose(self, person: Person, time: int) -> None:
         """Java: ConditionOnset#diagnose.
@@ -731,11 +1733,20 @@ class ConditionOnset(OnsetState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: ConditionOnset#diagnose — pending T19/T20")
+        assert person.record is not None
+        primary_code = self.codes[0].code
+        self.entry = person.record.condition_start(time, primary_code)
+        self.entry.name = self.name
+        if self.codes is not None:
+            self.entry.merge_code_list(self.codes)
+        if self.should_assign_attribute():
+            person.attributes[self.assign_to_attribute] = self.entry
+
+        self.diagnosed = True
 
 
 class ConditionEnd(State):
-    """Java: ConditionEnd; pending T19/T20."""
+    """Java: ConditionEnd."""
 
     def __init__(self) -> None:
         """Java: ConditionEnd#ConditionEnd.
@@ -743,10 +1754,10 @@ class ConditionEnd(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.condition_onset: str
         self.referenced_by_attribute: str
-        raise NotImplementedError("Java: ConditionEnd#ConditionEnd — pending T19/T20")
 
     def clone(self) -> ConditionEnd:
         """Java: ConditionEnd#clone.
@@ -754,7 +1765,7 @@ class ConditionEnd(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: ConditionEnd#clone — pending T19/T20")
+        return cast(ConditionEnd, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: ConditionEnd#process.
@@ -762,11 +1773,37 @@ class ConditionEnd(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: ConditionEnd#process — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        if self.condition_onset is not None:
+            condition = person.get_onset_condition_record().get_condition_from_state(
+                self.module.name, self.condition_onset
+            )
+            if condition is not None:
+                person.get_onset_condition_record().on_condition_end(
+                    self.module.name, condition, time
+                )
+            person.record.condition_end_by_state(time, self.condition_onset)
+        elif self.referenced_by_attribute is not None:
+            condition = cast("Entry | None", person.attributes.get(self.referenced_by_attribute))
+            if condition is not None:
+                person.get_onset_condition_record().on_condition_end(
+                    self.module.name, cast(str, condition.codes[0].display), time
+                )
+                condition.stop = time
+                person.record.condition_end(time, condition.type)
+        elif self.codes is not None:
+            person.get_onset_condition_record().on_condition_end(
+                self.module.name, cast(str, self.codes[0].display), time
+            )
+            for code in self.codes:
+                person.record.condition_end(time, code.code)
+        return True
 
 
 class AllergyOnset(OnsetState):
-    """Java: AllergyOnset; pending T19/T20."""
+    """Java: AllergyOnset."""
 
     def __init__(self) -> None:
         """Java: AllergyOnset#AllergyOnset.
@@ -774,10 +1811,10 @@ class AllergyOnset(OnsetState):
         Java overloads:
         ()
         """
+        super().__init__()
         self.allergy_type: str
         self.category: str
         self.reactions: list[ReactionProbabilities]
-        raise NotImplementedError("Java: AllergyOnset#AllergyOnset — pending T19/T20")
 
     def diagnose(self, person: Person, time: int) -> None:
         """Java: AllergyOnset#diagnose.
@@ -785,11 +1822,31 @@ class AllergyOnset(OnsetState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: AllergyOnset#diagnose — pending T19/T20")
+        assert person.record is not None
+        primary_code = self.codes[0].code
+        self.entry = person.record.allergy_start(time, primary_code)
+        self.entry.name = self.name
+        self.entry.merge_code_list(self.codes)
+        allergy = self.entry
+        allergy.allergy_type = self.allergy_type
+        allergy.category = self.category
+
+        if self.should_assign_attribute():
+            person.attributes[self.assign_to_attribute] = self.entry
+
+        if self.reactions is not None and len(self.reactions) > 0:
+            reactions: JavaHashMap[Code, ReactionSeverity] = JavaHashMap()
+            for rp in self.reactions:
+                rs = rp.generate_severity(person)
+                if rs is not None:
+                    reactions[rp.get_reaction()] = rs
+            allergy.reactions = reactions
+
+        self.diagnosed = True
 
 
 class AllergyEnd(State):
-    """Java: AllergyEnd; pending T19/T20."""
+    """Java: AllergyEnd."""
 
     def __init__(self) -> None:
         """Java: AllergyEnd#AllergyEnd.
@@ -797,10 +1854,10 @@ class AllergyEnd(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.allergy_onset: str
         self.referenced_by_attribute: str
-        raise NotImplementedError("Java: AllergyEnd#AllergyEnd — pending T19/T20")
 
     def clone(self) -> AllergyEnd:
         """Java: AllergyEnd#clone.
@@ -808,7 +1865,7 @@ class AllergyEnd(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: AllergyEnd#clone — pending T19/T20")
+        return cast(AllergyEnd, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: AllergyEnd#process.
@@ -816,11 +1873,21 @@ class AllergyEnd(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: AllergyEnd#process — pending T19/T20")
+        assert person.record is not None
+        if self.allergy_onset is not None:
+            person.record.allergy_end_by_state(time, self.allergy_onset)
+        elif self.referenced_by_attribute is not None:
+            allergy = cast(Entry, person.attributes.get(self.referenced_by_attribute))
+            allergy.stop = time
+            person.record.allergy_end(time, allergy.type)
+        elif self.codes is not None:
+            for code in self.codes:
+                person.record.condition_end(time, code.code)
+        return True
 
 
 class MedicationOrder(AttributeAssignableState):
-    """Java: MedicationOrder; pending T19/T20."""
+    """Java: MedicationOrder."""
 
     def __init__(self) -> None:
         """Java: MedicationOrder#MedicationOrder.
@@ -828,12 +1895,12 @@ class MedicationOrder(AttributeAssignableState):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.reason: str
         self.prescription: dict[str, object]
         self.administration: bool
         self.chronic: bool
-        raise NotImplementedError("Java: MedicationOrder#MedicationOrder — pending T19/T20")
 
     def write_object(self, oos: IO[bytes]) -> None:
         """Java: MedicationOrder#writeObject.
@@ -841,7 +1908,7 @@ class MedicationOrder(AttributeAssignableState):
         Java overloads:
         (ObjectOutputStream oos)
         """
-        raise NotImplementedError("Java: MedicationOrder#writeObject — pending T19/T20")
+        raise NotImplementedError("Java serialization is out of scope")
 
     def read_object(self, ois: IO[bytes]) -> None:
         """Java: MedicationOrder#readObject.
@@ -849,7 +1916,7 @@ class MedicationOrder(AttributeAssignableState):
         Java overloads:
         (ObjectInputStream ois)
         """
-        raise NotImplementedError("Java: MedicationOrder#readObject — pending T19/T20")
+        raise NotImplementedError("Java serialization is out of scope")
 
     def clone(self) -> MedicationOrder:
         """Java: MedicationOrder#clone.
@@ -857,7 +1924,7 @@ class MedicationOrder(AttributeAssignableState):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: MedicationOrder#clone — pending T19/T20")
+        return cast(MedicationOrder, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: MedicationOrder#process.
@@ -865,7 +1932,30 @@ class MedicationOrder(AttributeAssignableState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: MedicationOrder#process — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        medication: Medication | None = None
+        create_prescription = True
+        primary_code = self.codes[0].code
+        if self.administration:
+            medication = person.record.medication_administration(time, primary_code)
+            self.apply_features(person, medication)
+
+            if not self.chronic:
+                create_prescription = False
+        if create_prescription:
+            medication = person.record.medication_start(time, primary_code, self.chronic)
+            self.apply_features(person, medication)
+        # increment number of prescriptions prescribed by respective hospital
+        medication_provider = person.get_current_provider(self.module.name)
+        if medication_provider is None:
+            # no provider associated with encounter or medication order
+            medication_provider = person.get_provider(EncounterType.WELLNESS, time)
+
+        year = Utilities.get_year(time)
+        medication_provider.increment_prescriptions(year)
+        return True
 
     def apply_features(self, person: Person, medication: Medication) -> None:
         """Java: MedicationOrder#applyFeatures.
@@ -873,13 +1963,40 @@ class MedicationOrder(AttributeAssignableState):
         Java overloads:
         (Person person, Medication medication)
         """
-        raise NotImplementedError("Java: MedicationOrder#applyFeatures — pending T19/T20")
+        assert self.module is not None
+        assert person.record is not None
+        self.entry = medication
+        medication.name = self.name
+        medication.merge_code_list(self.codes)
+        if self.should_assign_attribute():
+            person.attributes[self.assign_to_attribute] = medication
+        if self.reason is not None:
+            # "reason" is an attribute or stateName referencing a previous conditionOnset state
+            if self.reason in person.attributes:
+                condition = cast(Entry, person.attributes.get(self.reason))
+                medication.reasons.extend(condition.codes)
+            elif person.had_prior_state(self.reason):
+                # loop through the present conditions, the condition "name" will match
+                # the name of the ConditionOnset state (aka "reason")
+                for present_entry in person.record.present.values():
+                    if self.reason == present_entry.name:
+                        medication.reasons.extend(present_entry.codes)
+            elif self.reason in self.module.get_state_names():
+                state = self.module.get_state(self.reason)
+                if state is not None and isinstance(state, ConditionOnset):
+                    medication.reasons.extend(state.codes)
+        medication.prescription_details = self.prescription
+        medication.claim.assign_costs()
 
 
 class MedicationEnd(State):
-    """Java: MedicationEnd; pending T19/T20."""
+    """Java: MedicationEnd."""
 
-    EXPIRED: ClassVar[Code]  # Java initialization deferred to T19/T20.
+    # note that this code has some child codes for various different reasons,
+    # ex "medical aim achieved", "ineffective", "avoid interaction", "side effect", etc
+    EXPIRED: ClassVar[Code] = Code(
+        "SNOMED-CT", "182840001", "Drug treatment stopped - medical advice"
+    )
 
     def __init__(self) -> None:
         """Java: MedicationEnd#MedicationEnd.
@@ -887,10 +2004,10 @@ class MedicationEnd(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.medication_order: str
         self.referenced_by_attribute: str
-        raise NotImplementedError("Java: MedicationEnd#MedicationEnd — pending T19/T20")
 
     def clone(self) -> MedicationEnd:
         """Java: MedicationEnd#clone.
@@ -898,7 +2015,7 @@ class MedicationEnd(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: MedicationEnd#clone — pending T19/T20")
+        return cast(MedicationEnd, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: MedicationEnd#process.
@@ -906,11 +2023,23 @@ class MedicationEnd(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: MedicationEnd#process — pending T19/T20")
+        assert person.record is not None
+        if self.medication_order is not None:
+            person.record.medication_end_by_state(
+                time, self.medication_order, MedicationEnd.EXPIRED
+            )
+        elif self.referenced_by_attribute is not None:
+            medication = cast(Medication, person.attributes.get(self.referenced_by_attribute))
+            medication.stop = time
+            person.record.medication_end(time, medication.type, MedicationEnd.EXPIRED)
+        elif self.codes is not None:
+            for code in self.codes:
+                person.record.medication_end(time, code.code, MedicationEnd.EXPIRED)
+        return True
 
 
 class CarePlanStart(AttributeAssignableState):
-    """Java: CarePlanStart; pending T19/T20."""
+    """Java: CarePlanStart."""
 
     def __init__(self) -> None:
         """Java: CarePlanStart#CarePlanStart.
@@ -918,11 +2047,11 @@ class CarePlanStart(AttributeAssignableState):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.activities: list[Code]
         self.goals: list[dict[str, object]]
         self.reason: str
-        raise NotImplementedError("Java: CarePlanStart#CarePlanStart — pending T19/T20")
 
     def clone(self) -> CarePlanStart:
         """Java: CarePlanStart#clone.
@@ -930,7 +2059,7 @@ class CarePlanStart(AttributeAssignableState):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: CarePlanStart#clone — pending T19/T20")
+        return cast(CarePlanStart, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: CarePlanStart#process.
@@ -938,13 +2067,44 @@ class CarePlanStart(AttributeAssignableState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: CarePlanStart#process — pending T19/T20")
+        assert self.module is not None
+        assert person.record is not None
+        primary_code = self.codes[0].code
+        careplan = person.record.careplan_start(time, primary_code)
+        self.entry = careplan
+        careplan.name = self.name
+        careplan.merge_code_list(self.codes)
+
+        if self.activities is not None:
+            for activity in self.activities:
+                careplan.activities.add(activity)
+        if self.goals is not None:
+            for goal in self.goals:
+                careplan.goals.add(goal)
+        if self.reason is not None:
+            # "reason" is an attribute or stateName referencing a previous conditionOnset state
+            if self.reason in person.attributes:
+                condition = cast(Entry, person.attributes.get(self.reason))
+                careplan.reasons.extend(condition.codes)
+            elif person.had_prior_state(self.reason):
+                # loop through the present conditions, the condition "name" will match
+                # the name of the ConditionOnset state (aka "reason")
+                for present_entry in person.record.present.values():
+                    if self.reason == present_entry.name:
+                        careplan.merge_reason_list(present_entry.codes)
+            elif self.reason in self.module.get_state_names():
+                state = self.module.get_state(self.reason)
+                if state is not None and isinstance(state, ConditionOnset):
+                    careplan.reasons.extend(state.codes)
+        if self.should_assign_attribute():
+            person.attributes[self.assign_to_attribute] = careplan
+        return True
 
 
 class CarePlanEnd(State):
-    """Java: CarePlanEnd; pending T19/T20."""
+    """Java: CarePlanEnd."""
 
-    FINISHED: ClassVar[Code]  # Java initialization deferred to T19/T20.
+    FINISHED: ClassVar[Code] = Code("SNOMED-CT", "385658003", "Done")
 
     def __init__(self) -> None:
         """Java: CarePlanEnd#CarePlanEnd.
@@ -952,10 +2112,10 @@ class CarePlanEnd(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.careplan: str
         self.referenced_by_attribute: str
-        raise NotImplementedError("Java: CarePlanEnd#CarePlanEnd — pending T19/T20")
 
     def clone(self) -> CarePlanEnd:
         """Java: CarePlanEnd#clone.
@@ -963,7 +2123,7 @@ class CarePlanEnd(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: CarePlanEnd#clone — pending T19/T20")
+        return cast(CarePlanEnd, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: CarePlanEnd#process.
@@ -971,11 +2131,21 @@ class CarePlanEnd(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: CarePlanEnd#process — pending T19/T20")
+        assert person.record is not None
+        if self.careplan is not None:
+            person.record.careplan_end_by_state(time, self.careplan, CarePlanEnd.FINISHED)
+        elif self.referenced_by_attribute is not None:
+            careplan = cast("CarePlan", person.attributes.get(self.referenced_by_attribute))
+            careplan.stop = time
+            person.record.careplan_end(time, careplan.type, CarePlanEnd.FINISHED)
+        elif self.codes is not None:
+            for code in self.codes:
+                person.record.careplan_end(time, code.code, CarePlanEnd.FINISHED)
+        return True
 
 
 class Procedure(Delayable):
-    """Java: Procedure; pending T19/T20."""
+    """Java: Procedure."""
 
     def __init__(self) -> None:
         """Java: Procedure#Procedure.
@@ -983,6 +2153,7 @@ class Procedure(Delayable):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.reason: str
         self.duration: RangeWithUnit[int]
@@ -990,7 +2161,6 @@ class Procedure(Delayable):
         self.stop: int
         self.distribution: Distribution
         self.unit: str
-        raise NotImplementedError("Java: Procedure#Procedure — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: Procedure#initialize.
@@ -998,7 +2168,9 @@ class Procedure(Delayable):
         Java overloads:
         (Module module, String name, JsonObject definition)
         """
-        raise NotImplementedError("Java: Procedure#initialize — pending T19/T20")
+        super().initialize(module, name, definition)
+        if self.distribution is not None and not self.distribution.validate():
+            raise RuntimeError(f"State {self.name} contains an invalid distribution")
 
     def clone(self) -> Procedure:
         """Java: Procedure#clone.
@@ -1006,7 +2178,7 @@ class Procedure(Delayable):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Procedure#clone — pending T19/T20")
+        return cast(Procedure, super().clone())
 
     def end_of_delay(self, time: int, person: Person) -> int:
         """Java: Procedure#endOfDelay.
@@ -1014,7 +2186,9 @@ class Procedure(Delayable):
         Java overloads:
         (long time, Person person)
         """
-        raise NotImplementedError("Java: Procedure#endOfDelay — pending T19/T20")
+        if self.duration is None and self.distribution is None:
+            return time
+        return self.stop
 
     def process_once(self, person: Person, time: int) -> None:
         """Java: Procedure#processOnce.
@@ -1022,7 +2196,52 @@ class Procedure(Delayable):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Procedure#processOnce — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        primary_code = self.codes[0].code
+        procedure = person.record.procedure(time, primary_code)
+        self.entry = procedure
+        procedure.name = self.name
+        procedure.merge_code_list(self.codes)
+
+        if self.reason is not None:
+            # "reason" is an attribute or stateName referencing a previous conditionOnset state
+            if self.reason in person.attributes:
+                condition = cast(Entry, person.attributes.get(self.reason))
+                procedure.reasons.extend(condition.codes)
+            elif person.had_prior_state(self.reason):
+                # loop through the present conditions, the condition "name" will match
+                # the name of the ConditionOnset state (aka "reason")
+                for present_entry in person.record.present.values():
+                    if self.reason == present_entry.name:
+                        procedure.reasons.extend(present_entry.codes)
+            elif self.reason in self.module.get_state_names():
+                state = self.module.get_state(self.reason)
+                if state is not None and isinstance(state, ConditionOnset):
+                    procedure.reasons.extend(state.codes)
+        if (self.duration is not None or self.distribution is not None) and self.stop is None:
+            if self.duration is not None:
+                duration_val = person.rand(
+                    cast(float, self.duration.low), cast(float, self.duration.high)
+                )
+                procedure_duration_unit = cast(str, self.duration.unit)
+            else:
+                duration_val = self.distribution.generate(person)
+                procedure_duration_unit = self.unit
+            self.stop = procedure.start + Utilities.convert_time(
+                procedure_duration_unit, duration_val
+            )
+            procedure.stop = self.stop
+        # increment number of procedures by respective hospital
+        provider = person.get_current_provider(self.module.name)
+        if provider is None:  # no provider associated with encounter or procedure
+            provider = person.get_provider(EncounterType.WELLNESS, time)
+        year = Utilities.get_year(time)
+        provider.increment_procedures(year)
+
+        if self.assign_to_attribute is not None and len(self.assign_to_attribute) > 0:
+            person.attributes[self.assign_to_attribute] = procedure
 
 
 class VitalSign(LegacyStateWithUnitlessRV):
@@ -1034,12 +2253,12 @@ class VitalSign(LegacyStateWithUnitlessRV):
         Java overloads:
         ()
         """
+        super().__init__()
         self.vital_sign: ConceptVitalSign
         self.unit: str
         self.expression: str
         self.distribution: Distribution
         self.thread_exp_processor: ThreadLocal
-        raise NotImplementedError("Java: VitalSign#VitalSign — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: VitalSign#initialize.
@@ -1047,7 +2266,9 @@ class VitalSign(LegacyStateWithUnitlessRV):
         Java overloads:
         (Module module, String name, JsonObject definition)
         """
-        raise NotImplementedError("Java: VitalSign#initialize — pending T19/T20")
+        super().initialize(module, name, definition)
+        if self.distribution is not None and not self.distribution.validate():
+            raise RuntimeError(f"State {self.name} contains an invalid distribution")
 
     def get_exp_processor(self) -> ThreadLocal:
         """Java: VitalSign#getExpProcessor.
@@ -1055,7 +2276,14 @@ class VitalSign(LegacyStateWithUnitlessRV):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: VitalSign#getExpProcessor — pending T19/T20")
+        if self.thread_exp_processor is None:
+            self.thread_exp_processor = cast("ThreadLocal", _ThreadLocalShim())
+        shim = cast(_ThreadLocalShim, self.thread_exp_processor)
+        if self.expression is not None and shim.get() is None:
+            from synthea.helpers.expression_processor import ExpressionProcessor
+
+            shim.set(ExpressionProcessor(self.expression))
+        return self.thread_exp_processor
 
     def clone(self) -> VitalSign:
         """Java: VitalSign#clone.
@@ -1063,7 +2291,7 @@ class VitalSign(LegacyStateWithUnitlessRV):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: VitalSign#clone — pending T19/T20")
+        return cast(VitalSign, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: VitalSign#process.
@@ -1071,7 +2299,48 @@ class VitalSign(LegacyStateWithUnitlessRV):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: VitalSign#process — pending T19/T20")
+        from synthea.helpers.constant_value_generator import ConstantValueGenerator
+        from synthea.helpers.expression_processor import ExpressionProcessor
+        from synthea.helpers.random_value_generator import RandomValueGenerator
+
+        if self.is_legacy_gmf():
+            if self.exact is not None:
+                person.set_vital_sign(
+                    self.vital_sign,
+                    ConstantValueGenerator(
+                        cast("RandomSource", person), cast(float, self.exact.quantity)
+                    ),
+                )
+            elif self.range is not None:
+                person.set_vital_sign(
+                    self.vital_sign,
+                    RandomValueGenerator(
+                        cast("RandomSource", person),
+                        cast(float, self.range.low),
+                        cast(float, self.range.high),
+                    ),
+                )
+        else:
+            shim = cast(_ThreadLocalShim, self.get_exp_processor())
+            processor = shim.get()
+            if processor is not None:
+                value = cast(ExpressionProcessor, processor).evaluate(
+                    cast("ExpressionPerson", person), time
+                )
+                person.set_vital_sign(self.vital_sign, cast(float, value))
+            elif self.distribution is not None:
+                person.set_vital_sign(
+                    self.vital_sign,
+                    RandomValueGenerator(cast("RandomSource", person), self.distribution),
+                )
+            else:
+                raise RuntimeError(
+                    "VitalSign state has no exact quantity, distribution, expression"
+                    + " or low/high range: "
+                    + str(self)
+                )
+
+        return True
 
 
 class Observation(LegacyStateWithUnitlessRV):
@@ -1083,6 +2352,7 @@ class Observation(LegacyStateWithUnitlessRV):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.value_code: Code
         self.attribute: str
@@ -1094,7 +2364,6 @@ class Observation(LegacyStateWithUnitlessRV):
         self.expression: str
         self.distribution: Distribution
         self.thread_exp_processor: ThreadLocal
-        raise NotImplementedError("Java: Observation#Observation — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: Observation#initialize.
@@ -1102,7 +2371,8 @@ class Observation(LegacyStateWithUnitlessRV):
         Java overloads:
         (Module module, String name, JsonObject definition)
         """
-        raise NotImplementedError("Java: Observation#initialize — pending T19/T20")
+        super().initialize(module, name, definition)
+        self.validate(module, name)
 
     def validate(self, module: Module, name: str) -> None:
         """Java: Observation#validate.
@@ -1110,7 +2380,20 @@ class Observation(LegacyStateWithUnitlessRV):
         Java overloads:
         (Module module, String name)
         """
-        raise NotImplementedError("Java: Observation#validate — pending T19/T20")
+        # units are required when a numeric quantity is given
+        if (self.exact is not None or self.range is not None) and (
+            self.unit is None or self.unit.strip() == ""
+        ):
+            raise RuntimeError(
+                "Observations with numeric quantities must contain non-blank units. "
+                + 'Module "'
+                + str(module.name)
+                + '": State "'
+                + name
+                + '": Unit is missing, empty, or all whitespace'
+            )
+        if self.distribution is not None and not self.distribution.validate():
+            raise RuntimeError(f"State {self.name} contains an invalid distribution")
 
     def get_exp_processor(self) -> ThreadLocal:
         """Java: Observation#getExpProcessor.
@@ -1118,7 +2401,16 @@ class Observation(LegacyStateWithUnitlessRV):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Observation#getExpProcessor — pending T19/T20")
+        if self.thread_exp_processor is None:
+            self.thread_exp_processor = cast("ThreadLocal", _ThreadLocalShim())
+        shim = cast(_ThreadLocalShim, self.thread_exp_processor)
+        if self.expression is not None and shim.get() is None:
+            from synthea.helpers.expression_processor import ExpressionProcessor
+
+            shim.set(ExpressionProcessor(self.expression))
+        if self.attachment is not None:
+            self.attachment.validate()
+        return self.thread_exp_processor
 
     def clone(self) -> Observation:
         """Java: Observation#clone.
@@ -1126,7 +2418,7 @@ class Observation(LegacyStateWithUnitlessRV):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Observation#clone — pending T19/T20")
+        return cast(Observation, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Observation#process.
@@ -1134,7 +2426,55 @@ class Observation(LegacyStateWithUnitlessRV):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Observation#process — pending T19/T20")
+        from synthea.helpers.expression_processor import ExpressionProcessor
+
+        assert person.record is not None
+        primary_code = self.codes[0].code
+        value: object = None
+        if self.is_legacy_gmf():
+            if self.exact is not None:
+                value = self.exact.quantity
+            if self.range is not None:
+                value = person.rand(
+                    cast(float, self.range.low),
+                    cast(float, self.range.high),
+                    self.range.decimals,
+                )
+        else:
+            if self.distribution is not None:
+                value = self.distribution.generate(person)
+            elif self.attribute is not None:
+                value = person.attributes.get(self.attribute)
+            elif self.vital_sign is not None:
+                value = person.get_vital_sign(self.vital_sign, time)
+            elif self.value_code is not None:
+                value = self.value_code
+            elif (
+                self.thread_exp_processor is not None
+                and cast(_ThreadLocalShim, self.thread_exp_processor).get() is not None
+            ):
+                # Java reads the field directly here; it never calls
+                # getExpProcessor() from Observation#process.
+                processor = cast(_ThreadLocalShim, self.thread_exp_processor).get()
+                value = cast(ExpressionProcessor, processor).evaluate(
+                    cast("ExpressionPerson", person), time
+                )
+            elif self.sampled_data is not None:
+                # Capture the data lists from person attributes
+                self.sampled_data.set_series_data(person)
+                value = SampledData(self.sampled_data)
+            elif self.attachment is not None:
+                self.attachment.process(person)
+                value = Attachment(self.attachment)
+
+        observation = person.record.observation(time, primary_code, value)
+        self.entry = observation
+        observation.name = self.name
+        observation.merge_code_list(self.codes)
+        observation.category = self.category
+        observation.unit = self.unit
+
+        return True
 
 
 class ObservationGroup(State):
@@ -1146,9 +2486,9 @@ class ObservationGroup(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.observations: list[Observation]
-        raise NotImplementedError("Java: ObservationGroup#ObservationGroup — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: ObservationGroup#initialize.
@@ -1156,7 +2496,9 @@ class ObservationGroup(State):
         Java overloads:
         (Module module, String name, JsonObject definition)
         """
-        raise NotImplementedError("Java: ObservationGroup#initialize — pending T19/T20")
+        super().initialize(module, name, definition)
+        for observation in self.observations:
+            observation.validate(module, name)
 
     def clone(self) -> ObservationGroup:
         """Java: ObservationGroup#clone.
@@ -1164,7 +2506,12 @@ class ObservationGroup(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: ObservationGroup#clone — pending T19/T20")
+        clone = cast(ObservationGroup, super().clone())
+        # IMPORTANT: because each observation gets process()ed when the
+        # state gets processed, deep-clone the observations list (Java
+        # ObservationGroup#clone).
+        clone.observations = [o.clone() for o in self.observations]
+        return clone
 
 
 class MultiObservation(ObservationGroup):
@@ -1176,8 +2523,8 @@ class MultiObservation(ObservationGroup):
         Java overloads:
         ()
         """
+        super().__init__()
         self.category: str
-        raise NotImplementedError("Java: MultiObservation#MultiObservation — pending T19/T20")
 
     def clone(self) -> MultiObservation:
         """Java: MultiObservation#clone.
@@ -1185,7 +2532,7 @@ class MultiObservation(ObservationGroup):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: MultiObservation#clone — pending T19/T20")
+        return cast(MultiObservation, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: MultiObservation#process.
@@ -1193,7 +2540,17 @@ class MultiObservation(ObservationGroup):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: MultiObservation#process — pending T19/T20")
+        assert person.record is not None
+        for o in self.observations:
+            o.process(person, time)
+        primary_code = self.codes[0].code
+        observation = person.record.multi_observation(time, primary_code, len(self.observations))
+        self.entry = observation
+        observation.name = self.name
+        observation.merge_code_list(self.codes)
+        observation.category = self.category
+
+        return True
 
 
 class DiagnosticReport(ObservationGroup):
@@ -1205,7 +2562,7 @@ class DiagnosticReport(ObservationGroup):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: DiagnosticReport#DiagnosticReport — pending T19/T20")
+        super().__init__()
 
     def process(self, person: Person, time: int) -> bool:
         """Java: DiagnosticReport#process.
@@ -1213,7 +2570,35 @@ class DiagnosticReport(ObservationGroup):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: DiagnosticReport#process — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        if self.panel_already_recorded_at_this_time(person, time):
+            # Another module already recorded this panel at this exact instant during the
+            # current encounter, for example a submodule joining a wellness encounter (like
+            # the Veteran Hyperlipidemia initial workup). Recording it again would create a
+            # duplicate lab panel, which downstream systems reject.
+            # Note this is intentionally scoped to the same instant, not the whole encounter:
+            # some modules legitimately record the same panel repeatedly within one encounter
+            # (e.g. COVID-19 daily labs during a single inpatient stay).
+            # See https://github.com/synthetichealth/synthea/issues/1552
+            return True
+        for o in self.observations:
+            o.process(person, time)
+        primary_code = self.codes[0].code
+        report = person.record.report(time, primary_code, len(self.observations))
+        self.entry = report
+        report.name = self.name
+        report.merge_code_list(self.codes)
+
+        # increment number of labs by respective provider
+        provider = person.get_current_provider(self.module.name)
+        if provider is None:  # no provider associated with encounter or procedure
+            provider = person.get_provider(EncounterType.WELLNESS, time)
+        year = Utilities.get_year(time)
+        provider.increment_labs(year)
+
+        return True
 
     def panel_already_recorded_at_this_time(self, person: Person, time: int) -> bool:
         """Java: DiagnosticReport#panelAlreadyRecordedAtThisTime.
@@ -1221,9 +2606,17 @@ class DiagnosticReport(ObservationGroup):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError(
-            "Java: DiagnosticReport#panelAlreadyRecordedAtThisTime — pending T19/T20"
-        )
+        assert person.record is not None
+        encounter = person.record.current_encounter(time)
+        if encounter is None or encounter.reports is None:
+            return False
+        for report in encounter.reports:
+            if report.start != time:
+                continue
+            for code in self.codes:
+                if report.contains_code(code.code, code.system):
+                    return True
+        return False
 
 
 class ImagingStudy(State):
@@ -1235,11 +2628,11 @@ class ImagingStudy(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.procedure_code: Code
         self.series: list[HealthRecordSeries]
         self.min_number_series: int
         self.max_number_series: int
-        raise NotImplementedError("Java: ImagingStudy#ImagingStudy — pending T19/T20")
 
     def clone(self) -> ImagingStudy:
         """Java: ImagingStudy#clone.
@@ -1247,7 +2640,7 @@ class ImagingStudy(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: ImagingStudy#clone — pending T19/T20")
+        return cast(ImagingStudy, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: ImagingStudy#process.
@@ -1255,7 +2648,30 @@ class ImagingStudy(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: ImagingStudy#process — pending T19/T20")
+        assert person.record is not None
+        # Randomly pick number of series and instances if bounds were provided
+        # Don't modify the instance series as it gets reused - create a local copy
+        rng = cast("RandomNumberGenerator", person)
+        my_series = self.duplicate_series(rng, time)
+        self.duplicate_instances(rng, time, my_series)
+
+        # The modality code of the first series is a good approximation
+        # of the type of ImagingStudy this is
+        primary_modality = cast(Code, my_series[0].modality).code
+        self.entry = person.record.imaging_study(time, primary_modality, my_series)
+        # note the imagingStudy call will choose dicomUIDs,
+        # so they don't need to be selected here
+
+        # Add the procedure code to the ImagingStudy
+        primary_procedure_code = self.procedure_code.code
+        self.entry.codes.append(self.procedure_code)
+
+        # Also add the Procedure equivalent of this ImagingStudy to the patient's record
+        procedure = person.record.procedure(time, primary_procedure_code)
+        procedure.name = self.name
+        procedure.codes.append(self.procedure_code)
+        procedure.stop = procedure.start + 30 * 60_000
+        return True
 
     def duplicate_series(
         self, random: RandomNumberGenerator, time: int
@@ -1265,7 +2681,17 @@ class ImagingStudy(State):
         Java overloads:
         (RandomNumberGenerator random, long time)
         """
-        raise NotImplementedError("Java: ImagingStudy#duplicateSeries — pending T19/T20")
+        if (
+            self.min_number_series > 0
+            and self.max_number_series >= self.min_number_series
+            and len(self.series) > 0
+        ):
+            # Randomly pick the number of series in this study
+            number_of_series = int(random.rand(self.min_number_series, self.max_number_series + 1))
+            reference_series = self.series[0]
+            return [reference_series.clone() for _ in range(number_of_series)]
+        # Ensure series references are distinct (required if no. of instances is picked randomly)
+        return [s.clone() for s in self.series]
 
     def duplicate_instances(
         self, random: RandomNumberGenerator, time: int, my_series: list[HealthRecordSeries]
@@ -1275,7 +2701,22 @@ class ImagingStudy(State):
         Java overloads:
         (RandomNumberGenerator random, long time, List mySeries)
         """
-        raise NotImplementedError("Java: ImagingStudy#duplicateInstances — pending T19/T20")
+        for s in my_series:
+            instances = cast("list[Instance]", s.instances)
+            if (
+                s.min_number_instances > 0
+                and s.max_number_instances >= s.min_number_instances
+                and len(instances) > 0
+            ):
+                # Randomly pick the number of instances in this series
+                number_of_instances = int(
+                    random.rand(s.min_number_instances, s.max_number_instances + 1)
+                )
+                reference_instance = instances[0]
+                s.instances = [reference_instance.clone() for _ in range(number_of_instances)]
+            else:
+                # just clone whatever is there
+                s.instances = [instance.clone() for instance in instances]
 
 
 class Symptom(LegacyStateWithUnitlessRV):
@@ -1287,12 +2728,12 @@ class Symptom(LegacyStateWithUnitlessRV):
         Java overloads:
         ()
         """
+        super().__init__()
         self.symptom: str
         self.cause: str
         self.probability: float
         self.addressed: bool
         self.distribution: Distribution
-        raise NotImplementedError("Java: Symptom#Symptom — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: Symptom#initialize.
@@ -1300,7 +2741,14 @@ class Symptom(LegacyStateWithUnitlessRV):
         Java overloads:
         (Module module, String name, JsonObject definition)
         """
-        raise NotImplementedError("Java: Symptom#initialize — pending T19/T20")
+        super().initialize(module, name, definition)
+        if self.cause is None:
+            self.cause = module.name
+        if self.probability is None or self.probability > 1 or self.probability < 0:
+            self.probability = 1.0
+        self.addressed = False
+        if self.distribution is not None and not self.distribution.validate():
+            raise RuntimeError(f"State {self.name} contains an invalid distribution")
 
     def clone(self) -> Symptom:
         """Java: Symptom#clone.
@@ -1308,7 +2756,7 @@ class Symptom(LegacyStateWithUnitlessRV):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Symptom#clone — pending T19/T20")
+        return cast(Symptom, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Symptom#process.
@@ -1316,7 +2764,39 @@ class Symptom(LegacyStateWithUnitlessRV):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Symptom#process — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        # using the module name instead of the cause
+        if person.rand() <= self.probability:
+            if self.is_legacy_gmf():
+                if self.exact is not None:
+                    quantity = int(cast(float, self.exact.quantity))
+                    person.set_symptom(
+                        self.module.name, self.cause, self.symptom, time, quantity, self.addressed
+                    )
+                elif self.range is not None:
+                    person.set_symptom(
+                        self.module.name,
+                        self.cause,
+                        self.symptom,
+                        time,
+                        int(person.rand(cast(float, self.range.low), cast(float, self.range.high))),
+                        self.addressed,
+                    )
+            elif self.distribution is not None:
+                person.set_symptom(
+                    self.module.name,
+                    self.cause,
+                    self.symptom,
+                    time,
+                    int(self.distribution.generate(person)),
+                    self.addressed,
+                )
+            else:
+                person.set_symptom(
+                    self.module.name, self.cause, self.symptom, time, 0, self.addressed
+                )
+        return True
 
 
 class Device(AttributeAssignableState):
@@ -1328,10 +2808,10 @@ class Device(AttributeAssignableState):
         Java overloads:
         ()
         """
+        super().__init__()
         self.code: Code
         self.manufacturer: str
         self.model: str
-        raise NotImplementedError("Java: Device#Device — pending T19/T20")
 
     def clone(self) -> Device:
         """Java: Device#clone.
@@ -1339,7 +2819,7 @@ class Device(AttributeAssignableState):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Device#clone — pending T19/T20")
+        return cast(Device, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Device#process.
@@ -1347,7 +2827,17 @@ class Device(AttributeAssignableState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Device#process — pending T19/T20")
+        assert person.record is not None
+        device = person.record.device_implant(time, self.code.code)
+        device.name = self.name
+        device.codes.append(self.code)
+        device.manufacturer = self.manufacturer
+        device.model = self.model
+
+        if self.should_assign_attribute():
+            person.attributes[self.assign_to_attribute] = device
+
+        return True
 
 
 class DeviceEnd(State):
@@ -1359,10 +2849,10 @@ class DeviceEnd(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.device: str
         self.referenced_by_attribute: str
-        raise NotImplementedError("Java: DeviceEnd#DeviceEnd — pending T19/T20")
 
     def clone(self) -> DeviceEnd:
         """Java: DeviceEnd#clone.
@@ -1370,7 +2860,7 @@ class DeviceEnd(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: DeviceEnd#clone — pending T19/T20")
+        return cast(DeviceEnd, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: DeviceEnd#process.
@@ -1378,7 +2868,20 @@ class DeviceEnd(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: DeviceEnd#process — pending T19/T20")
+        assert person.record is not None
+        if self.device is not None:
+            person.record.device_remove_by_state(time, self.device)
+        elif self.referenced_by_attribute is not None:
+            device_entry = cast(
+                "DeviceEntry | None", person.attributes.get(self.referenced_by_attribute)
+            )
+            if device_entry is not None:
+                device_entry.stop = time
+                person.record.device_remove(time, device_entry.type)
+        elif self.codes is not None:
+            for code in self.codes:
+                person.record.device_remove(time, code.code)
+        return True
 
 
 class SupplyList(State):
@@ -1390,8 +2893,8 @@ class SupplyList(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.supplies: list[SupplyComponent]
-        raise NotImplementedError("Java: SupplyList#SupplyList — pending T19/T20")
 
     def clone(self) -> SupplyList:
         """Java: SupplyList#clone.
@@ -1399,7 +2902,7 @@ class SupplyList(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: SupplyList#clone — pending T19/T20")
+        return cast(SupplyList, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: SupplyList#process.
@@ -1407,7 +2910,10 @@ class SupplyList(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: SupplyList#process — pending T19/T20")
+        assert person.record is not None
+        for s in self.supplies:
+            person.record.use_supply(time, s.code, s.quantity)
+        return True
 
 
 class SupplyComponent:
@@ -1421,11 +2927,10 @@ class SupplyComponent:
         """
         self.code: HealthRecordCode
         self.quantity: int
-        raise NotImplementedError("Java: SupplyComponent#SupplyComponent — pending T19/T20")
 
 
 class Death(State):
-    """Java: Death; pending T19/T20."""
+    """Java: Death — records the person's death."""
 
     def __init__(self) -> None:
         """Java: Death#Death.
@@ -1433,12 +2938,12 @@ class Death(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.condition_onset: str
         self.referenced_by_attribute: str
         self.range: RangeWithUnit[float]
         self.exact: ExactWithUnit[float]
-        raise NotImplementedError("Java: Death#Death — pending T19/T20")
 
     def clone(self) -> Death:
         """Java: Death#clone.
@@ -1446,7 +2951,7 @@ class Death(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Death#clone — pending T19/T20")
+        return cast(Death, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Death#process.
@@ -1454,7 +2959,48 @@ class Death(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Death#process — pending T19/T20")
+        reason: Code | None = None
+        if self.codes is not None:
+            reason = self.codes[0]
+        elif self.condition_onset is not None:
+            if person.had_prior_state(self.condition_onset):
+                # loop through the present conditions, the condition
+                # "name" will match the name of the ConditionOnset state
+                # (aka "reason")
+                assert person.record is not None
+                for entry in person.record.present.values():
+                    if entry.name is not None and entry.name == self.condition_onset:
+                        reason = entry.codes[0]
+            elif self.condition_onset in self.module.get_state_names():
+                state = self.module.get_state(self.condition_onset)
+                if state is not None and isinstance(state, ConditionOnset):
+                    reason = state.codes[0]
+        elif self.referenced_by_attribute is not None:
+            entry = cast("Entry | None", person.attributes.get(self.referenced_by_attribute))
+            if entry is None:
+                # condition referenced but not yet diagnosed
+                raise RuntimeError(
+                    "Attribute '"
+                    + self.referenced_by_attribute
+                    + "' was referenced by state '"
+                    + str(self.name)
+                    + "' but not set"
+                )
+            reason = entry.codes[0]
+        if self.exact is not None:
+            time_of_death = time + Utilities.convert_time(
+                cast(str, self.exact.unit), cast(float, self.exact.quantity)
+            )
+            person.record_death(time_of_death, reason)
+            return True
+        elif self.range is not None:
+            duration = person.rand(cast(float, self.range.low), cast(float, self.range.high))
+            time_of_death = time + Utilities.convert_time(cast(str, self.range.unit), duration)
+            person.record_death(time_of_death, reason)
+            return True
+        else:
+            person.record_death(time, reason)
+            return True
 
 
 class Vaccine(State):
@@ -1466,9 +3012,9 @@ class Vaccine(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.series: int
         self.codes: list[Code]
-        raise NotImplementedError("Java: Vaccine#Vaccine — pending T19/T20")
 
     def clone(self) -> Vaccine:
         """Java: Vaccine#clone.
@@ -1476,7 +3022,7 @@ class Vaccine(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Vaccine#clone — pending T19/T20")
+        return cast(Vaccine, super().clone())
 
     def process(self, person: Person, time: int) -> bool:
         """Java: Vaccine#process.
@@ -1484,7 +3030,12 @@ class Vaccine(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Vaccine#process — pending T19/T20")
+        assert person.record is not None
+        entry = person.record.immunization(time, self.codes[0].display)
+        for code in self.codes:
+            entry.codes.append(code)
+        entry.series = self.series
+        return True
 
 
 setattr(State, "Initial", Initial)  # noqa: B010
