@@ -69,6 +69,17 @@ public class CSVExporterProbe {
     org.addRevenue(1234.5);
     Clinician clinician = new Clinician(42L, new DefaultRandomNumberGenerator(42L), 123L, org);
     clinician.attributes.put(Clinician.NAME, " Doctor,Name "); clinician.attributes.put(Person.COORDINATE, new Point2D.Double(-71.0, 42.0));
+    Clinician specialist = new Clinician(42L, new DefaultRandomNumberGenerator(43L), 124L, org);
+    specialist.attributes.put(Clinician.NAME, "Specialist");
+    specialist.attributes.put(Person.COORDINATE, new Point2D.Double(-71.0, 42.0));
+    org.clinicianMap.put("GENERAL", new ArrayList<>(List.of(clinician)));
+    org.clinicianMap.put("CARDIOLOGY", new ArrayList<>(List.of(specialist)));
+    Provider.clear();
+    Field registry = Provider.class.getDeclaredField("providerByUuid"); registry.setAccessible(true);
+    ((Map<String, Provider>) registry.get(null)).put(org.uuid, org);
+    Field payers = PayerManager.class.getDeclaredField("payers"); payers.setAccessible(true);
+    ((Map<Integer, Payer>) payers.get(null)).put(701, primary);
+    ((Map<Integer, Payer>) payers.get(null)).put(702, secondary);
     CSVExporter exporter = CSVExporter.getInstance();
     call(exporter, "init", new Class<?>[] {});
     for (int i = 0; i < 32; i++) {
@@ -93,6 +104,7 @@ public class CSVExporterProbe {
       Encounter e = p.record.encounterStart(eventTime, EncounterType.values()[i % EncounterType.values().length]);
       entry(e, "enc", i); if (i % 3 != 0) { e.provider = org; e.clinician = clinician; }
       org.institutional = i % 2 == 0;
+      org.incrementEncounters(EncounterType.WELLNESS, 2020);
       Entry c = p.record.conditionStart(eventTime, "condition"); entry(c, "condition", i);
       if (i % 2 == 0) { e.reason = c.codes.get(0); }
       Allergy a = p.record.allergyStart(eventTime, "allergy"); entry(a, "allergy", i);
@@ -143,11 +155,8 @@ public class CSVExporterProbe {
       // Split record exports must not duplicate patients.csv rows.
       call(exporter, "exportPatient", new Class<?>[] {Person.class, long.class}, p, TIME);
     }
-    call(exporter, "exportOrganization", new Class<?>[] {Provider.class, int.class}, org, 32);
-    call(exporter, "exportProvider", new Class<?>[] {Clinician.class, String.class}, clinician, org.uuid);
-    for (Payer payer : new Payer[] {primary, secondary, PayerManager.getNoInsurancePlan().getPayer()}) {
-      call(exporter, "exportPayer", new Class<?>[] {Payer.class}, payer);
-    }
+    exporter.exportOrganizationsAndProviders();
+    exporter.exportPayers();
     Field fm = CSVExporter.class.getDeclaredField("fileManager"); fm.setAccessible(true);
     for (String key : CSVConstants.HEADER_LINE_MAP.keySet()) {
       ((org.mitre.synthea.export.CSVFileManager) fm.get(exporter)).flushWriter(key);

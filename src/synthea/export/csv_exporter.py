@@ -14,6 +14,7 @@ from synthea.export.csv_file_manager import CSVFileManager
 from synthea.export.export_helper import ExportHelper
 from synthea.helpers.config import Config
 from synthea.helpers.utilities import Utilities
+from synthea.javacompat.collections import JavaHashMap
 from synthea.javacompat.numbers import double_to_string, idiv, to_int64
 from synthea.world.agents.clinician import Clinician
 from synthea.world.agents.payer_manager import PayerManager
@@ -113,7 +114,11 @@ class CSVExporter:
             )
             if total > 0:
                 self.export_organization(org, total)
-                for clinicians in org.clinician_map.values():
+                # Provider exposes a lookup dict; Java iterates its HashMap here.
+                providers: JavaHashMap[str, list[Clinician]] = JavaHashMap()
+                for specialty, clinicians in org.clinician_map.items():
+                    providers[specialty] = clinicians
+                for clinicians in providers.values():
                     for clinician in clinicians:
                         self.export_provider(clinician, org.get_resource_id())
             self.file_manager.flush_writer(CSVConstants.ORGANIZATION_KEY)

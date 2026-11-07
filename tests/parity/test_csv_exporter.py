@@ -102,6 +102,7 @@ def csv_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> object:
         "exporter.years_of_history": "0",
         "exporter.csv.include_quality_of_life_observations": "true",
     }
+    monkeypatch.setattr(Provider, "providerByUuid", JavaHashMap())
     monkeypatch.setattr(PayerManager, "payers", {})
     monkeypatch.setattr(PayerManager, "statesLoaded", set())
     for name in ("noInsurance", "planFinder"):
@@ -135,6 +136,13 @@ def scripted_population(exporter: CSVExporter) -> list[Person]:
     clinician = Clinician(42, DefaultRandomNumberGenerator(42), 123, org)
     clinician.attributes[Clinician.NAME] = " Doctor,Name "
     clinician.attributes[Person.COORDINATE] = Point2DDouble(-71.0, 42.0)
+    specialist = Clinician(42, DefaultRandomNumberGenerator(43), 124, org)
+    specialist.attributes[Clinician.NAME] = "Specialist"
+    specialist.attributes[Person.COORDINATE] = Point2DDouble(-71.0, 42.0)
+    org.clinician_map["GENERAL"] = [clinician]
+    org.clinician_map["CARDIOLOGY"] = [specialist]
+    Provider.providerByUuid[org.uuid] = org
+    PayerManager.payers[701], PayerManager.payers[702] = primary, secondary
     people = []
     for i in range(32):
         p = Person(42 + i)
@@ -174,6 +182,7 @@ def scripted_population(exporter: CSVExporter) -> list[Person]:
         if i % 3 != 0:
             e.provider, e.clinician = org, clinician
         org.institutional = i % 2 == 0
+        org.increment_encounters(EncounterType.WELLNESS, 2020)
         c = record.condition_start(event_time, "condition")
         entry(c, "condition", i)
         if i % 2 == 0:
@@ -246,10 +255,8 @@ def scripted_population(exporter: CSVExporter) -> list[Person]:
         exporter.export(p, TIME if i % 3 == 0 else TIME + 86400000)
         exporter.export_patient(p, TIME)
         people.append(p)
-    exporter.export_organization(org, 32)
-    exporter.export_provider(clinician, org.uuid)
-    for payer in (primary, secondary, PayerManager.get_no_insurance_plan().get_payer()):
-        exporter.export_payer(payer)
+    exporter.export_organizations_and_providers()
+    exporter.export_payers()
     for key in CSVConstants.HEADER_LINE_MAP:
         exporter.file_manager.flush_writer(key)
     return people
