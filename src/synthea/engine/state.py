@@ -65,6 +65,7 @@ if TYPE_CHECKING:
     from synthea.world.agents.person import Person
     from synthea.world.concepts.health_record import CarePlan, Instance, Medication
     from synthea.world.concepts.health_record import Code as HealthRecordCode
+    from synthea.world.concepts.health_record import Device as DeviceEntry
     from synthea.world.concepts.health_record import Series as HealthRecordSeries
     from synthea.world.concepts.vital_sign import VitalSign as ConceptVitalSign
 
@@ -2656,12 +2657,12 @@ class Symptom(LegacyStateWithUnitlessRV):
         Java overloads:
         ()
         """
+        super().__init__()
         self.symptom: str
         self.cause: str
         self.probability: float
         self.addressed: bool
         self.distribution: Distribution
-        raise NotImplementedError("Java: Symptom#Symptom — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: Symptom#initialize.
@@ -2692,7 +2693,39 @@ class Symptom(LegacyStateWithUnitlessRV):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Symptom#process — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        # using the module name instead of the cause
+        if person.rand() <= self.probability:
+            if self.is_legacy_gmf():
+                if self.exact is not None:
+                    quantity = int(cast(float, self.exact.quantity))
+                    person.set_symptom(
+                        self.module.name, self.cause, self.symptom, time, quantity, self.addressed
+                    )
+                elif self.range is not None:
+                    person.set_symptom(
+                        self.module.name,
+                        self.cause,
+                        self.symptom,
+                        time,
+                        int(person.rand(cast(float, self.range.low), cast(float, self.range.high))),
+                        self.addressed,
+                    )
+            elif self.distribution is not None:
+                person.set_symptom(
+                    self.module.name,
+                    self.cause,
+                    self.symptom,
+                    time,
+                    int(self.distribution.generate(person)),
+                    self.addressed,
+                )
+            else:
+                person.set_symptom(
+                    self.module.name, self.cause, self.symptom, time, 0, self.addressed
+                )
+        return True
 
 
 class Device(AttributeAssignableState):
@@ -2704,10 +2737,10 @@ class Device(AttributeAssignableState):
         Java overloads:
         ()
         """
+        super().__init__()
         self.code: Code
         self.manufacturer: str
         self.model: str
-        raise NotImplementedError("Java: Device#Device — pending T19/T20")
 
     def clone(self) -> Device:
         """Java: Device#clone.
@@ -2723,7 +2756,17 @@ class Device(AttributeAssignableState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Device#process — pending T19/T20")
+        assert person.record is not None
+        device = person.record.device_implant(time, self.code.code)
+        device.name = self.name
+        device.codes.append(self.code)
+        device.manufacturer = self.manufacturer
+        device.model = self.model
+
+        if self.should_assign_attribute():
+            person.attributes[self.assign_to_attribute] = device
+
+        return True
 
 
 class DeviceEnd(State):
@@ -2735,10 +2778,10 @@ class DeviceEnd(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.device: str
         self.referenced_by_attribute: str
-        raise NotImplementedError("Java: DeviceEnd#DeviceEnd — pending T19/T20")
 
     def clone(self) -> DeviceEnd:
         """Java: DeviceEnd#clone.
@@ -2754,7 +2797,20 @@ class DeviceEnd(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: DeviceEnd#process — pending T19/T20")
+        assert person.record is not None
+        if self.device is not None:
+            person.record.device_remove_by_state(time, self.device)
+        elif self.referenced_by_attribute is not None:
+            device_entry = cast(
+                "DeviceEntry | None", person.attributes.get(self.referenced_by_attribute)
+            )
+            if device_entry is not None:
+                device_entry.stop = time
+                person.record.device_remove(time, device_entry.type)
+        elif self.codes is not None:
+            for code in self.codes:
+                person.record.device_remove(time, code.code)
+        return True
 
 
 class SupplyList(State):
@@ -2766,8 +2822,8 @@ class SupplyList(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.supplies: list[SupplyComponent]
-        raise NotImplementedError("Java: SupplyList#SupplyList — pending T19/T20")
 
     def clone(self) -> SupplyList:
         """Java: SupplyList#clone.
@@ -2783,7 +2839,10 @@ class SupplyList(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: SupplyList#process — pending T19/T20")
+        assert person.record is not None
+        for s in self.supplies:
+            person.record.use_supply(time, s.code, s.quantity)
+        return True
 
 
 class SupplyComponent:
@@ -2797,7 +2856,6 @@ class SupplyComponent:
         """
         self.code: HealthRecordCode
         self.quantity: int
-        raise NotImplementedError("Java: SupplyComponent#SupplyComponent — pending T19/T20")
 
 
 class Death(State):
@@ -2883,9 +2941,9 @@ class Vaccine(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.series: int
         self.codes: list[Code]
-        raise NotImplementedError("Java: Vaccine#Vaccine — pending T19/T20")
 
     def clone(self) -> Vaccine:
         """Java: Vaccine#clone.
@@ -2901,7 +2959,12 @@ class Vaccine(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Vaccine#process — pending T19/T20")
+        assert person.record is not None
+        entry = person.record.immunization(time, self.codes[0].display)
+        for code in self.codes:
+            entry.codes.append(code)
+        entry.series = self.series
+        return True
 
 
 setattr(State, "Initial", Initial)  # noqa: B010
