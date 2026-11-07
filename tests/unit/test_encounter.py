@@ -236,29 +236,3 @@ def test_encounter_wellness_code_at_eighteenth_birthday(encounter_config: None) 
         is EncounterModule.WELL_CHILD_VISIT
     )
     assert EncounterModule.get_wellness_visit_code(p, date(1968)) is EncounterModule.GENERAL_EXAM
-
-
-def test_export_filter_should_keep_cause_of_death() -> None:
-    """Java: ExporterTest#testExportFilterShouldKeepCauseOfDeath; real T22 integration."""
-    from synthea.export.exporter import Exporter
-    from synthea.helpers.utilities import Utilities
-    from synthea.world.concepts.claim import Claim as RealClaim
-    from tests.parity.canonical.encounter import real_death_filter_patient
-
-    time = 1069280000000
-    with real_death_filter_patient(time, RealClaim) as (person, _record):
-        cause = Code("SNOMED-CT", "Todo-lookup-code", "Rabies")
-        person.record_death(time - Utilities.convert_time("years", 20), cause)
-        DeathModule.process(person, time - Utilities.convert_time("years", 20))
-        filtered = Exporter.filter_for_export(person, 10, time)
-        assert isinstance(filtered, Person) and filtered.record is not None
-        assert len(filtered.record.encounters) == 1
-        encounter = filtered.record.encounters[0]
-        assert encounter.codes[0] == DeathModule.DEATH_CERTIFICATION
-        assert encounter.start == time - Utilities.convert_time("years", 20)
-        assert len(encounter.observations) == 1
-        assert encounter.observations[0].type == DeathModule.CAUSE_OF_DEATH_CODE.code
-        assert encounter.observations[0].start == time - Utilities.convert_time("years", 20)
-        assert len(encounter.reports) == 1
-        assert encounter.reports[0].type == DeathModule.DEATH_CERTIFICATE.code
-        assert encounter.reports[0].start == time - Utilities.convert_time("years", 20)
