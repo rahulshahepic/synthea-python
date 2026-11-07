@@ -89,26 +89,27 @@ public class CSVExporterProbe {
         Map<Integer, Double> values = new HashMap<>(); values.put(2000, 0.75); values.put(2004, 1.005);
         p.attributes.put(metric, values);
       }
-      Encounter e = p.record.encounterStart(TIME, EncounterType.values()[i % EncounterType.values().length]);
+      long eventTime = i % 8 == 0 ? -315619200000L : TIME;
+      Encounter e = p.record.encounterStart(eventTime, EncounterType.values()[i % EncounterType.values().length]);
       entry(e, "enc", i); if (i % 3 != 0) { e.provider = org; e.clinician = clinician; }
       org.institutional = i % 2 == 0;
-      Entry c = p.record.conditionStart(TIME, "condition"); entry(c, "condition", i);
+      Entry c = p.record.conditionStart(eventTime, "condition"); entry(c, "condition", i);
       if (i % 2 == 0) { e.reason = c.codes.get(0); }
-      Allergy a = p.record.allergyStart(TIME, "allergy"); entry(a, "allergy", i);
+      Allergy a = p.record.allergyStart(eventTime, "allergy"); entry(a, "allergy", i);
       a.allergyType = "allergy"; a.category = "food";
       a.reactions = new HashMap<>();
       for (int j = 0; j < i % 4; j++) {
         a.reactions.put(code("reaction-" + j), ReactionSeverity.values()[j]);
       }
-      Observation o = p.record.observation(TIME, "observation", i % 2 == 0 ? 1.005 : "a,b\nc");
+      Observation o = p.record.observation(eventTime, "observation", i % 2 == 0 ? 1.005 : "a,b\nc");
       o.codes.add(code("observation")); o.category = "vital-signs"; o.unit = "mg";
-      Observation panel = p.record.observation(TIME, "panel", null);
+      Observation panel = p.record.observation(eventTime, "panel", null);
       panel.observations = new ArrayList<>();
-      Observation child = p.record.new Observation(TIME, "child", code("value"));
+      Observation child = p.record.new Observation(eventTime, "child", code("value"));
       child.codes.add(code("child")); panel.observations.add(child);
-      Procedure proc = p.record.procedure(TIME, "procedure"); entry(proc, "procedure", i);
+      Procedure proc = p.record.procedure(eventTime, "procedure"); entry(proc, "procedure", i);
       if (i % 2 == 0) { proc.reasons.add(code("reason")); }
-      Medication med = p.record.medicationStart(TIME, "medication", false); entry(med, "medication", i);
+      Medication med = p.record.medicationStart(eventTime, "medication", false); entry(med, "medication", i);
       med.prescriptionDetails = new com.google.gson.JsonObject();
       if (i % 3 == 0) { med.prescriptionDetails.addProperty("refills", i % 5); }
       else if (i % 3 == 1) {
@@ -116,11 +117,11 @@ public class CSVExporterProbe {
         dur.addProperty("unit", "days"); med.prescriptionDetails.add("duration", dur);
       }
       if (i % 2 == 0) { med.reasons.add(code("reason")); }
-      Immunization imm = p.record.immunization(TIME, "immunization"); entry(imm, "immunization", i);
-      CarePlan care = p.record.careplanStart(TIME, "care"); entry(care, "care", i);
+      Immunization imm = p.record.immunization(eventTime, "immunization"); entry(imm, "immunization", i);
+      CarePlan care = p.record.careplanStart(eventTime, "care"); entry(care, "care", i);
       care.codes.set(0, new Code("SNOMED-CT", "care", "Care plan"));
       if (i % 2 == 0) { care.reasons.add(code("reason")); }
-      ImagingStudy study = p.record.new ImagingStudy(p, TIME, "image"); study.codes.add(code("image"));
+      ImagingStudy study = p.record.new ImagingStudy(p, eventTime, "image"); study.codes.add(code("image"));
       for (int j = 0; j < 2; j++) {
         ImagingStudy.Series series = study.new Series(); series.dicomUid = "series-" + j;
         series.bodySite = new Code("SNOMED-CT", "body", "Body"); series.modality = new Code("DICOM", "CT", "CT");
@@ -132,8 +133,8 @@ public class CSVExporterProbe {
         study.series.add(series);
       }
       e.imagingStudies.add(study);
-      Device dev = p.record.deviceImplant(TIME, "device"); entry(dev, "device", i); dev.udi = "udi-123";
-      p.record.useSupply(TIME, code("supply"), i + 1);
+      Device dev = p.record.deviceImplant(eventTime, "device"); entry(dev, "device", i); dev.udi = "udi-123";
+      p.record.useSupply(eventTime, code("supply"), i + 1);
       costs(e.claim, i); costs(med.claim, i);
       if (i % 5 == 0) { p.attributes.put(Person.DEATHDATE, TIME + 1L); }
       if (i == 0) { pr.updateStopTime(0L); }

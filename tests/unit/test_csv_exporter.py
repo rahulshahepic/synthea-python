@@ -64,7 +64,9 @@ def test_csv_exporter_secondary_payer_columns_and_member_references(csv_config: 
             assert claim["HEALTHCARECLAIMTYPEID2"] == "0"
     assert with_secondary > 0
     members = {(r["PATIENT"], r["MEMBERID"]) for r in rows(csv_config, "payer_transitions")}
-    for transaction in rows(csv_config, "claims_transactions"):
+    transactions = rows(csv_config, "claims_transactions")
+    assert any(row["FROMDATE"] < "1970" for row in transactions)
+    for transaction in transactions:
         if transaction["PATIENTINSURANCEID"]:
             assert (transaction["PATIENTID"], transaction["PATIENTINSURANCEID"]) in members
 
@@ -228,3 +230,35 @@ def test_csv_exporter_qol_strict_cutoff_and_leap_birthday(csv_config: Path) -> N
     assert len(result) == 1
     # Calendar's first normalization moved the birthday to March 1, retained in the next year.
     assert result[0]["DATE"] == "2004-03-01T00:00:00Z"
+
+
+def test_csv_exporter_post_completion_utilization_and_payers(
+    csv_config: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Java: CSVExporter#exportOrganizationsAndProviders / exportPayers public entry points."""
+    from synthea.helpers.default_random_number_generator import DefaultRandomNumberGenerator
+    from synthea.javacompat.collections import JavaHashMap
+    from synthea.world.agents.clinician import Clinician
+    from synthea.world.agents.payer import Payer
+    from synthea.world.agents.provider import Provider
+
+    used, unused = Provider(), Provider()
+    used.uuid, unused.uuid = "used", "unused"
+    clinician = Clinician(42, DefaultRandomNumberGenerator(42), 123, used)
+    clinician.attributes[Person.COORDINATE] = Point2DDouble(0.0, 0.0)
+    used.clinician_map["general"] = [clinician]
+    used.increment_encounters(EncounterType.WELLNESS, 2020)
+    used.increment_encounters(EncounterType.EMERGENCY, 2021)
+    monkeypatch.setattr(
+        Provider, "providerByUuid", JavaHashMap({used.uuid: used, unused.uuid: unused})
+    )
+    payer = Payer("Private", 7, {"*"}, "PRIVATE")
+    monkeypatch.setattr(PayerManager, "payers", {7: payer})
+    PayerManager.load_no_insurance()
+    exporter = CSVExporter.get_instance()
+    exporter.export_organizations_and_providers()
+    exporter.export_payers()
+    assert [row["Id"] for row in rows(csv_config, "organizations")] == ["used"]
+    assert rows(csv_config, "organizations")[0]["UTILIZATION"] == "2"
+    assert [row["ORGANIZATION"] for row in rows(csv_config, "providers")] == ["used"]
+    assert [row["NAME"] for row in rows(csv_config, "payers")] == ["Private", "NO_INSURANCE"]

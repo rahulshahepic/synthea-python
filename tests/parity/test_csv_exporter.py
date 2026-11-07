@@ -90,7 +90,7 @@ def costs(claim: Claim, i: int) -> None:
 
 
 @pytest.fixture
-def csv_config(tmp_path: Path) -> object:
+def csv_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> object:
     """Java: CSVExporterTest#setUpExportDir; isolate global configuration and singleton."""
     keys = {
         "exporter.baseDirectory": str(tmp_path),
@@ -102,6 +102,10 @@ def csv_config(tmp_path: Path) -> object:
         "exporter.years_of_history": "0",
         "exporter.csv.include_quality_of_life_observations": "true",
     }
+    monkeypatch.setattr(PayerManager, "payers", {})
+    monkeypatch.setattr(PayerManager, "statesLoaded", set())
+    for name in ("noInsurance", "planFinder"):
+        monkeypatch.setattr(PayerManager, name, getattr(PayerManager, name, None), raising=False)
     old = {key: Config.get(key) for key in keys}
     previous = SingletonHolder.instance
     for key, value in keys.items():
@@ -164,32 +168,35 @@ def scripted_population(exporter: CSVExporter) -> list[Person]:
             p.attributes[metric] = values
         record = p.record
         assert record is not None
-        e = record.encounter_start(TIME, list(EncounterType)[i % len(EncounterType)])
+        event_time = -315619200000 if i % 8 == 0 else TIME  # 1960 encounters retain old member IDs
+        e = record.encounter_start(event_time, list(EncounterType)[i % len(EncounterType)])
         entry(e, "enc", i)
         if i % 3 != 0:
             e.provider, e.clinician = org, clinician
         org.institutional = i % 2 == 0
-        c = record.condition_start(TIME, "condition")
+        c = record.condition_start(event_time, "condition")
         entry(c, "condition", i)
         if i % 2 == 0:
             e.reason = c.codes[0]
-        a = record.allergy_start(TIME, "allergy")
+        a = record.allergy_start(event_time, "allergy")
         entry(a, "allergy", i)
         a.allergy_type, a.category, a.reactions = "allergy", "food", JavaHashMap()
         for j in range(i % 4):
             a.reactions[code(f"reaction-{j}")] = list(ReactionSeverity)[j]
-        o = record.observation(TIME, "observation", 1.005 if i % 2 == 0 else "a,b\nc")
+        o = record.observation(event_time, "observation", 1.005 if i % 2 == 0 else "a,b\nc")
         o.codes.append(code("observation"))
         o.category, o.unit = "vital-signs", "mg"
-        panel = record.observation(TIME, "panel", None)
-        child = record.new_entry(lambda: Observation(TIME, "child", code("value")))
+        panel = record.observation(event_time, "panel", None)
+        child = record.new_entry(
+            lambda event_time=event_time: Observation(event_time, "child", code("value"))
+        )
         child.codes.append(code("child"))
         panel.observations = [child]
-        proc = record.procedure(TIME, "procedure")
+        proc = record.procedure(event_time, "procedure")
         entry(proc, "procedure", i)
         if i % 2 == 0:
             proc.reasons.append(code("reason"))
-        med = record.medication_start(TIME, "medication", False)
+        med = record.medication_start(event_time, "medication", False)
         entry(med, "medication", i)
         med.prescription_details = {}
         if i % 3 == 0:
@@ -198,14 +205,16 @@ def scripted_population(exporter: CSVExporter) -> list[Person]:
             med.prescription_details["duration"] = {"quantity": 2, "unit": "days"}
         if i % 2 == 0:
             med.reasons.append(code("reason"))
-        imm = record.immunization(TIME, "immunization")
+        imm = record.immunization(event_time, "immunization")
         entry(imm, "immunization", i)
-        care = record.careplan_start(TIME, "care")
+        care = record.careplan_start(event_time, "care")
         entry(care, "care", i)
         care.codes[0] = Code("SNOMED-CT", "care", "Care plan")
         if i % 2 == 0:
             care.reasons.append(code("reason"))
-        study = record.new_entry(lambda p=p: ImagingStudy(p, TIME, "image"))
+        study = record.new_entry(
+            lambda p=p, event_time=event_time: ImagingStudy(p, event_time, "image")
+        )
         study.codes.append(code("image"))
         for j in range(2):
             series = Series()
@@ -221,10 +230,10 @@ def scripted_population(exporter: CSVExporter) -> list[Person]:
                 series.instances.append(inst)
             study.series.append(series)
         e.imaging_studies.append(study)
-        dev = record.device_implant(TIME, "device")
+        dev = record.device_implant(event_time, "device")
         entry(dev, "device", i)
         dev.udi = "udi-123"
-        record.use_supply(TIME, code("supply"), i + 1)
+        record.use_supply(event_time, code("supply"), i + 1)
         costs(e.claim, i)
         costs(med.claim, i)
         if i % 5 == 0:
