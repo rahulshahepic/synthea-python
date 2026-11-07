@@ -276,9 +276,11 @@ class _CallableLogic:
     """Adapter: a plain callable presented as the Java AttributeLogic interface."""
 
     def __init__(self, fn: Callable[[Person], bool]) -> None:
+        """Java: AttributeQualifier#AttributeQualifier (the AttributeLogic lambda)."""
         self._fn = fn
 
     def check_attribute_logic(self, person: Person) -> bool:
+        """Java: AttributeLogic#checkAttributeLogic."""
         return self._fn(person)
 
 

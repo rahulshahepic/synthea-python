@@ -31,6 +31,7 @@ import synthea.world.agents.person as person_module
 from synthea.helpers.simple_csv import SimpleCSV
 from synthea.javacompat import bigdecimal
 from synthea.javacompat.numbers import double_to_string
+from synthea.world.agents.payer_manager import PayerManager
 from synthea.world.agents.person import Person
 from synthea.world.concepts.claim import Claim, ClaimEntry
 from synthea.world.concepts.costs import Costs
@@ -416,6 +417,10 @@ def _claim_dead_case() -> str:
 
 def test_costs_claims(golden: Callable[[str], Path]) -> None:
     cases = _load_cases(golden)
+    # Java: CostsProbe.main calls PayerManager.loadNoInsurance() before all
+    # cases; the claim scenarios call coverage.setPlanToNoInsurance, which
+    # needs it. (Setup only — every comparison below is unchanged.)
+    PayerManager.load_no_insurance()
     builders = {
         "claims:encounter": _claim_encounter_case,
         "claims:medication": _claim_medication_case,

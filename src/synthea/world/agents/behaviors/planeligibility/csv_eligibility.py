@@ -35,9 +35,13 @@ class _IncomeThresholdEligibility:
     """Java: the anonymous IPlanEligibility for the INCOME_THRESHOLD column."""
 
     def __init__(self, input: str) -> None:
+        """Java: CSVEligibility#buildEligibilityOptions (INCOME_THRESHOLD lambda capture)."""
         self._input = input
 
     def is_person_eligible(self, person: Person, time: int) -> bool:
+        """Java: CSVEligibility#buildEligibilityOptions (INCOME_THRESHOLD anonymous
+        IPlanEligibility)#isPersonEligible.
+        """
         from synthea.world.agents.person import Person
 
         income = cast(int, person.attributes[Person.INCOME])
@@ -49,9 +53,13 @@ class _PovertyMultiplierEligibility:
     """Java: the anonymous IPlanEligibility for the POVERTY_MULTIPLIER column."""
 
     def __init__(self, input: str) -> None:
+        """Java: CSVEligibility#buildEligibilityOptions (POVERTY_MULTIPLIER lambda capture)."""
         self._input = input
 
     def is_person_eligible(self, person: Person, time: int) -> bool:
+        """Java: CSVEligibility#buildEligibilityOptions (POVERTY_MULTIPLIER anonymous
+        IPlanEligibility)#isPersonEligible.
+        """
         from synthea.world.agents.person import Person
 
         poverty_multiplier = parse_double(self._input)
@@ -65,9 +73,13 @@ class _AgeThresholdEligibility:
     """Java: the anonymous IPlanEligibility for the AGE_THRESHOLD column."""
 
     def __init__(self, input: str) -> None:
+        """Java: CSVEligibility#buildEligibilityOptions (AGE_THRESHOLD lambda capture)."""
         self._input = input
 
     def is_person_eligible(self, person: Person, time: int) -> bool:
+        """Java: CSVEligibility#buildEligibilityOptions (AGE_THRESHOLD anonymous
+        IPlanEligibility)#isPersonEligible.
+        """
         age = person.age_in_years(time)
         age_threshold = parse_int(self._input)
         return age >= age_threshold
@@ -77,9 +89,13 @@ class _AcceptanceLikelihoodEligibility:
     """Java: the anonymous IPlanEligibility for the ACCEPTANCE_LIKELIHOOD column."""
 
     def __init__(self, input: str) -> None:
+        """Java: CSVEligibility#buildEligibilityOptions (ACCEPTANCE_LIKELIHOOD lambda capture)."""
         self._input = input
 
     def is_person_eligible(self, person: Person, time: int) -> bool:
+        """Java: CSVEligibility#buildEligibilityOptions (ACCEPTANCE_LIKELIHOOD anonymous
+        IPlanEligibility)#isPersonEligible.
+        """
         acceptance_likelihood = parse_double(self._input)
         return person.rand() < acceptance_likelihood
 

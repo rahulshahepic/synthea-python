@@ -26,13 +26,16 @@ class PlanRecord:
         Java overloads:
         (long time, InsurancePlan plan, long nextEnrollmentPeriod)
         """
-        self.id: str | None = None
+        # Java: id, secondaryPlan, ownership and ownerName start out null.
+        # The T04 skeleton types them non-optional and merged code (T14's
+        # Claim) is written against that contract, so the nulls are cast.
+        self.id: str = cast("str", None)
         self.start: int = time
         self.stop: int = next_enrollment_period
         self.plan: InsurancePlan = plan
-        self.secondary_plan: InsurancePlan | None = None
-        self.ownership: str | None = None
-        self.owner_name: str | None = None
+        self.secondary_plan: InsurancePlan = cast("InsurancePlan", None)
+        self.ownership: str = cast("str", None)
+        self.owner_name: str = cast("str", None)
         self.covered_expenses: Decimal = Claim.ZERO_CENTS
         self.remaining_deductible: Decimal = plan.get_deductible()
         self.out_of_pocket_expenses: Decimal = Claim.ZERO_CENTS
@@ -46,10 +49,9 @@ class PlanRecord:
         """
         # Java dereferences secondaryPlan unconditionally (NullPointerException
         # if it was never set); CoverageRecord.setPlanAtTime always sets it.
-        secondary = cast("InsurancePlan", self.secondary_plan)
         premium_paid = bd.add(
             self.plan.pay_monthly_premium(employer_level, income),
-            secondary.pay_monthly_premium(employer_level, income),
+            self.secondary_plan.pay_monthly_premium(employer_level, income),
         )
         self.insurance_expenses = bd.add(self.insurance_expenses, premium_paid)
         return premium_paid
@@ -108,8 +110,7 @@ class PlanRecord:
         (BigDecimal coverage)
         """
         self.covered_expenses = bd.add(self.covered_expenses, coverage)
-        secondary = cast("InsurancePlan", self.secondary_plan)
-        secondary.add_covered_cost(coverage)
+        self.secondary_plan.add_covered_cost(coverage)
 
     def get_out_of_pocket_expenses(self) -> Decimal:
         """Java: PlanRecord#getOutOfPocketExpenses.
@@ -174,9 +175,9 @@ class PlanRecord:
             return
         if payer.is_no_insurance():
             # No owner for no insurance.
-            self.ownership = None
-            self.owner_name = None
-            self.id = None
+            self.ownership = cast("str", None)
+            self.owner_name = cast("str", None)
+            self.id = cast("str", None)
             return
         # New Id is required since this is not the same as the previous insurance.
         self.id = str(person.rand_uuid())
@@ -184,16 +185,16 @@ class PlanRecord:
             # If a person is a minor and is on government insurance, they own
             # their own insurance.
             self.ownership = "Self"
-            self.owner_name = cast("str | None", person.attributes.get(Person.NAME))
+            self.owner_name = cast("str", person.attributes.get(Person.NAME))
             return
         if age < 18:
             # If a person is a minor, their Guardian owns their health plan
             # unless it is government.
             self.ownership = "Guardian"
             if person.rand_boolean():
-                self.owner_name = cast("str | None", person.attributes.get(Person.NAME_MOTHER))
+                self.owner_name = cast("str", person.attributes.get(Person.NAME_MOTHER))
             else:
-                self.owner_name = cast("str | None", person.attributes.get(Person.NAME_FATHER))
+                self.owner_name = cast("str", person.attributes.get(Person.NAME_FATHER))
             return
         if (Person.MARITAL_STATUS in person.attributes) and person.attributes[
             Person.MARITAL_STATUS
@@ -215,11 +216,11 @@ class PlanRecord:
                 self.owner_name += cast("str", person.attributes[Person.LAST_NAME])
             else:
                 self.ownership = "Self"
-                self.owner_name = cast("str | None", person.attributes.get(Person.NAME))
+                self.owner_name = cast("str", person.attributes.get(Person.NAME))
             return
         # If a person is unmarried and over 18, they own their insurance.
         self.ownership = "Self"
-        self.owner_name = cast("str | None", person.attributes.get(Person.NAME))
+        self.owner_name = cast("str", person.attributes.get(Person.NAME))
 
     def get_start_time(self) -> int:
         """Java: PlanRecord#getStartTime.
@@ -245,7 +246,7 @@ class PlanRecord:
         """
         self.secondary_plan = secondary_plan
 
-    def get_secondary_plan(self) -> InsurancePlan | None:
+    def get_secondary_plan(self) -> InsurancePlan:
         """Java: PlanRecord#getSecondaryPlan.
 
         Java overloads:
