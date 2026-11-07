@@ -103,7 +103,7 @@ class EncounterModule(Module):
             time
         ) >= self.recommended_time_between_wellness_visits(person, time):
             code = self.get_wellness_visit_code(person, time)
-            encounter = self.create_encounter(
+            encounter = EncounterModule.create_encounter(
                 person,
                 time,
                 EncounterType.WELLNESS,
@@ -120,7 +120,7 @@ class EncounterModule(Module):
             if person.symptom_total() != person.attributes[self.LAST_VISIT_SYMPTOM_TOTAL]:
                 person.attributes[self.LAST_VISIT_SYMPTOM_TOTAL] = person.symptom_total()
                 person.address_largest_symptom()
-                encounter = self.create_encounter(
+                encounter = EncounterModule.create_encounter(
                     person,
                     time,
                     EncounterType.EMERGENCY,
@@ -137,7 +137,7 @@ class EncounterModule(Module):
             if person.symptom_total() != person.attributes[self.LAST_VISIT_SYMPTOM_TOTAL]:
                 person.attributes[self.LAST_VISIT_SYMPTOM_TOTAL] = person.symptom_total()
                 person.address_largest_symptom()
-                encounter = self.create_encounter(
+                encounter = EncounterModule.create_encounter(
                     person,
                     time,
                     EncounterType.URGENTCARE,
@@ -154,7 +154,7 @@ class EncounterModule(Module):
             if person.symptom_total() != person.attributes[self.LAST_VISIT_SYMPTOM_TOTAL]:
                 person.attributes[self.LAST_VISIT_SYMPTOM_TOTAL] = person.symptom_total()
                 person.address_largest_symptom()
-                encounter = self.create_encounter(
+                encounter = EncounterModule.create_encounter(
                     person,
                     time,
                     EncounterType.OUTPATIENT,
