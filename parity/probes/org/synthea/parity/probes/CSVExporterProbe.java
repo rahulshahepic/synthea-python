@@ -94,7 +94,7 @@ public class CSVExporterProbe {
           i % 4 == 2 ? supplement : PayerManager.getNoInsurancePlan());
       PlanRecord pr = p.coverage.getLastPlanRecord();
       pr.updateStopTime(TIME + 366L * 86400000L);
-  
+
       pr.incrementOutOfPocketExpenses(d("12.34")); pr.incrementPrimaryCoverage(d("56.78"));
       for (String metric : new String[] {"QALY", "DALY", "QOLS"}) {
         Map<Integer, Double> values = new HashMap<>(); values.put(2000, 0.75); values.put(2004, 1.005);
