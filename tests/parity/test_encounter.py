@@ -26,7 +26,7 @@ from synthea.world.concepts.claim import Claim
 from synthea.world.concepts.clinician_specialty import ClinicianSpecialty
 from synthea.world.concepts.employment import Employment
 from synthea.world.concepts.health_record import Code, EncounterType, Medication
-from tests.dependency_gate import Pending, report_pending, run_or_pending
+from tests.dependency_gate import Pending, pending_tasks, report_pending, run_or_pending
 from tests.parity.canonical.encounter import claim, person_snapshot
 
 WEEK = 604800000
@@ -73,7 +73,8 @@ def encounter_module_init_double(
 @pytest.fixture
 def module_constructor_double(monkeypatch: pytest.MonkeyPatch) -> None:
     """Component-only constructor plumbing; integration scenarios never use it."""
-    monkeypatch.setattr(Module, "__init__", encounter_module_init_double)
+    if "T19" in pending_tasks():
+        monkeypatch.setattr(Module, "__init__", encounter_module_init_double)
 
 
 def participants(
