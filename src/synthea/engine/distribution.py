@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Protocol, overload
 
 from synthea.javacompat.numbers import math_round
+from synthea.javacompat.random import _strict_log
 
 
 def _java_divide(numerator: float, denominator: float) -> float:
@@ -19,8 +20,11 @@ def _java_divide(numerator: float, denominator: float) -> float:
 
 
 def _java_log(value: float) -> float:
-    """Java: Math#log, returning IEEE special values instead of Python exceptions."""
-    return -math.inf if value == 0.0 else math.nan if value < 0.0 else math.log(value)
+    """Java: Math#log with the reference VM's _dlog intrinsic disabled (#66).
+
+    Reuse T01's fdlibm StrictMath.log; preserve IEEE zero, negative, NaN and infinity.
+    """
+    return -math.inf if value == 0.0 else math.nan if value < 0.0 else _strict_log(value)
 
 
 def _java_sqrt(value: float) -> float:
