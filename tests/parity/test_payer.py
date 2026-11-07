@@ -113,9 +113,12 @@ def payer_component_boundary(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     # All global configuration changes are scoped to this test.
     monkeypatch.setattr(Config, "properties", Config.properties.copy())
     Config.set("generate.payers.selection_behavior", "random")
+    monkeypatch.setattr(PayerManager, "payers", {})
+    monkeypatch.setattr(PayerManager, "statesLoaded", set())
+    monkeypatch.setattr(PayerManager, "planFinder", PayerManager.build_plan_finder(), raising=False)
+    monkeypatch.setattr(PayerManager, "noInsurance", None, raising=False)
     PayerManager.clear()
     yield
-    PayerManager.clear()
 
 
 def _dump_payer(payer: Payer) -> dict[str, object]:
@@ -162,6 +165,7 @@ def _plan(
     start: int = 0,
     end: int = (1 << 31) - 1,
     services: str = "*",
+    copay: Decimal = Decimal("25.00"),
 ) -> InsurancePlan:
     p = InsurancePlan(
         id,
@@ -169,7 +173,7 @@ def _plan(
         set(services.split(",")),
         Decimal("123.40"),
         Decimal("0.80"),
-        Decimal("25.00"),
+        copay,
         premium,
         Decimal("8700.00"),
         False,
@@ -197,6 +201,7 @@ def _strategies(i: int) -> dict[str, object]:
                 k == 2,
                 k % 2,
                 services="emergency" if k == 1 else "*",
+                copay=Decimal(str(25 + 50 * k) + ".00"),
             )
         )
     selected = []
@@ -276,17 +281,23 @@ def test_payer_real_eligibility_integration(golden) -> None:
         for line in (golden("PayerProbe") / "integration.jsonl").read_text().splitlines()
     ]
     results: list[object] = []
+    locations = {state: Location(state, None) for state in {row["state"] for row in rows}}
     assert len(rows) == 120
     for row in rows:
 
         def scenario(row=row) -> None:
             PayerManager.clear()
-            PayerManager.load_payers(Location(row["state"], None))
+            PayerManager.load_payers(locations[row["state"]])
             person = Person(row["i"] + 20)
             person.attributes[Person.INCOME] = (row["i"] % 6) * 20000
             person.attributes[Person.OCCUPATION_LEVEL] = (row["i"] % 3) * 0.25
             person.attributes[Person.BIRTHDATE] = 0
             person.attributes[Person.GENDER] = "M"
+            person.coverage.set_plan_to_no_insurance(0)
+            for year in range(1971, 2021):
+                t = Utilities.convert_calendar_years_to_time(year)
+                person.coverage.new_enrollment_period(t)
+                person.coverage.set_plan_to_no_insurance(t)
             plans = PayerManager.get_active_plans(PayerManager.get_all_payers(), TIME)
             assert [p.accepts(person, TIME) for p in plans] == row["accepts"]
 

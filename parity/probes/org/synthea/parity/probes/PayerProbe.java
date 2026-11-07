@@ -23,7 +23,7 @@ public class PayerProbe {
   static InsurancePlan plan(int id, Payer payer, BigDecimal premium, boolean income,
                             int priority, int start, int end, String services) {
     InsurancePlan p = new InsurancePlan(id,payer,new HashSet<>(Arrays.asList(services.split(","))),
-      new BigDecimal("123.40"),new BigDecimal("0.80"),new BigDecimal("25.00"),premium,
+      new BigDecimal("123.40"),new BigDecimal("0.80"),new BigDecimal((25+50*(id%4))+".00"),premium,
       new BigDecimal("8700.00"),false,false,income,start,end,priority,"GENERIC");
     payer.addPlan(p);return p;
   }
@@ -120,6 +120,11 @@ public class PayerProbe {
         List<InsurancePlan> plans=PayerManager.getActivePlans(PayerManager.getAllPayers(),TIME);
         for(int i=0;i<40;i++){
           Person p=person(i+20,i);p.attributes.put(Person.GENDER,"M");
+          p.coverage.setPlanToNoInsurance(0L);
+          for (int year=1971;year<=2020;year++) {
+            long t=Utilities.convertCalendarYearsToTime(year);
+            p.coverage.newEnrollmentPeriod(t);p.coverage.setPlanToNoInsurance(t);
+          }
           JsonObject o=new JsonObject();o.addProperty("state",state);o.addProperty("i",i);
           JsonArray a=new JsonArray();
           for(InsurancePlan plan:plans)a.add(plan.accepts(p,TIME));

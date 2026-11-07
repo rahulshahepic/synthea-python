@@ -394,7 +394,11 @@ class Payer:
         """
         years = self.get_num_years_covered()
         if years == 0:
-            return math.nan if self.total_qols == 0.0 else math.copysign(math.inf, self.total_qols)
+            return (
+                math.nan
+                if self.total_qols == 0.0 or math.isnan(self.total_qols)
+                else math.copysign(math.inf, self.total_qols)
+            )
         return self.total_qols / years
 
     def hash_code(self) -> int:
