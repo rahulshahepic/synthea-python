@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import sys
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, ClassVar, cast
@@ -667,7 +668,8 @@ class LifecycleModule(Module):
             age = person.age_in_years(time)
             female = person.attributes.get(Person.GENDER) == "F"
             weight = person.get_vital_sign(VitalSign.WEIGHT, time)
-            crcl = max(1.0, min(crcl, 100.0))
+            if not math.isnan(crcl):
+                crcl = max(1.0, min(crcl, 100.0))
             creatinine = ((140.0 - age) * weight) / (72.0 * crcl)
             if female:
                 creatinine *= 0.85
