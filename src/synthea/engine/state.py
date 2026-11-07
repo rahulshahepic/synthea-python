@@ -73,6 +73,7 @@ class _ThreadLocalShim:
     """Single-threaded stand-in for Java ``ThreadLocal<ExpressionProcessor>``."""
 
     def __init__(self) -> None:
+        """Java: ThreadLocal#ThreadLocal (single-threaded stand-in)."""
         self._value: object = None
 
     def get(self) -> object:
