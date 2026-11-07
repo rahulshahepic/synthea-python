@@ -25,7 +25,7 @@ from synthea.engine.components import (
     RangeWithUnit,
     SampledData,
 )
-from synthea.engine.distribution import Distribution
+from synthea.engine.distribution import Distribution, RandomSource
 from synthea.engine.distribution import Kind as _DistributionKind
 from synthea.engine.logic import Logic
 from synthea.engine.transition import (
@@ -63,7 +63,7 @@ if TYPE_CHECKING:
     from synthea.helpers.expression_processor import ExpressionPerson
     from synthea.helpers.random_number_generator import RandomNumberGenerator
     from synthea.world.agents.person import Person
-    from synthea.world.concepts.health_record import CarePlan, Medication
+    from synthea.world.concepts.health_record import CarePlan, Instance, Medication
     from synthea.world.concepts.health_record import Code as HealthRecordCode
     from synthea.world.concepts.health_record import Series as HealthRecordSeries
     from synthea.world.concepts.vital_sign import VitalSign as ConceptVitalSign
@@ -2073,7 +2073,7 @@ class CarePlanEnd(State):
 
 
 class Procedure(Delayable):
-    """Java: Procedure; pending T19/T20."""
+    """Java: Procedure."""
 
     def __init__(self) -> None:
         """Java: Procedure#Procedure.
@@ -2081,6 +2081,7 @@ class Procedure(Delayable):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.reason: str
         self.duration: RangeWithUnit[int]
@@ -2088,7 +2089,6 @@ class Procedure(Delayable):
         self.stop: int
         self.distribution: Distribution
         self.unit: str
-        raise NotImplementedError("Java: Procedure#Procedure — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: Procedure#initialize.
@@ -2114,7 +2114,9 @@ class Procedure(Delayable):
         Java overloads:
         (long time, Person person)
         """
-        raise NotImplementedError("Java: Procedure#endOfDelay — pending T19/T20")
+        if self.duration is None and self.distribution is None:
+            return time
+        return self.stop
 
     def process_once(self, person: Person, time: int) -> None:
         """Java: Procedure#processOnce.
@@ -2122,7 +2124,52 @@ class Procedure(Delayable):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Procedure#processOnce — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        primary_code = self.codes[0].code
+        procedure = person.record.procedure(time, primary_code)
+        self.entry = procedure
+        procedure.name = self.name
+        procedure.merge_code_list(self.codes)
+
+        if self.reason is not None:
+            # "reason" is an attribute or stateName referencing a previous conditionOnset state
+            if self.reason in person.attributes:
+                condition = cast(Entry, person.attributes.get(self.reason))
+                procedure.reasons.extend(condition.codes)
+            elif person.had_prior_state(self.reason):
+                # loop through the present conditions, the condition "name" will match
+                # the name of the ConditionOnset state (aka "reason")
+                for present_entry in person.record.present.values():
+                    if self.reason == present_entry.name:
+                        procedure.reasons.extend(present_entry.codes)
+            elif self.reason in self.module.get_state_names():
+                state = self.module.get_state(self.reason)
+                if state is not None and isinstance(state, ConditionOnset):
+                    procedure.reasons.extend(state.codes)
+        if (self.duration is not None or self.distribution is not None) and self.stop is None:
+            if self.duration is not None:
+                duration_val = person.rand(
+                    cast(float, self.duration.low), cast(float, self.duration.high)
+                )
+                procedure_duration_unit = cast(str, self.duration.unit)
+            else:
+                duration_val = self.distribution.generate(person)
+                procedure_duration_unit = self.unit
+            self.stop = procedure.start + Utilities.convert_time(
+                procedure_duration_unit, duration_val
+            )
+            procedure.stop = self.stop
+        # increment number of procedures by respective hospital
+        provider = person.get_current_provider(self.module.name)
+        if provider is None:  # no provider associated with encounter or procedure
+            provider = person.get_provider(EncounterType.WELLNESS, time)
+        year = Utilities.get_year(time)
+        provider.increment_procedures(year)
+
+        if self.assign_to_attribute is not None and len(self.assign_to_attribute) > 0:
+            person.attributes[self.assign_to_attribute] = procedure
 
 
 class VitalSign(LegacyStateWithUnitlessRV):
@@ -2134,12 +2181,12 @@ class VitalSign(LegacyStateWithUnitlessRV):
         Java overloads:
         ()
         """
+        super().__init__()
         self.vital_sign: ConceptVitalSign
         self.unit: str
         self.expression: str
         self.distribution: Distribution
         self.thread_exp_processor: ThreadLocal
-        raise NotImplementedError("Java: VitalSign#VitalSign — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: VitalSign#initialize.
@@ -2180,7 +2227,48 @@ class VitalSign(LegacyStateWithUnitlessRV):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: VitalSign#process — pending T19/T20")
+        from synthea.helpers.constant_value_generator import ConstantValueGenerator
+        from synthea.helpers.expression_processor import ExpressionProcessor
+        from synthea.helpers.random_value_generator import RandomValueGenerator
+
+        if self.is_legacy_gmf():
+            if self.exact is not None:
+                person.set_vital_sign(
+                    self.vital_sign,
+                    ConstantValueGenerator(
+                        cast("RandomSource", person), cast(float, self.exact.quantity)
+                    ),
+                )
+            elif self.range is not None:
+                person.set_vital_sign(
+                    self.vital_sign,
+                    RandomValueGenerator(
+                        cast("RandomSource", person),
+                        cast(float, self.range.low),
+                        cast(float, self.range.high),
+                    ),
+                )
+        else:
+            shim = cast(_ThreadLocalShim, self.get_exp_processor())
+            processor = shim.get()
+            if processor is not None:
+                value = cast(ExpressionProcessor, processor).evaluate(
+                    cast("ExpressionPerson", person), time
+                )
+                person.set_vital_sign(self.vital_sign, cast(float, value))
+            elif self.distribution is not None:
+                person.set_vital_sign(
+                    self.vital_sign,
+                    RandomValueGenerator(cast("RandomSource", person), self.distribution),
+                )
+            else:
+                raise RuntimeError(
+                    "VitalSign state has no exact quantity, distribution, expression"
+                    + " or low/high range: "
+                    + str(self)
+                )
+
+        return True
 
 
 class Observation(LegacyStateWithUnitlessRV):
@@ -2192,6 +2280,7 @@ class Observation(LegacyStateWithUnitlessRV):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.value_code: Code
         self.attribute: str
@@ -2203,7 +2292,6 @@ class Observation(LegacyStateWithUnitlessRV):
         self.expression: str
         self.distribution: Distribution
         self.thread_exp_processor: ThreadLocal
-        raise NotImplementedError("Java: Observation#Observation — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: Observation#initialize.
@@ -2266,7 +2354,55 @@ class Observation(LegacyStateWithUnitlessRV):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Observation#process — pending T19/T20")
+        from synthea.helpers.expression_processor import ExpressionProcessor
+
+        assert person.record is not None
+        primary_code = self.codes[0].code
+        value: object = None
+        if self.is_legacy_gmf():
+            if self.exact is not None:
+                value = self.exact.quantity
+            if self.range is not None:
+                value = person.rand(
+                    cast(float, self.range.low),
+                    cast(float, self.range.high),
+                    self.range.decimals,
+                )
+        else:
+            if self.distribution is not None:
+                value = self.distribution.generate(person)
+            elif self.attribute is not None:
+                value = person.attributes.get(self.attribute)
+            elif self.vital_sign is not None:
+                value = person.get_vital_sign(self.vital_sign, time)
+            elif self.value_code is not None:
+                value = self.value_code
+            elif (
+                self.thread_exp_processor is not None
+                and cast(_ThreadLocalShim, self.thread_exp_processor).get() is not None
+            ):
+                # Java reads the field directly here; it never calls
+                # getExpProcessor() from Observation#process.
+                processor = cast(_ThreadLocalShim, self.thread_exp_processor).get()
+                value = cast(ExpressionProcessor, processor).evaluate(
+                    cast("ExpressionPerson", person), time
+                )
+            elif self.sampled_data is not None:
+                # Capture the data lists from person attributes
+                self.sampled_data.set_series_data(person)
+                value = SampledData(self.sampled_data)
+            elif self.attachment is not None:
+                self.attachment.process(person)
+                value = Attachment(self.attachment)
+
+        observation = person.record.observation(time, primary_code, value)
+        self.entry = observation
+        observation.name = self.name
+        observation.merge_code_list(self.codes)
+        observation.category = self.category
+        observation.unit = self.unit
+
+        return True
 
 
 class ObservationGroup(State):
@@ -2278,9 +2414,9 @@ class ObservationGroup(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.observations: list[Observation]
-        raise NotImplementedError("Java: ObservationGroup#ObservationGroup — pending T19/T20")
 
     def initialize(self, module: Module, name: str, definition: dict[str, object]) -> None:
         """Java: ObservationGroup#initialize.
@@ -2315,8 +2451,8 @@ class MultiObservation(ObservationGroup):
         Java overloads:
         ()
         """
+        super().__init__()
         self.category: str
-        raise NotImplementedError("Java: MultiObservation#MultiObservation — pending T19/T20")
 
     def clone(self) -> MultiObservation:
         """Java: MultiObservation#clone.
@@ -2332,7 +2468,17 @@ class MultiObservation(ObservationGroup):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: MultiObservation#process — pending T19/T20")
+        assert person.record is not None
+        for o in self.observations:
+            o.process(person, time)
+        primary_code = self.codes[0].code
+        observation = person.record.multi_observation(time, primary_code, len(self.observations))
+        self.entry = observation
+        observation.name = self.name
+        observation.merge_code_list(self.codes)
+        observation.category = self.category
+
+        return True
 
 
 class DiagnosticReport(ObservationGroup):
@@ -2344,7 +2490,7 @@ class DiagnosticReport(ObservationGroup):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: DiagnosticReport#DiagnosticReport — pending T19/T20")
+        super().__init__()
 
     def process(self, person: Person, time: int) -> bool:
         """Java: DiagnosticReport#process.
@@ -2352,7 +2498,35 @@ class DiagnosticReport(ObservationGroup):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: DiagnosticReport#process — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        if self.panel_already_recorded_at_this_time(person, time):
+            # Another module already recorded this panel at this exact instant during the
+            # current encounter, for example a submodule joining a wellness encounter (like
+            # the Veteran Hyperlipidemia initial workup). Recording it again would create a
+            # duplicate lab panel, which downstream systems reject.
+            # Note this is intentionally scoped to the same instant, not the whole encounter:
+            # some modules legitimately record the same panel repeatedly within one encounter
+            # (e.g. COVID-19 daily labs during a single inpatient stay).
+            # See https://github.com/synthetichealth/synthea/issues/1552
+            return True
+        for o in self.observations:
+            o.process(person, time)
+        primary_code = self.codes[0].code
+        report = person.record.report(time, primary_code, len(self.observations))
+        self.entry = report
+        report.name = self.name
+        report.merge_code_list(self.codes)
+
+        # increment number of labs by respective provider
+        provider = person.get_current_provider(self.module.name)
+        if provider is None:  # no provider associated with encounter or procedure
+            provider = person.get_provider(EncounterType.WELLNESS, time)
+        year = Utilities.get_year(time)
+        provider.increment_labs(year)
+
+        return True
 
     def panel_already_recorded_at_this_time(self, person: Person, time: int) -> bool:
         """Java: DiagnosticReport#panelAlreadyRecordedAtThisTime.
@@ -2360,9 +2534,17 @@ class DiagnosticReport(ObservationGroup):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError(
-            "Java: DiagnosticReport#panelAlreadyRecordedAtThisTime — pending T19/T20"
-        )
+        assert person.record is not None
+        encounter = person.record.current_encounter(time)
+        if encounter is None or encounter.reports is None:
+            return False
+        for report in encounter.reports:
+            if report.start != time:
+                continue
+            for code in self.codes:
+                if report.contains_code(code.code, code.system):
+                    return True
+        return False
 
 
 class ImagingStudy(State):
@@ -2374,11 +2556,11 @@ class ImagingStudy(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.procedure_code: Code
         self.series: list[HealthRecordSeries]
         self.min_number_series: int
         self.max_number_series: int
-        raise NotImplementedError("Java: ImagingStudy#ImagingStudy — pending T19/T20")
 
     def clone(self) -> ImagingStudy:
         """Java: ImagingStudy#clone.
@@ -2394,7 +2576,30 @@ class ImagingStudy(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: ImagingStudy#process — pending T19/T20")
+        assert person.record is not None
+        # Randomly pick number of series and instances if bounds were provided
+        # Don't modify the instance series as it gets reused - create a local copy
+        rng = cast("RandomNumberGenerator", person)
+        my_series = self.duplicate_series(rng, time)
+        self.duplicate_instances(rng, time, my_series)
+
+        # The modality code of the first series is a good approximation
+        # of the type of ImagingStudy this is
+        primary_modality = cast(Code, my_series[0].modality).code
+        self.entry = person.record.imaging_study(time, primary_modality, my_series)
+        # note the imagingStudy call will choose dicomUIDs,
+        # so they don't need to be selected here
+
+        # Add the procedure code to the ImagingStudy
+        primary_procedure_code = self.procedure_code.code
+        self.entry.codes.append(self.procedure_code)
+
+        # Also add the Procedure equivalent of this ImagingStudy to the patient's record
+        procedure = person.record.procedure(time, primary_procedure_code)
+        procedure.name = self.name
+        procedure.codes.append(self.procedure_code)
+        procedure.stop = procedure.start + 30 * 60_000
+        return True
 
     def duplicate_series(
         self, random: RandomNumberGenerator, time: int
@@ -2404,7 +2609,17 @@ class ImagingStudy(State):
         Java overloads:
         (RandomNumberGenerator random, long time)
         """
-        raise NotImplementedError("Java: ImagingStudy#duplicateSeries — pending T19/T20")
+        if (
+            self.min_number_series > 0
+            and self.max_number_series >= self.min_number_series
+            and len(self.series) > 0
+        ):
+            # Randomly pick the number of series in this study
+            number_of_series = int(random.rand(self.min_number_series, self.max_number_series + 1))
+            reference_series = self.series[0]
+            return [reference_series.clone() for _ in range(number_of_series)]
+        # Ensure series references are distinct (required if no. of instances is picked randomly)
+        return [s.clone() for s in self.series]
 
     def duplicate_instances(
         self, random: RandomNumberGenerator, time: int, my_series: list[HealthRecordSeries]
@@ -2414,7 +2629,22 @@ class ImagingStudy(State):
         Java overloads:
         (RandomNumberGenerator random, long time, List mySeries)
         """
-        raise NotImplementedError("Java: ImagingStudy#duplicateInstances — pending T19/T20")
+        for s in my_series:
+            instances = cast("list[Instance]", s.instances)
+            if (
+                s.min_number_instances > 0
+                and s.max_number_instances >= s.min_number_instances
+                and len(instances) > 0
+            ):
+                # Randomly pick the number of instances in this series
+                number_of_instances = int(
+                    random.rand(s.min_number_instances, s.max_number_instances + 1)
+                )
+                reference_instance = instances[0]
+                s.instances = [reference_instance.clone() for _ in range(number_of_instances)]
+            else:
+                # just clone whatever is there
+                s.instances = [instance.clone() for instance in instances]
 
 
 class Symptom(LegacyStateWithUnitlessRV):
