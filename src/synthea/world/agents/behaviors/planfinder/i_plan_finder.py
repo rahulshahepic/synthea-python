@@ -25,7 +25,7 @@ class IPlanFinder(Protocol):
         pass
 
     def find(
-        self, plans: list[InsurancePlan], person: Person, service: EncounterType, time: int
+        self, plans: list[InsurancePlan], person: Person, service: EncounterType | None, time: int
     ) -> InsurancePlan:
         """Java: IPlanFinder#find.
 
@@ -36,7 +36,7 @@ class IPlanFinder(Protocol):
 
     @staticmethod
     def meets_affordability_requirements(
-        plan: InsurancePlan, person: Person, service: EncounterType, time: int
+        plan: InsurancePlan, person: Person, service: EncounterType | None, time: int
     ) -> bool:
         """Java: IPlanFinder#meetsAffordabilityRequirements.
 
@@ -56,7 +56,7 @@ class IPlanFinder(Protocol):
         ) and plan.covers_service(None)
 
     def choose_random_plan(
-        self, options: list[InsurancePlan], rand: RandomNumberGenerator
+        self, options: list[InsurancePlan], rand: RandomNumberGenerator | Person
     ) -> InsurancePlan:
         """Java: IPlanFinder#chooseRandomPlan.
 

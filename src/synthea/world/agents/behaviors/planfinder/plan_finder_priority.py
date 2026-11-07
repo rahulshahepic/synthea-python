@@ -27,7 +27,7 @@ class PlanFinderPriority(IPlanFinder):
         pass
 
     def find(
-        self, plans: list[InsurancePlan], person: Person, service: EncounterType, time: int
+        self, plans: list[InsurancePlan], person: Person, service: EncounterType | None, time: int
     ) -> InsurancePlan:
         """Java: PlanFinderPriority#find.
 

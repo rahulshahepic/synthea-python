@@ -32,7 +32,7 @@ class PlanFinderBestRates(IPlanFinder):
         pass
 
     def find(
-        self, plans: list[InsurancePlan], person: Person, service: EncounterType, time: int
+        self, plans: list[InsurancePlan], person: Person, service: EncounterType | None, time: int
     ) -> InsurancePlan:
         """Java: PlanFinderBestRates#find.
 
@@ -44,9 +44,11 @@ class PlanFinderBestRates(IPlanFinder):
 
         count = 0
         if person.has_multiple_records:
+            assert person.records is not None
             for record in person.records.values():
                 count += self.twelve_month_encounter_count(record, time)
         else:
+            assert person.default_record is not None
             count = self.twelve_month_encounter_count(person.default_record, time)
         best_plan = PayerManager.get_no_insurance_plan()
         best_rate = bd.value_of(sys.float_info.max)

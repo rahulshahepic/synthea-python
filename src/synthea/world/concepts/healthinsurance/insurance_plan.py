@@ -69,13 +69,15 @@ class InsurancePlan:
         self.income_based_premium: bool = income_based_premium
         if income_based_premium and monthly_premium > Decimal(1):
             raise RuntimeError(
-                "Income based premium plans must have premiums in range 0.0 - 1.0, a percentage of a patient's income. Given "
+                "Income based premium plans must have premiums in"
+                " range 0.0 - 1.0, a percentage of a patient's income. Given "
                 + bd.to_string(monthly_premium)
                 + "."
             )
         if active_year_start >= active_year_end:
             raise RuntimeError(
-                f"Plan start year cannot be after its end year. Given start year: {active_year_start} and end year {active_year_end}."
+                "Plan start year cannot be after its end year. "
+                f"Given start year: {active_year_start} and end year {active_year_end}."
             )
         start = Utilities.convert_calendar_years_to_time(active_year_start)
         end = (
@@ -207,7 +209,7 @@ class InsurancePlan:
         """
         self.payer.increment_customers(person_id)
 
-    def increment_covered_entries(self, entry: Entry | None) -> None:
+    def increment_covered_entries(self, entry: Entry) -> None:
         """Java: InsurancePlan#incrementCoveredEntries.
 
         Java overloads:
@@ -215,7 +217,7 @@ class InsurancePlan:
         """
         self.payer.increment_covered_entries(entry)
 
-    def increment_uncovered_entries(self, entry: Entry | None) -> None:
+    def increment_uncovered_entries(self, entry: Entry) -> None:
         """Java: InsurancePlan#incrementUncoveredEntries.
 
         Java overloads:
@@ -340,4 +342,14 @@ class InsurancePlan:
         Java overloads:
         ()
         """
-        return f"InsurancePlan [payer={self.payer.get_name()}, deductible={bd.to_string(self.deductible)}, defaultCopay={bd.to_string(self.default_copay)}, defaultCoinsurance={bd.to_string(self.default_coinsurance)}, monthlyPremium={bd.to_string(self.monthly_premium)}, medicareSupplement={str(self.medicare_supplement).lower()}, insuranceStatus={self.insurance_status}, planEligibility={self.plan_eligibility}, activeTimeRange=[{self.active_time_range[0]}..{self.active_time_range[1]}]]"
+        return (
+            f"InsurancePlan [payer={self.payer.get_name()}"
+            f", deductible={bd.to_string(self.deductible)}"
+            f", defaultCopay={bd.to_string(self.default_copay)}"
+            f", defaultCoinsurance={bd.to_string(self.default_coinsurance)}"
+            f", monthlyPremium={bd.to_string(self.monthly_premium)}"
+            f", medicareSupplement={str(self.medicare_supplement).lower()}"
+            f", insuranceStatus={self.insurance_status}"
+            f", planEligibility={self.plan_eligibility}"
+            f", activeTimeRange=[{self.active_time_range[0]}..{self.active_time_range[1]}]]"
+        )
