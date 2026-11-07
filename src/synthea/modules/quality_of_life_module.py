@@ -22,9 +22,9 @@ class DisabilityWeight:
 
     def __init__(self, values: dict[str, str]) -> None:
         """Java: DisabilityWeight#DisabilityWeight."""
-        self.low = self.parse_double(values.get("LOW", "0.0"))
-        self.medium = self.parse_double(values.get("MED", "0.0"))
-        self.high = self.parse_double(values.get("HIGH", "0.0"))
+        self.low: float = self.parse_double(values.get("LOW", "0.0"))
+        self.medium: float = self.parse_double(values.get("MED", "0.0"))
+        self.high: float = self.parse_double(values.get("HIGH", "0.0"))
 
     def get_weight(self, percentage_of_covered_care: float) -> float:
         """Java: DisabilityWeight#getWeight."""
