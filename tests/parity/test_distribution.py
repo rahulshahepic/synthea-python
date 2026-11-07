@@ -121,3 +121,22 @@ def test_distribution_expressions(golden: Callable[[str], Path]) -> None:
         assert (actual, type_name) == (row["result"], row["type"]), row["expression"]
         assert processor.get_param_names() == set(row["names"])
         assert processor.get_param_types() == row["types"]
+
+
+@pytest.mark.parity
+def test_distribution_fdlibm_log(golden: Callable[[str], Path]) -> None:
+    """#66: the reference disables only _dlog; actual Math.log must match fdlibm exactly."""
+    import struct
+
+    from synthea.engine.distribution import _java_log
+
+    rows = [
+        json.loads(line)
+        for line in (golden("DistributionLogProbe") / "logs.jsonl").read_text().splitlines()
+    ]
+    assert len(rows) == 10014
+    for row in rows:
+        value = struct.unpack(">d", int(row["bits"], 16).to_bytes(8, "big"))[0]
+        actual = double_to_string(_java_log(value))
+        assert actual == row["strict"], row
+        assert actual == row["math"], "Reference Math.log must disable _dlog; see issue #66"
