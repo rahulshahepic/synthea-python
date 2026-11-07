@@ -316,3 +316,19 @@ def test_payer_qols_ieee_zero_division() -> None:
     assert math.isnan(payer.get_qols_average())
     payer.total_qols = -1.0
     assert payer.get_qols_average() == -math.inf
+
+
+def test_payer_plan_diagnostic_string(payer_component_boundary: None) -> None:
+    """Java's deterministic toString fields; eligibility identity deliberately is not asserted."""
+    plan = _plan(7, Payer("Private", 1, {"*"}, "PRIVATE"), Decimal("100.50"))
+    for rendering in (plan.to_string(), str(plan), repr(plan)):
+        assert rendering.startswith("InsurancePlan [payer=Private, deductible=123.40")
+        for field in (
+            "defaultCopay=25.00",
+            "defaultCoinsurance=0.80",
+            "monthlyPremium=100.50",
+            "medicareSupplement=false",
+            "insuranceStatus=private",
+            "activeTimeRange=[",
+        ):
+            assert field in rendering

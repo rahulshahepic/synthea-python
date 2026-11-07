@@ -353,3 +353,11 @@ class InsurancePlan:
             f", planEligibility={self.plan_eligibility}"
             f", activeTimeRange=[{self.active_time_range[0]}..{self.active_time_range[1]}]]"
         )
+
+    def __str__(self) -> str:
+        """Java: InsurancePlan#toString; eligibility uses its own diagnostic rendering."""
+        return self.to_string()
+
+    def __repr__(self) -> str:
+        """Java: InsurancePlan#toString; GENERIC retains Python's opaque object repr."""
+        return self.to_string()
