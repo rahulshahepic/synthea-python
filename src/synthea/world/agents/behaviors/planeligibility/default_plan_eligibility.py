@@ -12,9 +12,7 @@ if TYPE_CHECKING:
 
 
 class DefaultPlanEligibility:
-    """Java: DefaultPlanEligibility;
-    pending T16.
-    """
+    """Java: DefaultPlanEligibility."""
 
     def __init__(self) -> None:
         """Java: DefaultPlanEligibility#DefaultPlanEligibility.
@@ -22,9 +20,6 @@ class DefaultPlanEligibility:
         Java overloads:
         ()
         """
-        raise NotImplementedError(
-            "Java: DefaultPlanEligibility#DefaultPlanEligibility — pending T16"
-        )
 
     def is_person_eligible(self, person: Person, time: int) -> bool:
         """Java: DefaultPlanEligibility#isPersonEligible.
@@ -32,4 +27,4 @@ class DefaultPlanEligibility:
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: DefaultPlanEligibility#isPersonEligible — pending T16")
+        return True
