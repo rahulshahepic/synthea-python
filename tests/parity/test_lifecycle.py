@@ -22,7 +22,7 @@ from synthea.world.agents.payer_manager import PayerManager
 from synthea.world.agents.person import Person
 from synthea.world.concepts.employment import Employment
 from synthea.world.concepts.health_record import Code, EncounterType
-from tests.dependency_gate import Pending, report_pending, run_or_pending
+from tests.dependency_gate import Pending, pending_tasks, report_pending, run_or_pending
 from tests.parity.canonical.lifecycle import person_snapshot
 
 BIRTH = -2208988800000
@@ -55,7 +55,8 @@ def lifecycle_module_init_double(
 @pytest.fixture
 def module_constructor_double(monkeypatch: pytest.MonkeyPatch) -> None:
     """Component-only double; never used by the gated integration scenario."""
-    monkeypatch.setattr(Module, "__init__", lifecycle_module_init_double)
+    if "T19" in pending_tasks():
+        monkeypatch.setattr(Module, "__init__", lifecycle_module_init_double)
 
 
 def newborn(seed: int, i: int) -> Person:
