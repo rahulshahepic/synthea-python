@@ -43,9 +43,18 @@ from synthea.engine.transition import (
     TypeOfCareTransitionOptions,
 )
 from synthea.helpers.config import Config
+from synthea.helpers.telemedicine import Telemedicine
 from synthea.helpers.utilities import Utilities
+from synthea.javacompat.collections import JavaHashMap
 from synthea.javacompat.numbers import parse_double
-from synthea.world.concepts.health_record import Code
+from synthea.modules.encounter_module import EncounterModule
+from synthea.world.concepts.clinician_specialty import ClinicianSpecialty
+from synthea.world.concepts.health_record import (
+    Code,
+    EncounterType,
+    Entry,
+    ReactionSeverity,
+)
 from synthea.world.concepts.vital_sign import VITAL_SIGN_DISPLAY_NAMES
 
 if TYPE_CHECKING:
@@ -54,8 +63,8 @@ if TYPE_CHECKING:
     from synthea.helpers.expression_processor import ExpressionPerson
     from synthea.helpers.random_number_generator import RandomNumberGenerator
     from synthea.world.agents.person import Person
+    from synthea.world.concepts.health_record import CarePlan, Medication
     from synthea.world.concepts.health_record import Code as HealthRecordCode
-    from synthea.world.concepts.health_record import Entry, Medication
     from synthea.world.concepts.health_record import Series as HealthRecordSeries
     from synthea.world.concepts.vital_sign import VitalSign as ConceptVitalSign
 
@@ -1265,7 +1274,7 @@ class TelemedicinePossibility(StrEnum):
 
 
 class Encounter(State):
-    """Java: Encounter; pending T19/T20."""
+    """Java: Encounter."""
 
     def __init__(self) -> None:
         """Java: Encounter#Encounter.
@@ -1273,12 +1282,12 @@ class Encounter(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.wellness: bool
         self.encounter_class: str
         self.codes: list[Code]
         self.reason: str
         self.telemedicine_possibility: str
-        raise NotImplementedError("Java: Encounter#Encounter — pending T19/T20")
 
     def clone(self) -> Encounter:
         """Java: Encounter#clone.
@@ -1294,7 +1303,95 @@ class Encounter(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Encounter#process — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        if self.wellness:
+            if person.has_current_encounter() and (
+                person.get_current_encounter_module() == EncounterModule.NAME
+            ):
+                encounter = person.record.current_encounter(time)
+                self.entry = encounter
+                active_key = EncounterModule.ACTIVE_WELLNESS_ENCOUNTER + " " + self.module.name
+                if active_key in person.attributes:
+                    # check-in with the activeKey...
+                    status = cast(bool, person.attributes.get(active_key))
+                    if status is False:
+                        # mark that we have used our active key
+                        person.attributes[active_key] = True
+                        self.diagnose_past_conditions(person, time)
+                        if (
+                            not encounter.chronic_meds_renewed
+                            and len(person.chronic_medications) > 0
+                        ):
+                            self.renew_chronic_medications_at_wellness(person, time)
+                            encounter.chronic_meds_renewed = True
+                        return True
+                    # We have looped back to the current wellness encounter,
+                    # so block until the NEXT wellness encounter
+                    return False
+                # We should no longer be in a wellness encounter
+                return False
+            # Block until we're in a wellness encounter... then proceed.
+            return False
+        if person.has_current_encounter():
+            if person.get_current_encounter_module() == self.module.name:
+                # This module has the lock, but the previous encounter was not released...
+                encounter = person.record.current_encounter(time)
+                prior_type = EncounterType.from_string(encounter.type)
+                person.record.encounter_end(time, prior_type)
+                person.release_current_encounter(time, self.module.name)
+            else:
+                # Block until the other module finishes their encounter...
+                return False
+        encounter_type: EncounterType
+        if self.telemedicine_possibility is not None and len(self.telemedicine_possibility) > 0:
+            possibility = TelemedicinePossibility[self.telemedicine_possibility.upper()]
+            if possibility is TelemedicinePossibility.POSSIBLE:
+                if Telemedicine.should_encounter_be_virtual(person, time):
+                    encounter_type = EncounterType.VIRTUAL
+                else:
+                    encounter_type = EncounterType.from_string(self.encounter_class)
+            elif possibility is TelemedicinePossibility.ALWAYS:
+                encounter_type = EncounterType.VIRTUAL
+            else:
+                # NONE, and the switch default
+                encounter_type = EncounterType.from_string(self.encounter_class)
+        else:
+            encounter_type = EncounterType.from_string(self.encounter_class)
+        specialty = ClinicianSpecialty.GENERAL_PRACTICE
+        if self.module.specialty is not None:
+            specialty = self.module.specialty
+        encounter = EncounterModule.create_encounter(
+            person, time, encounter_type, specialty, cast(Code, None), self.module.name
+        )
+        self.entry = encounter
+        if self.codes is not None:
+            encounter.merge_code_list(self.codes)
+        encounter.name = self.name
+
+        self.diagnose_past_conditions(person, time)
+
+        if self.reason is not None:
+            if self.reason in person.attributes:
+                value = person.attributes.get(self.reason)
+                if isinstance(value, Entry):
+                    encounter.reason = value.codes[0]
+                elif isinstance(value, Code):
+                    encounter.reason = value
+            elif person.had_prior_state(self.reason):
+                # loop through the present conditions, the condition "name" will match
+                # the name of the ConditionOnset state (aka "reason")
+                for present_entry in person.record.present.values():
+                    if self.reason == present_entry.name:
+                        encounter.reason = present_entry.codes[0]
+                        break
+            elif self.reason in self.module.get_state_names():
+                state = self.module.get_state(self.reason)
+                if state is not None and isinstance(state, ConditionOnset):
+                    encounter.reason = state.codes[0]
+
+        return True
 
     def diagnose_past_conditions(self, person: Person, time: int) -> None:
         """Java: Encounter#diagnosePastConditions.
@@ -1302,7 +1399,17 @@ class Encounter(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: Encounter#diagnosePastConditions — pending T19/T20")
+        assert person.history is not None
+        # reminder: history[0] is current state, history[size-1] is Initial
+        for state in person.history:
+            if isinstance(state, OnsetState):
+                onset = state
+
+                if not onset.diagnosed and self.name == onset.target_encounter:
+                    onset.diagnose(person, time)
+            elif isinstance(state, Encounter) and state is not self and state.name == self.name:
+                # a prior instance of hitting this same state. no need to go back any further
+                break
 
     def renew_chronic_medications_at_wellness(self, person: Person, time: int) -> None:
         """Java: Encounter#renewChronicMedicationsAtWellness.
@@ -1310,9 +1417,58 @@ class Encounter(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError(
-            "Java: Encounter#renewChronicMedicationsAtWellness — pending T19/T20"
-        )
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        # note that this code has some child codes for various different reasons,
+        # eg "medical aim achieved", "ineffective", "avoid interaction", "side effect", etc
+        expired_code = Code("SNOMED-CT", "182840001", "Drug treatment stopped - medical advice")
+
+        # We keep track of the meds we renewed to add them to the chronic list later
+        # as we can't modify the list of chronic meds while iterating.
+        renewed_medications: list[Medication] = []
+
+        # Go through each chronic medication and "reorder"
+        for chronic_medication in list(person.chronic_medications.values()):
+            # RxNorm code
+            primary_code = chronic_medication.type
+
+            # Removes from Chronic List as well; but won't affect iterator.
+            person.record.medication_end(time, primary_code, expired_code)
+
+            # IMPORTANT: 3rd par is false to prevent modification of chronic meds
+            # list as we iterate over it According to the documentation, the
+            # results of modifying the array (x remove) are undefined
+            medication = person.record.medication_start(time, primary_code, False)
+
+            # Copy over the characteristics from old medication to new medication
+            medication.name = chronic_medication.name
+            medication.merge_code_list(chronic_medication.codes)
+            medication.reasons.extend(chronic_medication.reasons)
+            medication.prescription_details = chronic_medication.prescription_details
+            medication.administration = chronic_medication.administration
+            # NB: The next one isn't present. Normally done by
+            # person.record.medicationStart, but we are avoiding modifying the
+            # chronic meds list until we are done iterating
+            medication.chronic = True
+            medication.claim.assign_costs()
+
+            # increment number of prescriptions prescribed by respective hospital
+            medication_provider = person.get_current_provider(self.module.name)
+            if medication_provider is None:
+                # no provider associated with encounter or medication order
+                medication_provider = person.get_provider(EncounterType.WELLNESS, time)
+            year = Utilities.get_year(time)
+            medication_provider.increment_prescriptions(year)
+
+            renewed_medications.append(medication)
+
+        # Reinitialize the chronic meds list with the meds we just created
+        # Perhaps not technically necessary, as we can just keep the old ones
+        # around, but this is safer.
+        person.chronic_medications.clear()
+        for renewed_medication in renewed_medications:
+            person.chronic_medications[renewed_medication.type] = renewed_medication
 
     def is_wellness(self) -> bool:
         """Java: Encounter#isWellness.
@@ -1320,11 +1476,11 @@ class Encounter(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Encounter#isWellness — pending T19/T20")
+        return self.wellness
 
 
 class EncounterEnd(State):
-    """Java: EncounterEnd; pending T19/T20."""
+    """Java: EncounterEnd."""
 
     def __init__(self) -> None:
         """Java: EncounterEnd#EncounterEnd.
@@ -1332,8 +1488,8 @@ class EncounterEnd(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.discharge_disposition: Code
-        raise NotImplementedError("Java: EncounterEnd#EncounterEnd — pending T19/T20")
 
     def clone(self) -> EncounterEnd:
         """Java: EncounterEnd#clone.
@@ -1349,11 +1505,42 @@ class EncounterEnd(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: EncounterEnd#process — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        active_key = EncounterModule.ACTIVE_WELLNESS_ENCOUNTER + " " + self.module.name
+        if person.has_current_encounter() and (
+            person.get_current_encounter_module() == self.module.name
+        ):
+            encounter = person.record.current_encounter(time)
+            if encounter is not None:
+                encounter_type = EncounterType.from_string(encounter.type)
+                person.record.encounter_end(time, encounter_type)
+                encounter.discharge = self.discharge_disposition
+            # reset current provider hash
+            person.remove_current_provider(self.module.name)
+            person.release_current_encounter(time, self.module.name)
+            return True
+        if person.has_current_encounter() and (
+            person.get_current_encounter_module() == EncounterModule.NAME
+        ):
+            # exit the current wellness encounter
+            person.attributes.pop(active_key, None)
+            return True
+        if active_key in person.attributes:
+            # possibly due to wellness encounters crossing a time-step boundary,
+            # it is possible for the EncounterModule to end a wellness encounter
+            # while a module did not hit the EncounterEnd state yet...
+            # so, as a backup, we check for the presence of the activeKey...
+            person.attributes.pop(active_key, None)
+            return True
+        # trying to end an encounter when another module has the reservation
+        # returns false; with no reservation at all it returns true
+        return not person.has_current_encounter()
 
 
 class AttributeAssignableState(State):
-    """Java: AttributeAssignableState; pending T19/T20."""
+    """Java: AttributeAssignableState."""
 
     def __init__(self) -> None:
         """Java: AttributeAssignableState#AttributeAssignableState.
@@ -1361,10 +1548,8 @@ class AttributeAssignableState(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.assign_to_attribute: str
-        raise NotImplementedError(
-            "Java: AttributeAssignableState#AttributeAssignableState — pending T19/T20"
-        )
 
     def should_assign_attribute(self) -> bool:
         """Java: AttributeAssignableState#shouldAssignAttribute.
@@ -1372,13 +1557,11 @@ class AttributeAssignableState(State):
         Java overloads:
         ()
         """
-        raise NotImplementedError(
-            "Java: AttributeAssignableState#shouldAssignAttribute — pending T19/T20"
-        )
+        return self.assign_to_attribute is not None and len(self.assign_to_attribute) > 0
 
 
 class OnsetState(AttributeAssignableState):
-    """Java: OnsetState; pending T19/T20."""
+    """Java: OnsetState."""
 
     def __init__(self) -> None:
         """Java: OnsetState#OnsetState.
@@ -1386,10 +1569,10 @@ class OnsetState(AttributeAssignableState):
         Java overloads:
         ()
         """
+        super().__init__()
         self.diagnosed: bool
         self.codes: list[Code]
         self.target_encounter: str
-        raise NotImplementedError("Java: OnsetState#OnsetState — pending T19/T20")
 
     def clone(self) -> OnsetState:
         """Java: OnsetState#clone.
@@ -1405,7 +1588,31 @@ class OnsetState(AttributeAssignableState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: OnsetState#process — pending T19/T20")
+        assert self.module is not None
+        assert person.record is not None
+        self.update_onset_info(person, time)
+        encounter = None
+        if person.has_current_encounter() and (
+            person.get_current_encounter_module() == self.module.name
+        ):
+            encounter = person.record.current_encounter(time)
+        if (
+            self.target_encounter is None
+            or len(self.target_encounter.strip()) == 0
+            or (encounter is not None and self.target_encounter == encounter.name)
+        ):
+            self.diagnose(person, time)
+        elif self.should_assign_attribute():
+            # create a temporary coded entry to use for reference in the attribute,
+            # which will be replaced if the thing is diagnosed
+
+            def _coded_entry() -> Entry:
+                coded = Entry(time, self.codes[0].code)
+                coded.merge_code_list(self.codes)
+                return coded
+
+            person.attributes[self.assign_to_attribute] = person.record.new_entry(_coded_entry)
+        return True
 
     def update_onset_info(self, person: Person, time: int) -> None:
         """Java: OnsetState#updateOnsetInfo.
@@ -1413,19 +1620,19 @@ class OnsetState(AttributeAssignableState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: OnsetState#updateOnsetInfo — pending T19/T20")
+        return
 
+    @abstractmethod
     def diagnose(self, person: Person, time: int) -> None:
         """Java: OnsetState#diagnose.
 
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: OnsetState#diagnose — pending T19/T20")
 
 
 class ConditionOnset(OnsetState):
-    """Java: ConditionOnset; pending T19/T20."""
+    """Java: ConditionOnset."""
 
     def __init__(self) -> None:
         """Java: ConditionOnset#ConditionOnset.
@@ -1433,7 +1640,7 @@ class ConditionOnset(OnsetState):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: ConditionOnset#ConditionOnset — pending T19/T20")
+        super().__init__()
 
     def update_onset_info(self, person: Person, time: int) -> None:
         """Java: ConditionOnset#updateOnsetInfo.
@@ -1441,7 +1648,12 @@ class ConditionOnset(OnsetState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: ConditionOnset#updateOnsetInfo — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert self.name is not None
+        person.get_onset_condition_record().on_condition_onset(
+            self.module.name, self.name, self.codes[0].display, time
+        )
 
     def diagnose(self, person: Person, time: int) -> None:
         """Java: ConditionOnset#diagnose.
@@ -1449,11 +1661,20 @@ class ConditionOnset(OnsetState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: ConditionOnset#diagnose — pending T19/T20")
+        assert person.record is not None
+        primary_code = self.codes[0].code
+        self.entry = person.record.condition_start(time, primary_code)
+        self.entry.name = self.name
+        if self.codes is not None:
+            self.entry.merge_code_list(self.codes)
+        if self.should_assign_attribute():
+            person.attributes[self.assign_to_attribute] = self.entry
+
+        self.diagnosed = True
 
 
 class ConditionEnd(State):
-    """Java: ConditionEnd; pending T19/T20."""
+    """Java: ConditionEnd."""
 
     def __init__(self) -> None:
         """Java: ConditionEnd#ConditionEnd.
@@ -1461,10 +1682,10 @@ class ConditionEnd(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.condition_onset: str
         self.referenced_by_attribute: str
-        raise NotImplementedError("Java: ConditionEnd#ConditionEnd — pending T19/T20")
 
     def clone(self) -> ConditionEnd:
         """Java: ConditionEnd#clone.
@@ -1480,11 +1701,37 @@ class ConditionEnd(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: ConditionEnd#process — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        if self.condition_onset is not None:
+            condition = person.get_onset_condition_record().get_condition_from_state(
+                self.module.name, self.condition_onset
+            )
+            if condition is not None:
+                person.get_onset_condition_record().on_condition_end(
+                    self.module.name, condition, time
+                )
+            person.record.condition_end_by_state(time, self.condition_onset)
+        elif self.referenced_by_attribute is not None:
+            condition = cast("Entry | None", person.attributes.get(self.referenced_by_attribute))
+            if condition is not None:
+                person.get_onset_condition_record().on_condition_end(
+                    self.module.name, cast(str, condition.codes[0].display), time
+                )
+                condition.stop = time
+                person.record.condition_end(time, condition.type)
+        elif self.codes is not None:
+            person.get_onset_condition_record().on_condition_end(
+                self.module.name, cast(str, self.codes[0].display), time
+            )
+            for code in self.codes:
+                person.record.condition_end(time, code.code)
+        return True
 
 
 class AllergyOnset(OnsetState):
-    """Java: AllergyOnset; pending T19/T20."""
+    """Java: AllergyOnset."""
 
     def __init__(self) -> None:
         """Java: AllergyOnset#AllergyOnset.
@@ -1492,10 +1739,10 @@ class AllergyOnset(OnsetState):
         Java overloads:
         ()
         """
+        super().__init__()
         self.allergy_type: str
         self.category: str
         self.reactions: list[ReactionProbabilities]
-        raise NotImplementedError("Java: AllergyOnset#AllergyOnset — pending T19/T20")
 
     def diagnose(self, person: Person, time: int) -> None:
         """Java: AllergyOnset#diagnose.
@@ -1503,11 +1750,31 @@ class AllergyOnset(OnsetState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: AllergyOnset#diagnose — pending T19/T20")
+        assert person.record is not None
+        primary_code = self.codes[0].code
+        self.entry = person.record.allergy_start(time, primary_code)
+        self.entry.name = self.name
+        self.entry.merge_code_list(self.codes)
+        allergy = self.entry
+        allergy.allergy_type = self.allergy_type
+        allergy.category = self.category
+
+        if self.should_assign_attribute():
+            person.attributes[self.assign_to_attribute] = self.entry
+
+        if self.reactions is not None and len(self.reactions) > 0:
+            reactions: JavaHashMap[Code, ReactionSeverity] = JavaHashMap()
+            for rp in self.reactions:
+                rs = rp.generate_severity(person)
+                if rs is not None:
+                    reactions[rp.get_reaction()] = rs
+            allergy.reactions = reactions
+
+        self.diagnosed = True
 
 
 class AllergyEnd(State):
-    """Java: AllergyEnd; pending T19/T20."""
+    """Java: AllergyEnd."""
 
     def __init__(self) -> None:
         """Java: AllergyEnd#AllergyEnd.
@@ -1515,10 +1782,10 @@ class AllergyEnd(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.allergy_onset: str
         self.referenced_by_attribute: str
-        raise NotImplementedError("Java: AllergyEnd#AllergyEnd — pending T19/T20")
 
     def clone(self) -> AllergyEnd:
         """Java: AllergyEnd#clone.
@@ -1534,11 +1801,21 @@ class AllergyEnd(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: AllergyEnd#process — pending T19/T20")
+        assert person.record is not None
+        if self.allergy_onset is not None:
+            person.record.allergy_end_by_state(time, self.allergy_onset)
+        elif self.referenced_by_attribute is not None:
+            allergy = cast(Entry, person.attributes.get(self.referenced_by_attribute))
+            allergy.stop = time
+            person.record.allergy_end(time, allergy.type)
+        elif self.codes is not None:
+            for code in self.codes:
+                person.record.condition_end(time, code.code)
+        return True
 
 
 class MedicationOrder(AttributeAssignableState):
-    """Java: MedicationOrder; pending T19/T20."""
+    """Java: MedicationOrder."""
 
     def __init__(self) -> None:
         """Java: MedicationOrder#MedicationOrder.
@@ -1546,12 +1823,12 @@ class MedicationOrder(AttributeAssignableState):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.reason: str
         self.prescription: dict[str, object]
         self.administration: bool
         self.chronic: bool
-        raise NotImplementedError("Java: MedicationOrder#MedicationOrder — pending T19/T20")
 
     def write_object(self, oos: IO[bytes]) -> None:
         """Java: MedicationOrder#writeObject.
@@ -1559,7 +1836,7 @@ class MedicationOrder(AttributeAssignableState):
         Java overloads:
         (ObjectOutputStream oos)
         """
-        raise NotImplementedError("Java: MedicationOrder#writeObject — pending T19/T20")
+        raise NotImplementedError("Java serialization is out of scope")
 
     def read_object(self, ois: IO[bytes]) -> None:
         """Java: MedicationOrder#readObject.
@@ -1567,7 +1844,7 @@ class MedicationOrder(AttributeAssignableState):
         Java overloads:
         (ObjectInputStream ois)
         """
-        raise NotImplementedError("Java: MedicationOrder#readObject — pending T19/T20")
+        raise NotImplementedError("Java serialization is out of scope")
 
     def clone(self) -> MedicationOrder:
         """Java: MedicationOrder#clone.
@@ -1583,7 +1860,30 @@ class MedicationOrder(AttributeAssignableState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: MedicationOrder#process — pending T19/T20")
+        assert self.module is not None
+        assert self.module.name is not None
+        assert person.record is not None
+        medication: Medication | None = None
+        create_prescription = True
+        primary_code = self.codes[0].code
+        if self.administration:
+            medication = person.record.medication_administration(time, primary_code)
+            self.apply_features(person, medication)
+
+            if not self.chronic:
+                create_prescription = False
+        if create_prescription:
+            medication = person.record.medication_start(time, primary_code, self.chronic)
+            self.apply_features(person, medication)
+        # increment number of prescriptions prescribed by respective hospital
+        medication_provider = person.get_current_provider(self.module.name)
+        if medication_provider is None:
+            # no provider associated with encounter or medication order
+            medication_provider = person.get_provider(EncounterType.WELLNESS, time)
+
+        year = Utilities.get_year(time)
+        medication_provider.increment_prescriptions(year)
+        return True
 
     def apply_features(self, person: Person, medication: Medication) -> None:
         """Java: MedicationOrder#applyFeatures.
@@ -1591,13 +1891,40 @@ class MedicationOrder(AttributeAssignableState):
         Java overloads:
         (Person person, Medication medication)
         """
-        raise NotImplementedError("Java: MedicationOrder#applyFeatures — pending T19/T20")
+        assert self.module is not None
+        assert person.record is not None
+        self.entry = medication
+        medication.name = self.name
+        medication.merge_code_list(self.codes)
+        if self.should_assign_attribute():
+            person.attributes[self.assign_to_attribute] = medication
+        if self.reason is not None:
+            # "reason" is an attribute or stateName referencing a previous conditionOnset state
+            if self.reason in person.attributes:
+                condition = cast(Entry, person.attributes.get(self.reason))
+                medication.reasons.extend(condition.codes)
+            elif person.had_prior_state(self.reason):
+                # loop through the present conditions, the condition "name" will match
+                # the name of the ConditionOnset state (aka "reason")
+                for present_entry in person.record.present.values():
+                    if self.reason == present_entry.name:
+                        medication.reasons.extend(present_entry.codes)
+            elif self.reason in self.module.get_state_names():
+                state = self.module.get_state(self.reason)
+                if state is not None and isinstance(state, ConditionOnset):
+                    medication.reasons.extend(state.codes)
+        medication.prescription_details = self.prescription
+        medication.claim.assign_costs()
 
 
 class MedicationEnd(State):
-    """Java: MedicationEnd; pending T19/T20."""
+    """Java: MedicationEnd."""
 
-    EXPIRED: ClassVar[Code]  # Java initialization deferred to T19/T20.
+    # note that this code has some child codes for various different reasons,
+    # ex "medical aim achieved", "ineffective", "avoid interaction", "side effect", etc
+    EXPIRED: ClassVar[Code] = Code(
+        "SNOMED-CT", "182840001", "Drug treatment stopped - medical advice"
+    )
 
     def __init__(self) -> None:
         """Java: MedicationEnd#MedicationEnd.
@@ -1605,10 +1932,10 @@ class MedicationEnd(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.medication_order: str
         self.referenced_by_attribute: str
-        raise NotImplementedError("Java: MedicationEnd#MedicationEnd — pending T19/T20")
 
     def clone(self) -> MedicationEnd:
         """Java: MedicationEnd#clone.
@@ -1624,11 +1951,23 @@ class MedicationEnd(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: MedicationEnd#process — pending T19/T20")
+        assert person.record is not None
+        if self.medication_order is not None:
+            person.record.medication_end_by_state(
+                time, self.medication_order, MedicationEnd.EXPIRED
+            )
+        elif self.referenced_by_attribute is not None:
+            medication = cast(Medication, person.attributes.get(self.referenced_by_attribute))
+            medication.stop = time
+            person.record.medication_end(time, medication.type, MedicationEnd.EXPIRED)
+        elif self.codes is not None:
+            for code in self.codes:
+                person.record.medication_end(time, code.code, MedicationEnd.EXPIRED)
+        return True
 
 
 class CarePlanStart(AttributeAssignableState):
-    """Java: CarePlanStart; pending T19/T20."""
+    """Java: CarePlanStart."""
 
     def __init__(self) -> None:
         """Java: CarePlanStart#CarePlanStart.
@@ -1636,11 +1975,11 @@ class CarePlanStart(AttributeAssignableState):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.activities: list[Code]
         self.goals: list[dict[str, object]]
         self.reason: str
-        raise NotImplementedError("Java: CarePlanStart#CarePlanStart — pending T19/T20")
 
     def clone(self) -> CarePlanStart:
         """Java: CarePlanStart#clone.
@@ -1656,13 +1995,44 @@ class CarePlanStart(AttributeAssignableState):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: CarePlanStart#process — pending T19/T20")
+        assert self.module is not None
+        assert person.record is not None
+        primary_code = self.codes[0].code
+        careplan = person.record.careplan_start(time, primary_code)
+        self.entry = careplan
+        careplan.name = self.name
+        careplan.merge_code_list(self.codes)
+
+        if self.activities is not None:
+            for activity in self.activities:
+                careplan.activities.add(activity)
+        if self.goals is not None:
+            for goal in self.goals:
+                careplan.goals.add(goal)
+        if self.reason is not None:
+            # "reason" is an attribute or stateName referencing a previous conditionOnset state
+            if self.reason in person.attributes:
+                condition = cast(Entry, person.attributes.get(self.reason))
+                careplan.reasons.extend(condition.codes)
+            elif person.had_prior_state(self.reason):
+                # loop through the present conditions, the condition "name" will match
+                # the name of the ConditionOnset state (aka "reason")
+                for present_entry in person.record.present.values():
+                    if self.reason == present_entry.name:
+                        careplan.merge_reason_list(present_entry.codes)
+            elif self.reason in self.module.get_state_names():
+                state = self.module.get_state(self.reason)
+                if state is not None and isinstance(state, ConditionOnset):
+                    careplan.reasons.extend(state.codes)
+        if self.should_assign_attribute():
+            person.attributes[self.assign_to_attribute] = careplan
+        return True
 
 
 class CarePlanEnd(State):
-    """Java: CarePlanEnd; pending T19/T20."""
+    """Java: CarePlanEnd."""
 
-    FINISHED: ClassVar[Code]  # Java initialization deferred to T19/T20.
+    FINISHED: ClassVar[Code] = Code("SNOMED-CT", "385658003", "Done")
 
     def __init__(self) -> None:
         """Java: CarePlanEnd#CarePlanEnd.
@@ -1670,10 +2040,10 @@ class CarePlanEnd(State):
         Java overloads:
         ()
         """
+        super().__init__()
         self.codes: list[Code]
         self.careplan: str
         self.referenced_by_attribute: str
-        raise NotImplementedError("Java: CarePlanEnd#CarePlanEnd — pending T19/T20")
 
     def clone(self) -> CarePlanEnd:
         """Java: CarePlanEnd#clone.
@@ -1689,7 +2059,17 @@ class CarePlanEnd(State):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: CarePlanEnd#process — pending T19/T20")
+        assert person.record is not None
+        if self.careplan is not None:
+            person.record.careplan_end_by_state(time, self.careplan, CarePlanEnd.FINISHED)
+        elif self.referenced_by_attribute is not None:
+            careplan = cast("CarePlan", person.attributes.get(self.referenced_by_attribute))
+            careplan.stop = time
+            person.record.careplan_end(time, careplan.type, CarePlanEnd.FINISHED)
+        elif self.codes is not None:
+            for code in self.codes:
+                person.record.careplan_end(time, code.code, CarePlanEnd.FINISHED)
+        return True
 
 
 class Procedure(Delayable):
