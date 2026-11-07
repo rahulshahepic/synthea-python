@@ -63,6 +63,12 @@ def _module_files() -> list[tuple[str, Path]]:
 
 
 def test_transition_parity(golden: Callable[[str], Path]) -> None:
+    # The Java probe runs in a fresh JVM: LookupTableTransition's static
+    # table cache starts empty, so the probe's own constructions load
+    # (and set `attributes` on) each table. Other tests in this process
+    # may have loaded the tables already, leaving later constructions
+    # with attributes unset; reset to the probe's conditions.
+    LookupTableTransition.lookupTables.clear()
     PayerManager.load_no_insurance()
     golden_lines = (
         (golden("TransitionProbe") / "transitions.jsonl").read_text(encoding="utf-8").splitlines()

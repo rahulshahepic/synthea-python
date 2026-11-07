@@ -62,6 +62,11 @@ def _run_one(lines: list[str], tag: str, path: str, supplier: ModuleSupplier, se
 
 def state_run_lines() -> list[str]:
     """Mirror of StateProbe.main (run.txt)."""
+    # NOTE: LookupTableTransition's static table cache is deliberately
+    # NOT reset here. The Java probe's cache is filled by module loads
+    # in registry order, which is what a Python process does naturally;
+    # clearing it makes cloned modules' transitions reload tables in
+    # run order and changes which instances carry `attributes`.
     lines: list[str] = []
     for supplier in Module.get_module_suppliers():
         if supplier.core:
