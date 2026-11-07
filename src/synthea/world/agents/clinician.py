@@ -1,16 +1,36 @@
-"""Java API skeleton: Clinician.java."""
+"""Java: org.mitre.synthea.world.agents.Clinician."""
 
 from __future__ import annotations
 
+import hashlib
+import math
 from typing import TYPE_CHECKING, ClassVar
+
+from synthea.javacompat.uuid import java_uuid
+from synthea.world.agents.person import Person, Point2DDouble
 
 if TYPE_CHECKING:
     from synthea.helpers.random_number_generator import RandomNumberGenerator
     from synthea.world.agents.provider import Provider
+    from synthea.world.geography.quadtree.quad_tree_element import QuadTreeElement
+
+
+def _name_uuid_from_bytes(data: bytes) -> str:
+    """Java: UUID.nameUUIDFromBytes(byte[]) followed by UUID#toString.
+
+    MD5 digest with the version-3 and variant bits forced, exactly as
+    ``java.util.UUID.nameUUIDFromBytes`` does.
+    """
+    digest = bytearray(hashlib.md5(data).digest())
+    digest[6] = (digest[6] & 0x0F) | 0x30
+    digest[8] = (digest[8] & 0x3F) | 0x80
+    msb = int.from_bytes(digest[0:8], "big", signed=False)
+    lsb = int.from_bytes(digest[8:16], "big", signed=False)
+    return java_uuid(msb, lsb)
 
 
 class Clinician:
-    """Java: Clinician; pending T13."""
+    """Java: org.mitre.synthea.world.agents.Clinician."""
 
     serialVersionUID: ClassVar[int] = 1370111157423846567
     WELLNESS: ClassVar[str] = "wellness"
@@ -44,19 +64,23 @@ class Clinician:
 
         Java overloads:
         (long clinicianSeed, RandomNumberGenerator clinicianRand, long identifier,
-        Provider
-        organization)
+        Provider organization)
         """
-        self.identifier: int
-        self.uuid: str
-        self.npi: str
-        self.attributes: dict[str, object]
-        self.services_provided: list[str]
-        self.organization: Provider
-        self.encounters: int
-        self.procedures: int
-        self.population_seed: int
-        raise NotImplementedError("Java: Clinician#Clinician — pending T13")
+        org_npi = identifier if organization is None else organization.npi
+        base = f"{clinician_seed}:{identifier}:{org_npi}:{clinician_rand.rand_long()}"
+        self.identifier: int = identifier
+        self.uuid: str = _name_uuid_from_bytes(base.encode("utf-8"))
+        self.npi: str = Clinician.to_clinician_npi(self.identifier)
+        # Java: attributes is a ConcurrentHashMap; only its lookups are used
+        # by the ported code, and canonical dumps sort keys, so a plain dict
+        # is used (PORTING_GUIDE §3).
+        self.attributes: dict[str, object] = {}
+        self.services_provided: list[str] = []
+        self.organization: Provider = organization
+        self.encounters: int = 0
+        self.procedures: int = 0
+        # Java: populationSeed is declared but never set by the constructor.
+        self.population_seed: int = 0
 
     @staticmethod
     def to_clinician_npi(id: int) -> str:
@@ -65,7 +89,12 @@ class Clinician:
         Java overloads:
         (long id)
         """
-        raise NotImplementedError("Java: Clinician#toClinicianNPI — pending T13")
+        # Function-local import breaks the Provider <-> Clinician cycle.
+        from synthea.world.agents.provider import Provider
+
+        if id > 999_999_999:
+            raise ValueError(f"Supplied id ({id}) is too big, max is {999_999_999}")
+        return Provider.to_npi(999_999_999 - id)
 
     def get_resource_id(self) -> str:
         """Java: Clinician#getResourceID.
@@ -73,7 +102,7 @@ class Clinician:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Clinician#getResourceID — pending T13")
+        return self.uuid
 
     def get_organization(self) -> Provider:
         """Java: Clinician#getOrganization.
@@ -81,7 +110,7 @@ class Clinician:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Clinician#getOrganization — pending T13")
+        return self.organization
 
     def get_fullname(self) -> str:
         """Java: Clinician#getFullname.
@@ -89,7 +118,12 @@ class Clinician:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Clinician#getFullname — pending T13")
+        prefix = self.attributes.get(Clinician.NAME_PREFIX)
+        name = self.attributes.get(Clinician.NAME)
+        # Java string concatenation renders a missing attribute as "null".
+        prefix_text = "null" if prefix is None else str(prefix)
+        name_text = "null" if name is None else str(name)
+        return prefix_text + " " + name_text
 
     def get_attributes(self) -> dict[str, object]:
         """Java: Clinician#getAttributes.
@@ -97,7 +131,7 @@ class Clinician:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Clinician#getAttributes — pending T13")
+        return self.attributes
 
     def has_service(self, service: str) -> bool:
         """Java: Clinician#hasService.
@@ -105,15 +139,19 @@ class Clinician:
         Java overloads:
         (String service)
         """
-        raise NotImplementedError("Java: Clinician#hasService — pending T13")
+        return service in self.services_provided
 
     def increment_encounters(self) -> int:
         """Java: Clinician#incrementEncounters.
 
         Java overloads:
         ()
+
+        Java returns the pre-increment count (``encounters++``).
         """
-        raise NotImplementedError("Java: Clinician#incrementEncounters — pending T13")
+        result = self.encounters
+        self.encounters += 1
+        return result
 
     def get_encounter_count(self) -> int:
         """Java: Clinician#getEncounterCount.
@@ -121,15 +159,19 @@ class Clinician:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Clinician#getEncounterCount — pending T13")
+        return self.encounters
 
     def increment_procedures(self) -> int:
         """Java: Clinician#incrementProcedures.
 
         Java overloads:
         ()
+
+        Java returns the pre-increment count (``procedures++``).
         """
-        raise NotImplementedError("Java: Clinician#incrementProcedures — pending T13")
+        result = self.procedures
+        self.procedures += 1
+        return result
 
     def get_procedure_count(self) -> int:
         """Java: Clinician#getProcedureCount.
@@ -137,7 +179,7 @@ class Clinician:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Clinician#getProcedureCount — pending T13")
+        return self.procedures
 
     def get_x(self) -> float:
         """Java: Clinician#getX.
@@ -145,7 +187,7 @@ class Clinician:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Clinician#getX — pending T13")
+        return self.get_lon_lat().get_x()
 
     def get_y(self) -> float:
         """Java: Clinician#getY.
@@ -153,12 +195,21 @@ class Clinician:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Clinician#getY — pending T13")
+        return self.get_lon_lat().get_y()
 
-    def get_lon_lat(self) -> float:
+    def get_lon_lat(self) -> Point2DDouble:
         """Java: Clinician#getLonLat.
 
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: Clinician#getLonLat — pending T13")
+        coordinate = self.attributes.get(Person.COORDINATE)
+        if coordinate is None:
+            raise TypeError("Java NullPointerException: COORDINATE attribute is not set")
+        return coordinate  # type: ignore[return-value]
+
+    def distance(self, element: QuadTreeElement) -> float:
+        """Java: QuadTreeElement#distance (the interface default Clinician inherits)."""
+        dx = self.get_x() - element.get_x()
+        dy = self.get_y() - element.get_y()
+        return math.sqrt(dx * dx + dy * dy)
