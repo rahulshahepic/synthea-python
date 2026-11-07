@@ -15,6 +15,7 @@ from synthea.helpers.config import Config
 from synthea.helpers.default_random_number_generator import DefaultRandomNumberGenerator
 from synthea.helpers.random_number_generator import RandomNumberGenerator
 from synthea.javacompat.collections import JavaHashMap
+from synthea.javacompat.fmt import _string_value
 from synthea.javacompat.numbers import d2i, d2l, parse_long, to_int32, to_int64
 from synthea.modules.death_module import DeathModule
 from synthea.modules.encounter_module import EncounterModule
@@ -414,11 +415,13 @@ class Generator:
             insurance.process(person, current)
             encounter_module.process(person, current)
             assert person.current_modules is not None
-            remaining = []
-            for module in person.current_modules:
-                if not module.process(person, current):
-                    remaining.append(module)
-            person.current_modules[:] = remaining
+            index = 0
+            while index < len(person.current_modules):
+                module = person.current_modules[index]
+                if module.process(person, current):
+                    del person.current_modules[index]
+                else:
+                    index += 1
             encounter_module.end_encounter_module_encounters(person, current)
             person.last_updated = current
             # Growth-data editors are disabled in the CSV-only port; no editors are registered.
@@ -453,7 +456,7 @@ class Generator:
         if self.log_level == "detailed":
             print("ATTRIBUTES")
             for key, value in a.items():
-                print(f"  * {key} = {value}")
+                print(f"  * {key} = {_string_value(value)}")
             print(f"SYMPTOMS: {person.symptom_total()}")
             assert person.record is not None
             print(person.record.text_summary())

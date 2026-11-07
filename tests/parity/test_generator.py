@@ -32,7 +32,7 @@ from tests.parity.canonical.person import dump, render_value
 STATES = ["Massachusetts", "California", "Texas"]
 SEEDS = [42, 12345, 17]
 TIME = 1735689600000
-DEPENDENCIES = ("T16", "T21", "T22", "T23", "T24")
+DEPENDENCIES = ("T16", "T19", "T21", "T22", "T23", "T24")
 pytestmark = pytest.mark.parity
 
 
