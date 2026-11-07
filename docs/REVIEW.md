@@ -36,6 +36,8 @@ question is often the reason CI is red. Answering one is never an approval.
      issue close and hourly). Only check that it ran; fix labels by hand if it didn't.
    * For every `status:claimed` issue: if the branch `task/<N>` does not exist, or nothing was
      pushed for > 72h and the PR is not in review, comment on the issue and tell the user.
+     A bundle member (AGENTS.md §3a) is tracked through its bundle PR (the open PR with a
+     `Closes #<N>` line), not its marker branch.
      Do not release the claim automatically.
    * Look for protocol violations: an agent with two open PRs, `review:approved` added by
      someone other than the reviewer, pushes to `main`, edits under `java/` or `.github/`.
@@ -55,7 +57,10 @@ question is often the reason CI is red. Answering one is never an approval.
       If the PR conflicts with `main` (no checks appear at all), request changes: "merge
       `origin/main` into your branch (AGENTS.md §4)".
    3. Check scope: the changed files must be owned by the PR's task in `docs/port_map.toml`,
-      or be its own tests, probes, or `docs/porting_notes/T<nn>.md`.
+      or be its own tests, probes, or `docs/porting_notes/T<nn>.md`. For a bundle (AGENTS.md
+      §3a), use the union of its members, and check that every member's criteria are met and
+      that the bundle is a permitted one (fix tasks in one area, or listed in the §3a table).
+      Only you add rows to that table.
    4. Check faithfulness: compare the Python with the Java side by side. Look for RNG call
       order and count, iteration over Java hash collections, number formatting, integer
       arithmetic and rounding, BigDecimal scale, and time zone handling (PORTING_GUIDE).
@@ -73,7 +78,8 @@ question is often the reason CI is red. Answering one is never an approval.
         `review:needed` → `review:changes-requested`.
       * **All good**: comment `🟢 ALL CLEAR (reviewed <sha>)`. Swap `review:needed` →
         `review:approved`. When `review-gate` and CI are green on that SHA, **squash-merge**
-        with the title `#<N> <title> (T<nn>)`. The issue closes via `Closes #<N>`. Then run
+        with the title `#<N> <title> (T<nn>)` (a bundle: `#P #M … <title> (T<pp>, T<mm>, …)`).
+        The issue closes via `Closes #<N>` (a bundle has one line per member). Then run
         housekeeping again so dependants become `status:ready`.
       * **❓ QUESTION** asked with `review:needed`: answer it as in step 2.
       * Never approve with CI red or pending, or with gated integration scenarios pending on
