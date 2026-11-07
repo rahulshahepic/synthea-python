@@ -14,6 +14,7 @@ from synthea.export.exporter import Exporter, ExporterRuntimeOptions
 from synthea.helpers.config import Config
 from synthea.helpers.default_random_number_generator import DefaultRandomNumberGenerator
 from synthea.helpers.random_number_generator import RandomNumberGenerator
+from synthea.helpers.utilities import Utilities
 from synthea.javacompat.collections import JavaHashMap
 from synthea.javacompat.fmt import _string_value
 from synthea.javacompat.numbers import d2i, d2l, parse_long, to_int32, to_int64
@@ -524,10 +525,10 @@ class Generator:
 
     def birthdate_from_target_age(self, target_age: int, random: RandomNumberGenerator) -> int:
         """Java: Generator#birthdateFromTargetAge, double addition before truncating long."""
-        earliest = to_int64(
-            self.reference_time - to_int64(to_int64(to_int64(target_age + 1) * 365 + 1) * 86400000)
-        )
-        latest = to_int64(self.reference_time - to_int64(to_int64(target_age * 365) * 86400000))
+        earliest_days = to_int64(to_int64(target_age + 1) * 365 + 1)
+        latest_days = to_int64(target_age * 365)
+        earliest = to_int64(self.reference_time - Utilities.convert_time("days", earliest_days))
+        latest = to_int64(self.reference_time - Utilities.convert_time("days", latest_days))
         return d2l(float(earliest) + (to_int64(latest - earliest) * cast(float, random.rand())))
 
     def record_person(self, person: Person, index: int) -> None:
