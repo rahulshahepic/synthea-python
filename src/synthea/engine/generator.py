@@ -278,7 +278,7 @@ class Generator:
 
     def get_module_names(self, modules: list[Module]) -> list[str]:
         """Java: Generator#getModuleNames."""
-        return [m.name for m in modules]
+        return [cast(str, m.name) for m in modules]
 
     def run(self) -> None:
         """Java: Generator#run, Java one-worker submission order without thread scheduling."""
