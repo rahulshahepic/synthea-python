@@ -53,8 +53,10 @@ from synthea.world.concepts.health_record import (
     Code,
     EncounterType,
     Entry,
+    Instance,
     ReactionSeverity,
 )
+from synthea.world.concepts.health_record import Series as HealthRecordSeries
 from synthea.world.concepts.vital_sign import VITAL_SIGN_DISPLAY_NAMES
 
 if TYPE_CHECKING:
@@ -521,6 +523,75 @@ def _fill_state_from_json(state: State, definition: dict[str, object]) -> None:
             for s_key, s_value in cast("dict[str, object]", raw).items():
                 setattr(sampled, s_key, s_value)
             value = sampled
+        elif key == "vital_sign" and isinstance(raw, str):
+            value = _VITAL_SIGNS_BY_DISPLAY[raw]
+        elif key == "activities" and isinstance(raw, list):
+            value = [_build_code(cast("dict[str, object]", c)) for c in raw]
+        elif key == "reactions" and isinstance(raw, list):
+            from synthea.engine.reaction_probabilities import (
+                ReactionProbabilities,
+                SeverityProbability,
+            )
+
+            reaction_list = []
+            for rp_def in cast("list[dict[str, object]]", raw):
+                severities = [
+                    SeverityProbability(cast(str, sp["level"]), float(cast(float, sp["value"])))
+                    for sp in cast("list[dict[str, object]]", rp_def["possible_severities"])
+                ]
+                reaction_list.append(
+                    ReactionProbabilities(
+                        _build_code(cast("dict[str, object]", rp_def["reaction"])), severities
+                    )
+                )
+            value = reaction_list
+        elif key == "supplies" and isinstance(raw, list):
+            supply_list = []
+            for supply_def in cast("list[dict[str, object]]", raw):
+                component = SupplyComponent.__new__(SupplyComponent)
+                component.code = _build_code(cast("dict[str, object]", supply_def["code"]))
+                component.quantity = int(cast(float, supply_def["quantity"]))
+                supply_list.append(component)
+            value = supply_list
+        elif key == "series" and isinstance(raw, list):
+            series_list = []
+            for series_def in cast("list[dict[str, object]]", raw):
+                series_entry = HealthRecordSeries()
+                if isinstance(series_def.get("modality"), dict):
+                    series_entry.modality = _build_code(
+                        cast("dict[str, object]", series_def["modality"])
+                    )
+                if isinstance(series_def.get("body_site"), dict):
+                    series_entry.body_site = _build_code(
+                        cast("dict[str, object]", series_def["body_site"])
+                    )
+                if series_def.get("dicom_uid") is not None:
+                    series_entry.dicom_uid = cast(str, series_def["dicom_uid"])
+                if isinstance(series_def.get("min_number_instances"), (int, float)):
+                    series_entry.min_number_instances = int(
+                        cast(float, series_def["min_number_instances"])
+                    )
+                if isinstance(series_def.get("max_number_instances"), (int, float)):
+                    series_entry.max_number_instances = int(
+                        cast(float, series_def["max_number_instances"])
+                    )
+                instance_list = []
+                for instance_def in cast(
+                    "list[dict[str, object]]", series_def.get("instances") or []
+                ):
+                    instance = Instance()
+                    if instance_def.get("title") is not None:
+                        instance.title = cast(str, instance_def["title"])
+                    if instance_def.get("dicom_uid") is not None:
+                        instance.dicom_uid = cast(str, instance_def["dicom_uid"])
+                    if isinstance(instance_def.get("sop_class"), dict):
+                        instance.sop_class = _build_code(
+                            cast("dict[str, object]", instance_def["sop_class"])
+                        )
+                    instance_list.append(instance)
+                series_entry.instances = instance_list
+                series_list.append(series_entry)
+            value = series_list
         elif key == "value" and type(state).__name__ == "SetAttribute":
             value = _gson_object_value(raw)
         elif key == "probability" and isinstance(raw, (int, float)):
