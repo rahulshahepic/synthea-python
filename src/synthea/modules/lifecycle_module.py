@@ -196,7 +196,8 @@ class LifecycleModule(Module):
         """Java: LifecycleModule#clone; stateless module shares its instance."""
         return self
 
-    def process(self, person: Person, time: int, terminate_on_death: bool | None = None) -> bool:
+    # Java overrides only the two-argument overload; Module also declares a three-arg overload.
+    def process(self, person: Person, time: int) -> bool:  # type: ignore[override]
         """Java: LifecycleModule#process."""
         if not person.alive(time):
             return True
