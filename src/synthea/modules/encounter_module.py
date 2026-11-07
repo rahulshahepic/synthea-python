@@ -13,7 +13,6 @@ from synthea.world.agents.provider import Provider
 from synthea.world.concepts.clinician_specialty import ClinicianSpecialty
 from synthea.world.concepts.health_record import Code, Encounter, EncounterType
 
-
 if TYPE_CHECKING:
     from synthea.helpers.random_number_generator import RandomNumberGenerator
 
