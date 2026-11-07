@@ -260,3 +260,27 @@ def test_expression_java_type_and_definition_quirks(
     value = ExpressionProcessor(source).evaluate({})
     assert value == expected
     assert type(value) is kind
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (0.0, -math.inf),
+        (-0.0, -math.inf),
+        (-1.0, math.nan),
+        (-math.inf, math.nan),
+        (math.inf, math.inf),
+        (math.nan, math.nan),
+        (1.0, 0.0),
+    ],
+)
+def test_distribution_log_ieee_edges(value: float, expected: float) -> None:
+    """#66 retains Java's special values and delegates finite positives to fdlibm."""
+    from synthea.engine.distribution import _java_log
+
+    actual = _java_log(value)
+    if math.isnan(expected):
+        assert math.isnan(actual)
+    else:
+        assert actual == expected
+        assert math.copysign(1.0, actual) == math.copysign(1.0, expected)

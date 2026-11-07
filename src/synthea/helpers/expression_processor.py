@@ -17,6 +17,7 @@ from typing import ClassVar, Protocol
 
 from synthea.javacompat import bigdecimal as bd
 from synthea.javacompat.numbers import double_to_string, to_int32
+from synthea.javacompat.random import _strict_log
 from synthea.world.concepts.vital_sign import VITAL_SIGN_DISPLAY_NAMES, VitalSign
 
 
@@ -255,6 +256,16 @@ def _precision(value: Decimal) -> Decimal:
         return value
 
 
+def _cql_log(value: float) -> float:
+    """Java: ExpressionProcessor#evaluate, CQL Ln/Log under the reference _dlog setting.
+
+    Retain CQL's null-on-domain-error path while reusing T01's fdlibm log.
+    """
+    if value <= 0.0:
+        raise ValueError("CQL logarithm domain")
+    return _strict_log(value)
+
+
 def _divide(left: object, right: object) -> Decimal | None:
     """Java: CQL DivideEvaluator#divideHelper (exact, else scale 8 FLOOR)."""
     a, b = _decimal(left), _decimal(right)
@@ -397,9 +408,9 @@ def _call(name: str, args: list[object]) -> object:
             return _precision(Decimal.from_float(math.pow(float(number), float(exponent))))
         if name == "Log":
             return _precision(
-                Decimal.from_float(math.log(float(number)) / math.log(float(_decimal(args[1]))))
+                Decimal.from_float(_cql_log(float(number)) / _cql_log(float(_decimal(args[1]))))
             )
-        function = {"Sqrt": math.sqrt, "Ln": math.log, "Exp": math.exp}[name]
+        function = {"Sqrt": math.sqrt, "Ln": _cql_log, "Exp": math.exp}[name]
         result = Decimal.from_float(function(float(number)))
         return result if name == "Exp" else _precision(result)
     except (ValueError, OverflowError):
