@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime, timedelta
-from decimal import ROUND_DOWN, Decimal
+from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal, localcontext
 from enum import StrEnum
+from functools import partial
 from typing import TYPE_CHECKING, ClassVar, cast
 
 from synthea.export.csv_constants import CSVConstants
@@ -13,7 +14,6 @@ from synthea.export.csv_file_manager import CSVFileManager
 from synthea.export.export_helper import ExportHelper
 from synthea.helpers.config import Config
 from synthea.helpers.utilities import Utilities
-from synthea.javacompat.fmt import format as java_format
 from synthea.javacompat.numbers import double_to_string, idiv, to_int64
 from synthea.world.agents.clinician import Clinician
 from synthea.world.agents.payer_manager import PayerManager
@@ -56,7 +56,11 @@ def _text(value: object) -> str:
 
 def _money(value: Decimal | None) -> str:
     """Java: String.format(Locale.US, "%.2f", BigDecimal)."""
-    return java_format("%.2f", value) if value is not None else ""
+    if value is None:
+        return ""
+    with localcontext() as context:
+        context.prec = max(28, len(value.as_tuple().digits) + abs(value.adjusted()) + 4)
+        return format(value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP), "f")
 
 
 def _optional(value: object) -> str:
@@ -323,9 +327,7 @@ class CSVExporter:
                 birthday = birthday.replace(year=year, day=1) + timedelta(days=birthday.day - 1)
                 if cut_off < birthday < now:
                     obs = person.record.new_entry(
-                        lambda birthday=birthday, score=score, value=value: Observation(
-                            int(birthday.timestamp() * 1000), score, value
-                        )
+                        partial(Observation, int(birthday.timestamp() * 1000), score, value)
                     )
                     obs.unit = "{score}" if score == "QOLS" else "a"
                     obs.codes.append(Code("GBD", score, score))
