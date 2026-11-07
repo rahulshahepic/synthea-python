@@ -1,17 +1,15 @@
-"""T20 parity tests: clinical States via StateProbe.
+"""T20 integration parity: clinical States via StateProbe, real code.
 
-Compares the Python port against the StateProbe golden (run.txt):
-every top-level JSON module run for 20 scripted persons, dumping the
-outcome, state history, canonical attributes, and a canonical
-health-record summary (present entries with codes and start/stop,
-encounter count, symptom values).
-
-Blocks whose Python run raises NotImplementedError come from stubs
-owned by later tasks (EncounterModule.createEncounter, T22; the
-core modules, T21/T23/T24) and are dependency-gated: they are
-counted and skipped here, and the count is asserted so the gate
-shrinks visibly as those tasks land. Every other block must match
-the golden exactly, including blocks where Java itself errors.
+Every StateProbe block whose module does not call
+`EncounterModule.createEncounter` (T22 — still a stub, and not a
+dependency #20 declares) runs here end to end with real objects,
+each scenario wrapped in `tests.dependency_gate.run_or_pending`
+with #20's declared dependencies (T13, T14, T19), and compared
+exactly against the StateProbe golden. The encounter-dependent
+blocks (94 modules, 1,880 blocks) are covered by the component form
+in tests/parity/test_state_component.py, which uses a tests-only
+`create_encounter_double`; they are counted exactly below so the
+partition cannot silently grow or shrink.
 """
 
 from __future__ import annotations
@@ -21,41 +19,54 @@ from pathlib import Path
 
 import pytest
 
-from tests.state_support import state_run_lines
+from tests.dependency_gate import Pending, report_pending, run_or_pending
+from tests.state_support import (
+    ENCOUNTER_DEPENDENT_MODULES,
+    SEEDS,
+    blocks,
+    probe_suppliers,
+    run_block,
+)
 
 pytestmark = pytest.mark.parity
+
+DEPENDENCIES = ("T13", "T14", "T19")
+TOTAL_BLOCKS = 4840
+# Blocks belonging to ENCOUNTER_DEPENDENT_MODULES (all 20 seeds of
+# each): covered by the component form. 1,625 of them raise the T22
+# stub today; the rest run stub-free but stay with their module.
+ENCOUNTER_DEPENDENT_BLOCKS = 1880
+INTEGRATION_BLOCKS = TOTAL_BLOCKS - ENCOUNTER_DEPENDENT_BLOCKS
 
 
 def _read_lines(path: Path) -> list[str]:
     return path.read_text(encoding="utf-8").splitlines()
 
 
-def _blocks(lines: list[str]) -> dict[tuple[str, str], list[str]]:
-    blocks: dict[tuple[str, str], list[str]] = {}
-    current: tuple[str, str] | None = None
-    for line in lines:
-        if line.startswith("RUN|"):
-            parts = line.split("|")
-            current = (parts[1], parts[2])
-            blocks[current] = [line]
-        elif current is not None:
-            blocks[current].append(line)
-    return blocks
-
-
 def test_state_probe_runs(golden: Callable[[str], Path]) -> None:
-    expected = _blocks(_read_lines(golden("StateProbe") / "run.txt"))
-    actual = _blocks(state_run_lines())
-    assert set(actual.keys()) == set(expected.keys())
-    gated = 0
-    mismatches: list[str] = []
-    for key, expected_block in expected.items():
-        actual_block = actual[key]
-        if actual_block[0].endswith("|ERROR|NotImplementedError"):
-            gated += 1
+    expected = blocks(_read_lines(golden("StateProbe") / "run.txt"))
+    assert len(expected) == TOTAL_BLOCKS
+    gated = [key for key in expected if key[0] in ENCOUNTER_DEPENDENT_MODULES]
+    assert len(gated) == ENCOUNTER_DEPENDENT_BLOCKS
+
+    results: list[list[str] | Pending] = []
+    keys: list[tuple[str, str]] = []
+    for supplier in probe_suppliers():
+        if supplier.path in ENCOUNTER_DEPENDENT_MODULES:
             continue
-        if actual_block != expected_block:
-            mismatches.append(key[0] + "/" + key[1])
+        for seed in range(SEEDS):
+            keys.append((supplier.path, str(seed)))
+            results.append(
+                run_or_pending(
+                    lambda supplier=supplier, seed=seed: run_block(supplier, seed),
+                    DEPENDENCIES,
+                )
+            )
+    assert len(results) == INTEGRATION_BLOCKS
+    mismatches = [
+        key
+        for key, result in zip(keys, results, strict=True)
+        if not isinstance(result, Pending) and result != expected[key]
+    ]
     assert not mismatches, f"{len(mismatches)} blocks differ, first: {mismatches[:5]}"
-    # Sanity: the large majority of blocks are genuinely compared.
-    assert gated < len(expected) // 2
+    report_pending("StateProbe integration", results)

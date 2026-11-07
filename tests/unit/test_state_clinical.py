@@ -1,10 +1,15 @@
 """Unit tests for the clinical States (T20), ported from the upstream
 JUnit StateTest (java/src/test/java/org/mitre/synthea/engine/StateTest.java).
 
-Only the tests that do not need EncounterModule.createEncounter (T22)
-are ported here; the encounter-driven tests are listed as skipped in
-the PR body. Where Java mocks the HealthRecord to assert no
-interactions, the port asserts the real record stays empty instead.
+The tests that do not need EncounterModule.createEncounter (T22) run
+against real code. The two whose record calls auto-create an
+encounter (gmfTwoProcedure, gmfTwoObservation) are ported as
+component tests (test_state_component_*) with create_encounter_double
+(tests/state_doubles.py) standing in for the T22 stub; the remaining
+encounter-driven StateTest tests drive Encounter states themselves
+and belong to T22's integration surface. Where Java mocks the
+HealthRecord to assert no interactions, the port asserts the real
+record stays empty instead.
 """
 
 from __future__ import annotations
@@ -15,9 +20,12 @@ from pathlib import Path
 import pytest
 
 from synthea.engine.module import Module
+from synthea.modules.encounter_module import EncounterModule
+from synthea.world.agents.payer_manager import PayerManager
 from synthea.world.agents.person import Person
 from synthea.world.concepts import vital_sign as concepts_vital_sign
 from synthea.world.concepts.health_record import EncounterType
+from tests.state_doubles import create_encounter_double
 
 GENERIC = Path(__file__).resolve().parents[2] / "java" / "src" / "test" / "resources" / "generic"
 
@@ -46,6 +54,12 @@ class _MockProvider:
     def increment_labs(self, year: int) -> None:
         self.labs.append(year)
 
+    def increment_encounters(self, encounter_type: object, year: int) -> None:
+        self.procedures.append(year)
+
+    def choose_clinician_list(self, specialty: object, person: object) -> None:
+        return None
+
 
 def _fixture(filename: str) -> Module:
     """Mirror of TestHelper.getFixture: parse + construct, no overrides."""
@@ -63,6 +77,12 @@ def _person() -> Person:
     person.attributes[Person.OCCUPATION_LEVEL] = 1.0
     person.attributes[Person.BIRTHDATE] = TIME - 35 * 365 * 24 * 3600 * 1000
     person.history = []
+    # Mirror of setup's insurance lines: no-insurance plan from
+    # birthdate through TIME + 20 years (PayerManager.loadPayers in
+    # Java; the port's load_no_insurance registers the same plan).
+    PayerManager.load_no_insurance()
+    person.coverage.set_plan_to_no_insurance(person.attributes[Person.BIRTHDATE])  # type: ignore[arg-type]
+    person.coverage.set_plan_to_no_insurance(TIME + 20 * 365 * 24 * 3600 * 1000)
     mock = _MockProvider()
     for encounter_type in (
         EncounterType.AMBULATORY,
@@ -189,11 +209,19 @@ def test_symptoms50() -> None:
     assert symptom50.process(person, TIME) is True
 
 
-@pytest.mark.skip(
-    reason="record.procedure() creates an encounter via EncounterModule.createEncounter (T22)"
-)
-def test_gmf_two_procedure() -> None:
-    """Java: StateTest#gmfTwoProcedure."""
+@pytest.fixture
+def _encounter_double() -> object:
+    original = EncounterModule.create_encounter
+    EncounterModule.create_encounter = staticmethod(create_encounter_double)  # type: ignore[method-assign]
+    try:
+        yield
+    finally:
+        EncounterModule.create_encounter = original  # type: ignore[method-assign]
+
+
+@pytest.mark.usefixtures("_encounter_double")
+def test_state_component_gmf_two_procedure() -> None:
+    """Java: StateTest#gmfTwoProcedure (component: createEncounter_double)."""
     person = _person()
     person.attributes.pop("Most Recent Surgery", None)
     module = _fixture("gmf_two_point_oh.json")
@@ -209,11 +237,9 @@ def test_gmf_two_procedure() -> None:
     assert code.display == "Laparoscopic appendectomy"
 
 
-@pytest.mark.skip(
-    reason="record.observation() creates an encounter via EncounterModule.createEncounter (T22)"
-)
-def test_gmf_two_observation() -> None:
-    """Java: StateTest#gmfTwoObservation."""
+@pytest.mark.usefixtures("_encounter_double")
+def test_state_component_gmf_two_observation() -> None:
+    """Java: StateTest#gmfTwoObservation (component: createEncounter_double)."""
     person = _person()
     module = _fixture("gmf_two_point_oh.json")
     observation_state = module.get_state("Observation")
