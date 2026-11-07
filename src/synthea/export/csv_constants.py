@@ -8,7 +8,7 @@ from typing import ClassVar
 
 
 class CSVConstants:
-    """Java: org.mitre.synthea.export.CSVConstants; pending T25."""
+    """Java: org.mitre.synthea.export.CSVConstants."""
 
     NEWLINE: ClassVar[str] = "\n"
     PATIENT_KEY: ClassVar[str] = "patients"
@@ -110,35 +110,39 @@ class CSVConstants:
     HEADER_LINE_MAP: ClassVar[Mapping[str, str]]
 
     def __init__(self) -> None:
-        """Java: CSVConstants#CSVConstants() implicit constructor."""
-        raise NotImplementedError("Java: CSVConstants#CSVConstants — pending T25")
+        """Java: CSVConstants#CSVConstants() implicit constructor (no state)."""
 
     @staticmethod
     def initialize_header_map() -> Mapping[str, str]:
-        """Java: CSVConstants#initializeHeaderMap()."""
-        raise NotImplementedError("Java: CSVConstants#initializeHeaderMap — pending T25")
+        """Java: CSVConstants#initializeHeaderMap().
+
+        Java builds a HashMap and wraps it in Collections.unmodifiableMap;
+        lookups are the only use, so a MappingProxyType over an insertion-ordered
+        dict is equivalent.
+        """
+        return MappingProxyType(
+            {
+                CSVConstants.PATIENT_KEY: CSVConstants.PATIENT_HEADER_LINE,
+                CSVConstants.ALLERGY_KEY: CSVConstants.ALLERGY_HEADER_LINE,
+                CSVConstants.MEDICATION_KEY: CSVConstants.MEDICATION_HEADER_LINE,
+                CSVConstants.CONDITION_KEY: CSVConstants.CONDITION_HEADER_LINE,
+                CSVConstants.CAREPLAN_KEY: CSVConstants.CAREPLAN_HEADER_LINE,
+                CSVConstants.OBSERVATION_KEY: CSVConstants.OBSERVATION_HEADER_LINE,
+                CSVConstants.PROCEDURE_KEY: CSVConstants.PROCEDURE_HEADER_LINE,
+                CSVConstants.IMMUNIZATION_KEY: CSVConstants.IMMUNIZATION_HEADER_LINE,
+                CSVConstants.ENCOUNTER_KEY: CSVConstants.ENCOUNTER_HEADER_LINE,
+                CSVConstants.IMAGING_STUDY_KEY: CSVConstants.IMAGING_STUDY_HEADER_LINE,
+                CSVConstants.DEVICE_KEY: CSVConstants.DEVICE_HEADER_LINE,
+                CSVConstants.SUPPLY_KEY: CSVConstants.SUPPLY_HEADER_LINE,
+                CSVConstants.ORGANIZATION_KEY: CSVConstants.ORGANIZATION_HEADER_LINE,
+                CSVConstants.PROVIDER_KEY: CSVConstants.PROVIDER_HEADER_LINE,
+                CSVConstants.PAYER_KEY: CSVConstants.PAYER_HEADER_LINE,
+                CSVConstants.PAYER_TRANSITION_KEY: CSVConstants.PAYER_TRANSITION_HEADER_LINE,
+                CSVConstants.CLAIM_KEY: CSVConstants.CLAIM_HEADER_LINE,
+                CSVConstants.CLAIM_TRANSACTION_KEY: CSVConstants.CLAIM_TRANSACTION_HEADER_LINE,
+                CSVConstants.PATIENT_EXPENSE_KEY: CSVConstants.PATIENT_EXPENSE_HEADER_LINE,
+            }
+        )
 
 
-CSVConstants.HEADER_LINE_MAP = MappingProxyType(
-    {
-        "patients": CSVConstants.PATIENT_HEADER_LINE,
-        "allergies": CSVConstants.ALLERGY_HEADER_LINE,
-        "medications": CSVConstants.MEDICATION_HEADER_LINE,
-        "conditions": CSVConstants.CONDITION_HEADER_LINE,
-        "careplans": CSVConstants.CAREPLAN_HEADER_LINE,
-        "observations": CSVConstants.OBSERVATION_HEADER_LINE,
-        "procedures": CSVConstants.PROCEDURE_HEADER_LINE,
-        "immunizations": CSVConstants.IMMUNIZATION_HEADER_LINE,
-        "encounters": CSVConstants.ENCOUNTER_HEADER_LINE,
-        "imaging_studies": CSVConstants.IMAGING_STUDY_HEADER_LINE,
-        "devices": CSVConstants.DEVICE_HEADER_LINE,
-        "supplies": CSVConstants.SUPPLY_HEADER_LINE,
-        "organizations": CSVConstants.ORGANIZATION_HEADER_LINE,
-        "providers": CSVConstants.PROVIDER_HEADER_LINE,
-        "payers": CSVConstants.PAYER_HEADER_LINE,
-        "payer_transitions": CSVConstants.PAYER_TRANSITION_HEADER_LINE,
-        "claims": CSVConstants.CLAIM_HEADER_LINE,
-        "claims_transactions": CSVConstants.CLAIM_TRANSACTION_HEADER_LINE,
-        "patient_expenses": CSVConstants.PATIENT_EXPENSE_HEADER_LINE,
-    }
-)
+CSVConstants.HEADER_LINE_MAP = CSVConstants.initialize_header_map()
