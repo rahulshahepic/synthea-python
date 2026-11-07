@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class IPlanEligibility(Protocol):
-    """Java: IPlanEligibility; pending T16."""
+    """Java: IPlanEligibility."""
 
     def __init__(self) -> None:
         """Java: IPlanEligibility#IPlanEligibility.
@@ -20,7 +20,7 @@ class IPlanEligibility(Protocol):
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: IPlanEligibility#IPlanEligibility — pending T16")
+        pass
 
     def is_person_eligible(self, person: Person, time: int) -> bool:
         """Java: IPlanEligibility#isPersonEligible.
@@ -28,4 +28,4 @@ class IPlanEligibility(Protocol):
         Java overloads:
         (Person person, long time)
         """
-        raise NotImplementedError("Java: IPlanEligibility#isPersonEligible — pending T16")
+        ...
