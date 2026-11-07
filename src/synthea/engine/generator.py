@@ -65,6 +65,18 @@ class GeneratorOptions:
 
     def __init__(self) -> None:
         """Java: GeneratorOptions#GeneratorOptions field initializers."""
+        self.population: int
+        self.thread_pool_size: int
+        self.reference_time: int
+        self.end_time: int
+        self.run_start_time: int
+        self.seed: int
+        self.clinician_seed: int
+        self.overflow: bool
+        self.age_specified: bool
+        self.min_age: int
+        self.max_age: int
+        self.days_to_travel_forward: int
         self.population = Config.get_as_integer("generate.default_population", 1)
         self.thread_pool_size = Config.get_as_integer("generate.thread_pool_size", -1)
         self.reference_time = int(time.time() * 1000)
@@ -94,6 +106,11 @@ class CriteriaCheck:
 
     def __init__(self) -> None:
         """Java: CriteriaCheck#CriteriaCheck, default false fields."""
+        self.reject_dead_but_overflow: bool
+        self.is_alive_but_dead_required: bool
+        self.is_dead_but_alive_required: bool
+        self.insufficient_providers: bool
+        self.failed_keep_module: bool
         self.reject_dead_but_overflow = False
         self.is_alive_but_dead_required = False
         self.is_dead_but_alive_required = False
@@ -141,6 +158,23 @@ class Generator:
         clinician_seed: int | None = None,
     ) -> None:
         """Java: Generator#Generator overloads, including the int overload's second init."""
+        self.options: GeneratorOptions
+        self.population_random: DefaultRandomNumberGenerator
+        self.clinician_random: DefaultRandomNumberGenerator
+        self.timestep: int
+        self.stop: int
+        self.reference_time: int
+        self.stats: dict[str, AtomicInteger]
+        self.location: Location
+        self.total_generated_population: AtomicInteger
+        self.log_level: str | None
+        self.only_alive_patients: bool
+        self.only_dead_patients: bool
+        self.only_veterans: bool
+        self.max_attempts_to_keep_patient: int | None
+        self.exporter_runtime_options: ExporterRuntimeOptions
+        self.thread_pool_size: int
+        self.module_predicate: Callable[[str], bool]
         self.id: UUID = uuid4()
         self.options = (
             population_or_o if isinstance(population_or_o, GeneratorOptions) else GeneratorOptions()
@@ -208,7 +242,7 @@ class Generator:
             maximum = parse_long(
                 cast(str, Config.get("generate.max_attempts_to_keep_patient", "1000"))
             )
-            self.max_attempts_to_keep_patient: int | None = maximum if maximum != 0 else None
+            self.max_attempts_to_keep_patient = maximum if maximum != 0 else None
         except (ValueError, TypeError):
             self.max_attempts_to_keep_patient = None
         self.only_veterans = Config.get_as_boolean("generate.veteran_population_override")
@@ -228,7 +262,9 @@ class Generator:
             else self.options.city + ", " + self.options.state
         )
         print(
-            f"Running with options:\nPopulation: {self.options.population}\nSeed: {self.options.seed}\nProvider Seed:{self.options.clinician_seed}\nReference Time: {self.options.reference_time}\nLocation: {location_name}"
+            f"Running with options:\nPopulation: {self.options.population}\nSeed: "
+            f"{self.options.seed}\nProvider Seed:{self.options.clinician_seed}\nReference "
+            f"Time: {self.options.reference_time}\nLocation: {location_name}"
         )
         print(f"Min Age: {self.options.min_age}\nMax Age: {self.options.max_age}")
         if self.options.gender is not None:
@@ -254,19 +290,25 @@ class Generator:
         Exporter.run_post_completion_exports(self, self.exporter_runtime_options)
         total = self.total_generated_population.get()
         print(
-            f"Records: total={total}, alive={self.stats['alive'].get()}, dead={self.stats['dead'].get()}"
+            f"Records: total={total}, alive={self.stats['alive'].get()}, "
+            f"dead={self.stats['dead'].get()}"
         )
         print(
-            f"RNG={self.population_random.get_count()}\nClinician RNG={self.clinician_random.get_count()}"
+            f"RNG={self.population_random.get_count()}\nClinician "
+            f"RNG={self.clinician_random.get_count()}"
         )
         print(
-            f"\n{self.ANSI_GREEN}You've just generated {total} patients!{self.ANSI_RESET} We're happy to know Synthea is helping you with your project."
+            f"\n{self.ANSI_GREEN}You've just generated {total} patients!{self.ANSI_RESET} "
+            f"We're happy to know Synthea is helping you with your "
+            f"project."
         )
         print(
-            "Like what we're doing? Synthea is an open-source project, and your support helps us keep building."
+            "Like what we're doing? Synthea is an open-source project, "
+            "and your support helps us keep building."
         )
         print(
-            f"Please consider {self.ANSI_BLUE}{self.FORMATTED_DONATION_LINK}{self.ANSI_RESET} ({self.DONATION_LINK}).\n"
+            f"Please consider {self.ANSI_BLUE}{self.FORMATTED_DONATION_LINK}{self.ANSI_RESET} "
+            f"({self.DONATION_LINK}).\n"
         )
 
     def generate_person(self, index: int, person_seed: int | None = None) -> Person:
@@ -292,11 +334,16 @@ class Generator:
                 ):
                     raise RuntimeError(
                         f"Failed to produce a matching patient after {attempt} attempts. "
-                        "Ensure that it is possible for all requested demographics to meet the criteria. "
-                        "(e.g., make sure there is no age restriction that conflicts with a requested condition, "
-                        "such as limiting age to 0-18 and requiring all patients have a condition that only onsets after 55.) "
-                        "If you are confident that the constraints are possible to satisfy but rare, "
-                        "consider increasing the value in config setting `generate.max_attempts_to_keep_patient`"
+                        "Ensure that it is possible for all requested demographics "
+                        "to meet the criteria. "
+                        "(e.g., make sure there is no age restriction that conflicts "
+                        "with a requested condition, "
+                        "such as limiting age to 0-18 and requiring all patients "
+                        "have a condition that only onsets after 55.) "
+                        "If you are confident that the constraints are possible "
+                        "to satisfy but rare, "
+                        "consider increasing the value in config setting "
+                        "`generate.max_attempts_to_keep_patient`"
                     )
                 if not check.export_anyway():
                     person_seed = person.rand_long()
@@ -399,7 +446,9 @@ class Generator:
         a = person.attributes
         deceased = "" if is_alive else "DECEASED"
         print(
-            f"{index + 1} -- {a.get(Person.NAME)} ({person.age_in_years(time)} y/o {a.get(Person.GENDER)}) {a.get(Person.CITY)}, {a.get(Person.STATE)} {deceased} ({person.get_count()})"
+            f"{index + 1} -- {a.get(Person.NAME)} ({person.age_in_years(time)} "
+            f"y/o {a.get(Person.GENDER)}) {a.get(Person.CITY)}, {a.get(Person.STATE)} "
+            f"{deceased} ({person.get_count()})"
         )
         if self.log_level == "detailed":
             print("ATTRIBUTES")
