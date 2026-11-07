@@ -129,6 +129,7 @@ def test_distribution_fdlibm_log(golden: Callable[[str], Path]) -> None:
     import struct
 
     from synthea.engine.distribution import _java_log
+    from synthea.world.concepts.growth_chart_entry import GrowthChartEntry
 
     rows = [
         json.loads(line)
@@ -140,3 +141,27 @@ def test_distribution_fdlibm_log(golden: Callable[[str], Path]) -> None:
         actual = double_to_string(_java_log(value))
         assert actual == row["strict"], row
         assert actual == row["math"], "Reference Math.log must disable _dlog; see issue #66"
+        assert (
+            double_to_string(GrowthChartEntry(0.0, 1.0, 0.2).zscore_for_value(value))
+            == row["growth"]
+        )
+
+
+@pytest.mark.parity
+def test_distribution_cql_logs(golden: Callable[[str], Path]) -> None:
+    """Real Java CQL Ln/Log paths: 1,000 inputs x three expressions under the corrected VM."""
+    processors = {
+        "ln": ExpressionProcessor("Ln(#{x})"),
+        "log2": ExpressionProcessor("Log(#{x}, 2.0)"),
+        "logBase": ExpressionProcessor("Log(#{x}, 1.23456789)"),
+    }
+    rows = [
+        json.loads(line)
+        for line in (golden("DistributionLogProbe") / "cql_logs.jsonl").read_text().splitlines()
+    ]
+    assert len(rows) == 1000
+    for row in rows:
+        for key, processor in processors.items():
+            actual = processor.evaluate({"x": Decimal(row["x"])})
+            assert isinstance(actual, Decimal)
+            assert to_string(actual) == row[key], (key, row["x"])
