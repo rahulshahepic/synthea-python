@@ -22,17 +22,11 @@ from tests.dependency_gate import Pending, report_pending, run_or_pending
 
 
 class GrowthPerson_double(Person):  # noqa: N801
-    """Test-only Person attributes/RNG; real T09 age methods remain inherited."""
+    """Test-only Person attributes/RNG state; real T09 age and RNG methods are inherited."""
 
     def __init__(self, seed: int) -> None:
         self.random = DefaultRandomNumberGenerator(seed)
         self.attributes = JavaConcurrentHashMap()
-
-    def rand(self, *args: float) -> float:
-        """Real RNG overload plumbing missing from Person until fix #54 merges."""
-        if not args:
-            return self.random.rand()
-        return self.random.rand(*args)
 
 
 def _point(point: Point | None) -> list[object] | None:
