@@ -9,18 +9,12 @@ tests/parity/test_person_component.py — ``tests/parity/person_doubles.py``
 stand in for HealthRecord and CoverageRecord, supplying only the state
 Person's constructor reads. Provider production code itself calls the real
 Person, Location, Demographics, Names and QuadTree throughout.
-
-Two T09 gaps are bridged in the test only, and listed in the PR body under
-"Problems found": Person has no ``distance`` method (Java Person inherits
-QuadTreeElement's default, which QuadTree.query calls), so query persons in
-the ops case get the interface-default distance as an instance attribute.
 """
 
 from __future__ import annotations
 
 import importlib.util
 import json
-import math
 from collections.abc import Callable
 from pathlib import Path
 
@@ -45,18 +39,9 @@ STATES = ["Massachusetts", "California", "Texas"]
 SEEDS = [42, 12345]
 
 
-def _quad_tree_distance(person: Person, element: object) -> float:
-    """Java: QuadTreeElement#distance default (T09 person gap; see docstring)."""
-    dx = person.get_x() - element.get_x()  # type: ignore[attr-defined]
-    dy = person.get_y() - element.get_y()  # type: ignore[attr-defined]
-    return math.sqrt(dx * dx + dy * dy)
-
-
 def _query_person(seed: int, x: float, y: float) -> Person:
     person = Person(seed)
     person.attributes[Person.COORDINATE] = Point2DDouble(x, y)
-    # Test-only bridge for the missing QuadTreeElement default on Person.
-    person.distance = lambda element: _quad_tree_distance(person, element)  # type: ignore[attr-defined]
     return person
 
 

@@ -10,10 +10,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import org.mitre.synthea.engine.State;
 import org.mitre.synthea.helpers.Config;
+import org.mitre.synthea.helpers.DefaultRandomNumberGenerator;
 import org.mitre.synthea.helpers.ValueGenerator;
 import org.mitre.synthea.modules.QualityOfLifeModule;
+import org.mitre.synthea.world.agents.Clinician;
 import org.mitre.synthea.world.agents.PayerManager;
 import org.mitre.synthea.world.agents.Person;
 import org.mitre.synthea.world.agents.Provider;
@@ -70,6 +73,7 @@ public class PersonProbe {
     PayerManager.loadNoInsurance();
     Path out = Path.of(args[0]);
     rngOverloads(out);
+    distances(out);
     long[] seeds = new long[25];
     for (int i = 0; i < seeds.length; i++) {
       seeds[i] = i;
@@ -90,6 +94,41 @@ public class PersonProbe {
         providers(w, seed);
       }
     }
+  }
+
+  /** T57: QuadTreeElement#distance as inherited by Person, Provider and Clinician. */
+  private static void distances(Path out) throws Exception {
+    Random coords = new Random(57L);
+    Person person = new Person(57L);
+    Provider provider = new Provider();
+    Clinician clinician = new Clinician(57L, new DefaultRandomNumberGenerator(57L), 1L, null);
+    Point2D.Double personAt = new Point2D.Double();
+    Point2D.Double clinicianAt = new Point2D.Double();
+    person.attributes.put(Person.COORDINATE, personAt);
+    clinician.attributes.put(Person.COORDINATE, clinicianAt);
+    try (PrintWriter w = new PrintWriter(Files.newBufferedWriter(
+        out.resolve("person-distance.jsonl"), StandardCharsets.UTF_8))) {
+      for (int i = 0; i < 300; i++) {
+        double scale = i < 100 ? 1.0 : (i < 200 ? 1e-9 : 1e9);
+        personAt.setLocation(coord(coords, scale), coord(coords, scale));
+        provider.getLonLat().setLocation(coord(coords, scale), coord(coords, scale));
+        clinicianAt.setLocation(coord(coords, scale), coord(coords, scale));
+        JsonObject row = new JsonObject();
+        row.addProperty("i", i);
+        row.addProperty("personToProvider", d(person.distance(provider)));
+        row.addProperty("personToClinician", d(person.distance(clinician)));
+        row.addProperty("personToSelf", d(person.distance(person)));
+        row.addProperty("providerToPerson", d(provider.distance(person)));
+        row.addProperty("providerToClinician", d(provider.distance(clinician)));
+        row.addProperty("clinicianToPerson", d(clinician.distance(person)));
+        row.addProperty("clinicianToProvider", d(clinician.distance(provider)));
+        w.println(row.toString());
+      }
+    }
+  }
+
+  private static double coord(Random coords, double scale) {
+    return (coords.nextDouble() * 360.0 - 180.0) * scale;
   }
 
   /** T54: exercise every RandomNumberGenerator default overload on actual Person. */
