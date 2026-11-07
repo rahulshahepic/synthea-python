@@ -24,7 +24,7 @@ JAR="$("$ROOT/parity/build_java.sh" | tail -1)"
 CP="$JAR:$ROOT/parity/build/probes"
 # Fixed JVM environment: UTC, en-US, UTF-8. The Python port assumes exactly this.
 # Math.log is a JIT intrinsic whose result differs from StrictMath (fdlibm) by CPU and execution tier. Disable ONLY the
-# log intrinsic so Math.log == StrictMath.log. Do not use -XX:DisableIntrinsic=_dlog: it also changes pow/exp, which T12 matches
+# log intrinsic so Math.log == StrictMath.log. Do not use -XX:-UseLibmIntrinsic: it also changes pow/exp, which T12 matches
 # against the default VM.
 JAVA=(java -XX:+UnlockDiagnosticVMOptions -XX:DisableIntrinsic=_dlog -Duser.timezone=UTC -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8 -Xmx4g)
 GOLDEN="$ROOT/parity/golden"
