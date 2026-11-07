@@ -1,7 +1,4 @@
-"""Java API skeleton:
-java/src/main/java/org/mitre/synthea/world/agents/behaviors/providerfinder/Pr
-oviderFinderRandom.java.
-"""
+"""Java: org.mitre.synthea.world.agents.behaviors.providerfinder.ProviderFinderRandom."""
 
 from __future__ import annotations
 
@@ -14,9 +11,7 @@ if TYPE_CHECKING:
 
 
 class ProviderFinderRandom:
-    """Java: ProviderFinderRandom; pending
-    T13.
-    """
+    """Java: ProviderFinderRandom."""
 
     def __init__(self) -> None:
         """Java: ProviderFinderRandom#ProviderFinderRandom.
@@ -24,14 +19,29 @@ class ProviderFinderRandom:
         Java overloads:
         ()
         """
-        raise NotImplementedError("Java: ProviderFinderRandom#ProviderFinderRandom — pending T13")
 
     def find(
-        self, providers: list[Provider], person: Person, service: EncounterType, time: int
-    ) -> Provider:
+        self,
+        providers: list[Provider],
+        person: Person,
+        service: EncounterType | None,
+        time: int,
+    ) -> Provider | None:
         """Java: ProviderFinderRandom#find.
 
         Java overloads:
         (List providers, Person person, EncounterType service, long time)
         """
-        raise NotImplementedError("Java: ProviderFinderRandom#find — pending T13")
+        options: list[Provider] = []
+        for provider in providers:
+            if provider.accepts(person, time) and (
+                service is None or provider.has_service(service)
+            ):
+                options.append(provider)
+
+        if not options:
+            return None
+        if len(options) == 1:
+            return options[0]
+        # there are a few equally good options, pick one randomly.
+        return options[person.rand_int(len(options))]

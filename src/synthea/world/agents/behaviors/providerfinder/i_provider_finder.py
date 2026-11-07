@@ -1,7 +1,4 @@
-"""Java API skeleton:
-java/src/main/java/org/mitre/synthea/world/agents/behaviors/providerfinder/IProviderFind
-er.java.
-"""
+"""Java: org.mitre.synthea.world.agents.behaviors.providerfinder.IProviderFinder."""
 
 from __future__ import annotations
 
@@ -14,22 +11,18 @@ if TYPE_CHECKING:
 
 
 class IProviderFinder(Protocol):
-    """Java: IProviderFinder; pending T13."""
-
-    def __init__(self) -> None:
-        """Java: IProviderFinder#IProviderFinder.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: IProviderFinder#IProviderFinder — pending T13")
+    """Java: IProviderFinder."""
 
     def find(
-        self, providers: list[Provider], person: Person, service: EncounterType, time: int
-    ) -> Provider:
+        self,
+        providers: list[Provider],
+        person: Person,
+        service: EncounterType | None,
+        time: int,
+    ) -> Provider | None:
         """Java: IProviderFinder#find.
 
         Java overloads:
         (List providers, Person person, EncounterType service, long time)
         """
-        raise NotImplementedError("Java: IProviderFinder#find — pending T13")
+        ...
