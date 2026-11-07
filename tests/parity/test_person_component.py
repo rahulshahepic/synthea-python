@@ -78,12 +78,8 @@ def _rng(out: dict[str, str], seed: int) -> None:
         f"randLong={p.rand_long()}",
         f"randBoolean={_b(p.rand_boolean())}",
         f"randUUID={p.rand_uuid()}",
-        # The probe calls the RandomNumberGenerator interface defaults
-        # rand(double, double) and rand(double[]) on the Java Person; those
-        # defaults live on T01's DefaultRandomNumberGenerator in the port
-        # (Person#rand itself is arity-0), and the draws are identical.
-        f"randRange={double_to_string(p.random.rand(2.0, 3.0))}",
-        f"randArray={double_to_string(p.random.rand([5.0, 6.0]))}",
+        f"randRange={double_to_string(p.rand(2.0, 3.0))}",
+        f"randArray={double_to_string(p.rand([5.0, 6.0]))}",
         f"count={p.get_count()}",
         f"seed={p.get_seed()}",
     ]
@@ -329,3 +325,46 @@ def test_person_component_probe(
     assert [row["case"] for row in rows] == list(actual.keys())
     for row in rows:
         assert actual[row["case"]] == row["out"], row["case"]
+
+
+@pytest.mark.parity
+def test_person_component_rng_overloads(
+    golden: Callable[[str], Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Java: Person inherited RNG overloads, 100 draws each on seven seeds.
+
+    Existing named doubles supply constructor record/coverage plumbing only;
+    every RNG value comes from the real Person and its real seeded RNG.
+    """
+    monkeypatch.setattr(person_module, "HealthRecord", HealthRecordDouble)
+    monkeypatch.setattr(person_module, "CoverageRecord", CoverageRecordDouble)
+    rows = [
+        json.loads(line)
+        for line in (golden("PersonProbe") / "person-rng-overloads.jsonl").read_text().splitlines()
+    ]
+    assert len(rows) == 700
+    persons: dict[int, Person] = {}
+    for expected in rows:
+        seed = int(expected["seed"])
+        if seed not in persons:
+            persons[seed] = Person(seed)
+        person = persons[seed]
+        actual = {
+            "seed": str(seed),
+            "draw": expected["draw"],
+            "uniform": double_to_string(person.rand()),
+            "range": double_to_string(person.rand(-12.5, 91.25)),
+            "integerBounds": double_to_string(person.rand(0, 10)),
+            "decimals0": double_to_string(person.rand(-12.5, 91.25, 0)),
+            "decimals2": double_to_string(person.rand(-12.5, 91.25, 2)),
+            "decimalsNegative": double_to_string(person.rand(-125.0, 912.5, -1)),
+            "decimalsNull": double_to_string(person.rand(-12.5, 91.25, None)),
+            "doubleArray": double_to_string(person.rand([-12.5, 91.25])),
+            "intArray": double_to_string(person.rand([-12, 91])),
+            "oneChoice": person.rand("single"),
+            "twoChoices": person.rand("a", "b"),
+            "manyChoices": person.rand("a", "b", "c", "d", "e"),
+            "count": str(person.get_count()),
+            "nextLong": str(person.rand_long()),
+        }
+        assert actual == expected

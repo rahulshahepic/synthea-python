@@ -69,6 +69,7 @@ public class PersonProbe {
     // HealthRecordProbe / HealthRecordTest setup) so records() can enrol.
     PayerManager.loadNoInsurance();
     Path out = Path.of(args[0]);
+    rngOverloads(out);
     long[] seeds = new long[25];
     for (int i = 0; i < seeds.length; i++) {
       seeds[i] = i;
@@ -87,6 +88,37 @@ public class PersonProbe {
         qol(w, seed);
         states(w, seed);
         providers(w, seed);
+      }
+    }
+  }
+
+  /** T54: exercise every RandomNumberGenerator default overload on actual Person. */
+  private static void rngOverloads(Path out) throws Exception {
+    long[] seeds = {0L, 1L, 42L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE};
+    try (PrintWriter w = new PrintWriter(Files.newBufferedWriter(
+        out.resolve("person-rng-overloads.jsonl"), StandardCharsets.UTF_8))) {
+      for (long seed : seeds) {
+        Person person = new Person(seed);
+        for (int draw = 0; draw < 100; draw++) {
+          JsonObject row = new JsonObject();
+          row.addProperty("seed", Long.toString(seed));
+          row.addProperty("draw", draw);
+          row.addProperty("uniform", d(person.rand()));
+          row.addProperty("range", d(person.rand(-12.5, 91.25)));
+          row.addProperty("integerBounds", d(person.rand(0, 10)));
+          row.addProperty("decimals0", d(person.rand(-12.5, 91.25, 0)));
+          row.addProperty("decimals2", d(person.rand(-12.5, 91.25, 2)));
+          row.addProperty("decimalsNegative", d(person.rand(-125.0, 912.5, -1)));
+          row.addProperty("decimalsNull", d(person.rand(-12.5, 91.25, null)));
+          row.addProperty("doubleArray", d(person.rand(new double[]{-12.5, 91.25})));
+          row.addProperty("intArray", d(person.rand(new int[]{-12, 91})));
+          row.addProperty("oneChoice", person.rand("single"));
+          row.addProperty("twoChoices", person.rand("a", "b"));
+          row.addProperty("manyChoices", person.rand("a", "b", "c", "d", "e"));
+          row.addProperty("count", Long.toString(person.getCount()));
+          row.addProperty("nextLong", Long.toString(person.randLong()));
+          w.println(row.toString());
+        }
       }
     }
   }
