@@ -22,6 +22,7 @@ from pathlib import Path
 import pytest
 
 from synthea.modules.encounter_module import EncounterModule
+from synthea.world.agents.provider import Provider
 from tests.state_doubles import create_encounter_double
 from tests.state_support import blocks, state_run_lines
 
@@ -30,12 +31,17 @@ pytestmark = pytest.mark.parity
 
 @pytest.fixture(autouse=True)
 def _create_encounter_double() -> Iterator[None]:
+    # The double reads Provider's global registry; the Java probe ran
+    # in a fresh JVM with it empty. Other parity tests (test_provider)
+    # leave it loaded, so clear it for the run and again on teardown.
+    Provider.clear()
     original = EncounterModule.create_encounter
     EncounterModule.create_encounter = staticmethod(create_encounter_double)  # type: ignore[method-assign]
     try:
         yield
     finally:
         EncounterModule.create_encounter = original  # type: ignore[method-assign]
+        Provider.clear()
 
 
 def _read_lines(path: Path) -> list[str]:
