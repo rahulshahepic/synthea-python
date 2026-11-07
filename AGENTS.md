@@ -86,6 +86,39 @@ Immediately after the push succeeds:
      `Agent: <your-name>`.
    * Labels: `agent:<your-name>`.
 
+### 3a. Bundles: several issues, one PR
+
+Per-task ceremony pays off for leaf tasks, where a parity failure stays isolated. Two cases
+don't fit that and may instead be done as **one bundle PR**:
+
+* **Small fix tasks** (`[Tnn-fix]` issues) in the same area, e.g. two fixes to `Person`. If
+  you own an open PR for one of them, absorb the other into it (if it is unclaimed) instead of
+  opening a second PR. If someone else owns the open PR, don't open a second PR either: take
+  other work and say on that PR that the fix is waiting to be absorbed.
+* **Coupled tasks** listed in the table below, which only work once all of them exist.
+
+| Bundle | Issues | Why |
+|---|---|---|
+| Engine state machine | #18 (T18), #19 (T19), #20 (T20) | Transition, module processing and the states need each other; ported apart, each stubs the other two |
+
+Nothing else may be bundled without the reviewer adding it to that table. Rules:
+
+1. **Claim every member atomically** with §3, each on its own `task/<M>` branch (same claim
+   commit). If any member's branch already exists, that member is not yours: bundle only the
+   ones you won. The **lowest-numbered** member is the primary; all work happens on its branch
+   `task/<P>`. The other branches are claim markers only: don't push to them or open PRs from them.
+2. Label every member `status:claimed` + `agent:<your-name>` and comment on each:
+   `Claimed by <your-name> on branch task/<P> (bundle #P #M …).`
+3. One PR from `task/<P>`. Title `#P #M … <short description>`. Body: one `Closes #<N>` line
+   **per member** and `Task: T<pp>, T<mm>, …`; acceptance-criteria evidence for every member.
+4. To absorb an issue into an **existing** PR, claim it as in 1–2, then add its `Closes` line,
+   its criteria and its `Task:` entry to that PR's body.
+5. Scope is the union of the members' scopes; each member keeps its own
+   `docs/porting_notes/T<nn>.md`. Commit messages start with `#<P>`.
+6. A bundle counts as **one** PR for the limits in §1. Ask for review (§5) once every
+   dependency **outside** the bundle is merged; dependencies between members don't count,
+   even though the bot keeps showing those members `status:startable`.
+
 ## 4. Do the work
 
 * Work **only** on branch `task/<N>`.
@@ -127,7 +160,7 @@ Immediately after the push succeeds:
 * Break Java's circular imports with `from __future__ import annotations` and
   `if TYPE_CHECKING:` imports, or with a function-local import. Never merge modules to avoid a cycle.
 * **Never modify**: anything under `java/`, `.github/`, `AGENTS.md`, `docs/` (except your own
-  `docs/porting_notes/T<nn>.md`), or another task's code, tests or probes. If you believe
+  `docs/porting_notes/T<nn>.md`, one per member for a bundle, §3a), or another task's code, tests or probes. If you believe
   one of those is wrong, say so in your PR body under "Problems found". Do not fix it.
 * If a dependency's existing Python code is wrong (a parity bug in an earlier task), do
   **not** patch it in your PR. Write it up under "Problems found". The reviewer opens a fix task.
@@ -222,7 +255,7 @@ one of:
   allows it.
 * Never fake parity: no hard-coded expected values copied from goldens, and no special-casing
   of probe seeds.
-* One **active** task at a time per agent, at most 4 open PRs (§1). Never take a task claimed by
+* One **active** task (or bundle, §3a) at a time per agent, at most 4 open PRs (§1). Never take a task claimed by
   someone else, even if it's marked `status:stale`. The user or reviewer reassigns it.
 * If you are stuck for real (the spec is ambiguous, the Java seems non-deterministic, a
   test or task definition outside your scope blocks you, …), write a PR comment that starts
