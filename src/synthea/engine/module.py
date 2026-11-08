@@ -29,24 +29,6 @@ from synthea.helpers.utilities import Utilities
 from synthea.resources import resource_path
 from synthea.world.agents.person import Person
 
-# Java core modules: (registry key, name set by the Java constructor,
-# Python class that will own it once ported, owning task note).
-_CORE_MODULES: list[tuple[str, str, str]] = [
-    ("Lifecycle", "Lifecycle", "LifecycleModule (pending T21)"),
-    (
-        "Cardiovascular Disease",
-        "Cardiovascular Disease",
-        "CardiovascularDiseaseModule (pending T23)",
-    ),
-    ("Quality Of Life", "Quality of Life", "QualityOfLifeModule (pending T23)"),
-    ("Weight Loss", "Weight Loss", "WeightLossModule (pending T23)"),
-    (
-        "COVID-19 Immunization Module",
-        "COVID-19 Immunization Module",
-        "C19ImmunizationModule (pending, covid package)",
-    ),
-]
-
 
 def _metrics_enabled() -> bool:
     """Java: TransitionMetrics.enabled (config-gated, default false)."""
@@ -120,6 +102,9 @@ class Module:
         ()
         (JsonObject definition, boolean submodule)
         """
+        # Java initializes Module statics before any instance constructor.
+        if Module.modules is None:
+            Module._registry()
         self.name: str | None = None
         self.specialty: str | None = None
         self.submodule: bool = False
@@ -127,9 +112,6 @@ class Module:
         self.gmf_version: float | None = None
         self.remarks: list[str] | None = None
         self.states: dict[str, State] | None = None
-        # Python-only marker: registry key of a hand-written Java core
-        # module whose Python class is not ported yet (None otherwise).
-        self.core_pending: str | None = None
         if definition is None:
             # Java: protected no-args constructor, used by subclasses,
             # clone() and the core-module shells.
@@ -161,7 +143,14 @@ class Module:
         """The static registry, loaded on first use (Java: the static
         ``modules`` field, initialized when the class is first used)."""
         if Module.modules is None:
-            Module.modules = Module.load_modules()
+            # Core constructors re-enter Module while its Java statics initialize.
+            registry: dict[str, ModuleSupplier] = {}
+            Module.modules = registry
+            try:
+                registry.update(Module.load_modules())
+            except BaseException:
+                Module.modules = None
+                raise
         return Module.modules
 
     @staticmethod
@@ -171,14 +160,23 @@ class Module:
         Java overloads:
         ()
         """
+        # Function-local imports break Module/core-module inheritance cycles.
+        from synthea.modules.cardiovascular_disease_module import CardiovascularDiseaseModule
+        from synthea.modules.covid.c19_immunization_module import C19ImmunizationModule
+        from synthea.modules.lifecycle_module import LifecycleModule
+        from synthea.modules.quality_of_life_module import QualityOfLifeModule
+        from synthea.modules.weight_loss_module import WeightLossModule
+
         ret_val: dict[str, ModuleSupplier] = {}
         submodule_count = 0
-
-        for key, core_name, pending in _CORE_MODULES:
-            shell = Module()
-            shell.name = core_name
-            shell.core_pending = pending
-            ret_val[key] = ModuleSupplier(shell)
+        for key, core_type in (
+            ("Lifecycle", LifecycleModule),
+            ("Cardiovascular Disease", CardiovascularDiseaseModule),
+            ("Quality Of Life", QualityOfLifeModule),
+            ("Weight Loss", WeightLossModule),
+            ("COVID-19 Immunization Module", C19ImmunizationModule),
+        ):
+            ret_val[key] = ModuleSupplier(core_type())
 
         module_overrides = Module.get_module_overrides()
 
@@ -404,7 +402,6 @@ class Module:
             # top-level module.
             clone.submodule_name = clone.name
         clone.remarks = self.remarks
-        clone.core_pending = self.core_pending
         # Java quirk, reproduced: clone() does not copy gmfVersion.
         if self.states is not None:
             clone.states = {}
@@ -421,11 +418,6 @@ class Module:
         (Person person, long time)
         (Person person, long time, boolean terminateOnDeath)
         """
-        if self.core_pending is not None:
-            raise NotImplementedError(
-                f"Java core module {self.name}: {self.core_pending} — "
-                "out of scope for T19 (hand-written Java module)"
-            )
         if terminate_on_death is None:
             terminate_on_death = True
         if terminate_on_death and not person.alive(time):

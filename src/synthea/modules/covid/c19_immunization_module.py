@@ -5,6 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import TYPE_CHECKING, ClassVar, Protocol, cast
 
+from synthea.engine.module import Module
 from synthea.helpers.utilities import Utilities
 from synthea.javacompat.collections import JavaHashMap
 from synthea.modules.covid.c19_vaccine import C19Vaccine, EUASet
@@ -16,14 +17,13 @@ from synthea.world.concepts.clinician_specialty import ClinicianSpecialty
 from synthea.world.concepts.health_record import Code, EncounterType, HealthRecord
 
 if TYPE_CHECKING:
-    from synthea.engine.module import Module
     from synthea.world.agents.person import Person
 
     class Inventory(Protocol):
         """Java boundary type: Inventory; external to the mapped Python port."""
 
 
-class C19ImmunizationModule:
+class C19ImmunizationModule(Module):
     """Java: C19ImmunizationModule."""
 
     COVID_CODE: ClassVar[str] = "840539006"
@@ -48,22 +48,7 @@ class C19ImmunizationModule:
         Java overloads:
         ()
         """
-        # Java: constructing a Module subclass triggers Module.loadModules(),
-        # which instantiates every core module — including a
-        # C19ImmunizationModule — so when the registry has not been loaded
-        # yet, initialize() runs once for the registry's instance before
-        # this constructor's own initialize() runs. Because
-        # C19VaccineAgeDistributions.loadRawDistribution() appends to its
-        # static maps, that first construction double-loads the raw
-        # distributions (the 12-15 list ends up filtered twice). Reproduced
-        # here: if the Python registry has not been loaded, load it and
-        # run the registry instance's initialize() first.
-        from synthea.engine.module import Module
-
-        if Module.modules is None:
-            Module.get_module_suppliers()
-            C19VaccineAgeDistributions.initialize()
-            C19Vaccine.initialize()
+        super().__init__()
         C19VaccineAgeDistributions.initialize()
         C19Vaccine.initialize()
         self.name: str = "COVID-19 Immunization Module"
@@ -74,7 +59,7 @@ class C19ImmunizationModule:
         Java overloads:
         ()
         """
-        return cast("Module", self)
+        return self
 
     @staticmethod
     def currently_has_covid(person: Person) -> bool:
@@ -189,7 +174,7 @@ class C19ImmunizationModule:
         if person.has_current_encounter() and person.get_current_encounter_module() == module_name:
             person.release_current_encounter(time, module_name)
 
-    def process(self, person: Person, time: int) -> bool:
+    def process(self, person: Person, time: int) -> bool:  # type: ignore[override]
         """Java: C19ImmunizationModule#process.
 
         Java overloads:
