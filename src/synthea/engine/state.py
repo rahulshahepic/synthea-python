@@ -2192,6 +2192,8 @@ class Procedure(Delayable):
         """
         if self.duration is None and self.distribution is None:
             return time
+        if self.stop is None:
+            raise TypeError("Java NullPointerException: unboxing a null Procedure.stop")
         return self.stop
 
     def process_once(self, person: Person, time: int) -> None:
