@@ -1243,7 +1243,7 @@ class SetAttribute(State):
         exp_processor = cast(_ThreadLocalShim, self.get_exp_processor())
         processor = exp_processor.get()
         if processor is not None:
-            self.value = cast(ExpressionProcessor, processor).evaluate(
+            self.value = cast("ExpressionProcessor", processor).evaluate(
                 cast("ExpressionPerson", person), time
             )
         elif self.range is not None:
@@ -2032,7 +2032,7 @@ class MedicationEnd(State):
                 time, self.medication_order, MedicationEnd.EXPIRED
             )
         elif self.referenced_by_attribute is not None:
-            medication = cast(Medication, person.attributes.get(self.referenced_by_attribute))
+            medication = cast("Medication", person.attributes.get(self.referenced_by_attribute))
             medication.stop = time
             person.record.medication_end(time, medication.type, MedicationEnd.EXPIRED)
         elif self.codes is not None:
@@ -2327,7 +2327,7 @@ class VitalSign(LegacyStateWithUnitlessRV):
             shim = cast(_ThreadLocalShim, self.get_exp_processor())
             processor = shim.get()
             if processor is not None:
-                value = cast(ExpressionProcessor, processor).evaluate(
+                value = cast("ExpressionProcessor", processor).evaluate(
                     cast("ExpressionPerson", person), time
                 )
                 person.set_vital_sign(self.vital_sign, cast(float, value))
@@ -2459,7 +2459,7 @@ class Observation(LegacyStateWithUnitlessRV):
                 # Java reads the field directly here; it never calls
                 # getExpProcessor() from Observation#process.
                 processor = cast(_ThreadLocalShim, self.thread_exp_processor).get()
-                value = cast(ExpressionProcessor, processor).evaluate(
+                value = cast("ExpressionProcessor", processor).evaluate(
                     cast("ExpressionPerson", person), time
                 )
             elif self.sampled_data is not None:
