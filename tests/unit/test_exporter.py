@@ -7,9 +7,8 @@ coverage chain, and every Encounter creates a Claim (T14, still a stub).
 The code under test — Exporter.filter_for_export and its helpers — is the
 real production code, as are HealthRecord's scripting methods.
 
-Skipped: testExportFilterShouldKeepCauseOfDeath — it needs
-DeathModule.process (T22, still a stub). The same scenario runs in the
-parity suite, gated on T22 (tests/parity/test_export_helper.py).
+The T22 cause-of-death integration uses real participants and providers,
+matching the existing Java probe; other scenarios keep their component fixtures.
 """
 
 from __future__ import annotations
@@ -21,6 +20,7 @@ import pytest
 from synthea.export.exporter import Exporter
 from synthea.helpers.utilities import Utilities
 from synthea.world.agents.person import Person
+from synthea.world.concepts.claim import Claim as RealClaim
 from synthea.world.concepts.health_record import Code, EncounterType, HealthRecord
 from tests.unit.test_health_record import person_double
 
@@ -205,12 +205,27 @@ def test_export_filter_should_keep_condition_that_ended_during_target(
     assert encounter.conditions[0].start == TIME - years(10)
 
 
-@pytest.mark.skip(
-    reason="needs DeathModule.process (T22, still a stub); the parity suite "
-    "carries this scenario gated on T22"
-)
 def test_export_filter_should_keep_cause_of_death() -> None:
-    """Java: ExporterTest#testExportFilterShouldKeepCauseOfDeath."""
+    """Java: ExporterTest#testExportFilterShouldKeepCauseOfDeath; real T22 integration."""
+    from synthea.modules.death_module import DeathModule
+    from tests.parity.canonical.encounter import real_death_filter_patient
+
+    with real_death_filter_patient(TIME, RealClaim) as (person, _record):
+        cause = Code("SNOMED-CT", "Todo-lookup-code", "Rabies")
+        person.record_death(TIME - years(20), cause)
+        DeathModule.process(person, TIME - years(20))
+        filtered = Exporter.filter_for_export(person, YEARS_TO_KEEP, TIME)
+        assert isinstance(filtered, Person) and filtered.record is not None
+        assert len(filtered.record.encounters) == 1
+        encounter = filtered.record.encounters[0]
+        assert encounter.codes[0] == DeathModule.DEATH_CERTIFICATION
+        assert encounter.start == TIME - years(20)
+        assert len(encounter.observations) == 1
+        assert encounter.observations[0].type == DeathModule.CAUSE_OF_DEATH_CODE.code
+        assert encounter.observations[0].start == TIME - years(20)
+        assert len(encounter.reports) == 1
+        assert encounter.reports[0].type == DeathModule.DEATH_CERTIFICATE.code
+        assert encounter.reports[0].start == TIME - years(20)
 
 
 def test_export_filter_should_not_keep_old_stuff(patient: tuple[Person, HealthRecord]) -> None:
