@@ -11,7 +11,9 @@ from synthea.engine.generator import AtomicInteger, CriteriaCheck, Generator, Ge
 from synthea.export.exporter import Exporter, ExporterRuntimeOptions
 from synthea.helpers.config import Config
 from synthea.helpers.default_random_number_generator import DefaultRandomNumberGenerator
+from synthea.helpers.random_number_generator import RandomNumberGenerator
 from synthea.helpers.utilities import Utilities
+from synthea.modules.lifecycle_module import LifecycleModule
 from synthea.world.agents.person import Person
 from tests.dependency_gate import report_pending, run_or_pending
 from tests.parity.test_generator import DEPENDENCIES, TIME, generator_init_double, options
@@ -39,7 +41,8 @@ def test_generator_criteria_truth_table(flags: tuple[bool, ...]) -> None:
 
 
 @pytest.mark.parametrize(
-    "alive,only_alive,only_dead,overflow,has_provider", itertools.product((False, True), repeat=5)
+    "alive,only_alive,only_dead,overflow,has_provider",
+    list(itertools.product((False, True), repeat=5)),
 )
 def test_generator_check_criteria(
     generator_config: None,
@@ -197,7 +200,9 @@ def test_generator_demographic_retry(
         "update_after_creation",
     ],
 )
-def test_generator_upstream_integration(generator_config: None, case: str) -> None:
+def test_generator_upstream_integration(
+    generator_config: None, case: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Java: GeneratorTest scoped real generation assertions; no clinical doubles."""
 
     def scenario() -> None:
@@ -212,7 +217,32 @@ def test_generator_upstream_integration(generator_config: None, case: str) -> No
         if case == "locations":
             o.state = "California"
             o.city = "South Gate"
-        g = Generator(o)
+        generator_type = Generator
+        if case == "only_dead":
+            # GeneratorTest#testOnlyDeadPatients selects senior patients. Natural
+            # mortality supplies real deaths with this fixture's empty module filter.
+            o.age_specified = True
+            o.min_age = 50
+            o.max_age = 140
+            Config.set("lifecycle.death_by_natural_causes", "true")
+            # Match a fresh JVM's config-backed static initialization in this shared interpreter.
+            monkeypatch.setattr(
+                LifecycleModule,
+                "ENABLE_DEATH_BY_NATURAL_CAUSES",
+                Config.get_as_boolean("lifecycle.death_by_natural_causes"),
+            )
+
+            class PassportInputGenerator(Generator):
+                """Java: Generator#randomDemographics; input excludes T21 passport generation."""
+
+                def random_demographics(self, random: RandomNumberGenerator) -> dict[str, object]:
+                    """Supply the authorized existing-empty-passport fixture input."""
+                    attributes = super().random_demographics(random)
+                    attributes[Person.IDENTIFIER_PASSPORT] = ""
+                    return attributes
+
+            generator_type = PassportInputGenerator
+        g = generator_type(o)
         g.internal_store = []
         g.run()
         assert g.stats["dead" if case == "only_dead" else "alive"].get() == 2

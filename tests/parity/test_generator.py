@@ -26,8 +26,8 @@ from synthea.world.geography.location import Location
 from tests.dependency_gate import Pending, report_pending, run_or_pending
 from tests.parity.canonical import dump_record
 from tests.parity.canonical.coverage import dump_coverage
-from tests.parity.canonical.generator import claim
-from tests.parity.canonical.person import dump, render_value
+from tests.parity.canonical.generator import claim, dump_person, enum_attributes
+from tests.parity.canonical.person import render_value
 
 STATES = ["Massachusetts", "California", "Texas"]
 SEEDS = [42, 12345, 17]
@@ -141,14 +141,15 @@ def person_snapshot(p: Person) -> dict[str, object]:
     """Java: GeneratorProbe#person, full canonical person/record/claim/coverage/vitals."""
     assert p.record is not None and p.current_modules is not None
     return {
-        "person": dump(p),
+        "person": dump_person(p),
+        "enum_attributes": enum_attributes(p),
         "record": dump_record(p.record),
         "coverage": dump_coverage(p.coverage),
         "last_updated": str(p.last_updated),
         "population_seed": str(p.population_seed),
         "vitals": {
             sign.name: double_to_string(p.get_vital_sign(sign, p.last_updated))
-            for sign in p.vital_signs
+            for sign in sorted(p.vital_signs, key=lambda sign: sign.name)
         },
         "modules": [m.name for m in p.current_modules],
     }

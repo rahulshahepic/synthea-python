@@ -13,6 +13,15 @@ public final class CanonicalGenerator {
     CanonicalExport.registerAll();
     Canonical.register(Claim.class, CanonicalGenerator::claim);
   }
+  public static JsonObject enumAttributes(Person person) {
+    JsonObject result = new JsonObject();
+    new TreeMap<>(person.attributes).forEach((key, value) -> {
+      if (value instanceof Enum<?> item) {
+        result.addProperty(key, item.getDeclaringClass().getSimpleName() + ":" + item.name());
+      }
+    });
+    return result;
+  }
   static JsonObject cost(Claim.ClaimCost cost) {
     TreeMap<String, JsonElement> fields = new TreeMap<>();
     for (Field f : Claim.ClaimCost.class.getDeclaredFields()) {

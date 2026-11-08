@@ -58,9 +58,12 @@ public class GeneratorProbe {
   }
   static JsonObject person(Person p)throws Exception {
     JsonObject row=new JsonObject();row.addProperty("person",CanonicalPerson.dump(p));
+    row.add("enum_attributes",CanonicalGenerator.enumAttributes(p));
     row.add("record",Canonical.record(p.record));row.add("coverage",CanonicalCoverage.coverage(p.coverage));
     row.addProperty("last_updated",Long.toString(p.lastUpdated));row.addProperty("population_seed",Long.toString(p.populationSeed));
-    JsonObject signs=new JsonObject();for(VitalSign sign:p.vitalSigns.keySet())signs.addProperty(sign.name(),Double.toString(p.getVitalSign(sign,p.lastUpdated)));
+    List<VitalSign> orderedSigns=new ArrayList<>(p.vitalSigns.keySet());
+    orderedSigns.sort(Comparator.comparing(VitalSign::name));
+    JsonObject signs=new JsonObject();for(VitalSign sign:orderedSigns)signs.addProperty(sign.name(),Double.toString(p.getVitalSign(sign,p.lastUpdated)));
     row.add("vitals",signs);JsonArray modules=new JsonArray();for(org.mitre.synthea.engine.Module m:p.currentModules)modules.add(m.name);row.add("modules",modules);
     return row;
   }

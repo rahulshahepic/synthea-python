@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+from enum import Enum
+
 from synthea.javacompat.bigdecimal import to_string
+from synthea.world.agents.person import Person
 from synthea.world.concepts.claim import Claim, ClaimCost, ClaimEntry
+from tests.parity.canonical.person import dump, render_value
 
 _COST_FIELDS = (
     "cost",
@@ -38,3 +42,42 @@ def claim(item: Claim) -> dict[str, object]:
         "totals": cost(item.totals),
         "items": [claim_entry(entry) for entry in item.items],
     }
+
+
+def enum_attributes(person: Person) -> dict[str, str]:
+    """Java: CanonicalGenerator#enumAttributes; explicit enum type and constant name."""
+    return {
+        key: type(value).__name__ + ":" + value.name
+        for key, value in sorted(person.attributes.items())
+        if isinstance(value, Enum)
+    }
+
+
+def _render_attribute(value: object) -> str:
+    """Java: CanonicalPerson#renderValue, checking Enum before Python StrEnum strings."""
+    if isinstance(value, Enum):
+        return "object:" + type(value).__name__
+    if isinstance(value, dict) or hasattr(value, "items"):
+        items = list(value.items())  # type: ignore[attr-defined]
+        by_rendered = {str(key): val for key, val in items}
+        return (
+            "map:{"
+            + ", ".join(
+                f"{key}={_render_attribute(by_rendered[key])}" for key in sorted(by_rendered)
+            )
+            + "}"
+        )
+    if isinstance(value, (list, tuple)):
+        return "list:[" + ", ".join(_render_attribute(item) for item in value) + "]"
+    return render_value(value)
+
+
+def dump_person(person: Person) -> str:
+    """Java: CanonicalPerson#dump; T27 extends attribute encoding for Python enums."""
+    header, remainder = dump(person).split("\nattributes:\n", 1)
+    _, tail = remainder.split("\nvitalSigns:", 1)
+    attributes = "\n".join(
+        f"  {key} = {_render_attribute(person.attributes[key])}"
+        for key in sorted(person.attributes)
+    )
+    return header + "\nattributes:\n" + attributes + "\nvitalSigns:" + tail
