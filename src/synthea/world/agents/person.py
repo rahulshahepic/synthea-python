@@ -18,7 +18,6 @@ from synthea.helpers.value_generator import ValueGenerator
 from synthea.javacompat import bigdecimal
 from synthea.javacompat.collections import JavaConcurrentHashMap, JavaHashMap
 from synthea.javacompat.numbers import double_to_string
-from synthea.modules.quality_of_life_module import QualityOfLifeModule
 from synthea.world.agents.provider import Provider
 from synthea.world.concepts.health_record import (
     Code,
@@ -647,6 +646,8 @@ class Person:
 
     def get_qalys(self) -> float:
         """Java: Person#getQalys."""
+        from synthea.modules.quality_of_life_module import QualityOfLifeModule
+
         qalys = self.attributes.get(QualityOfLifeModule.QALY)
         if qalys is None:
             raise TypeError("Java NullPointerException: QALY attribute is not set")
@@ -657,6 +658,8 @@ class Person:
 
     def get_dalys(self) -> float:
         """Java: Person#getDalys."""
+        from synthea.modules.quality_of_life_module import QualityOfLifeModule
+
         dalys = self.attributes.get(QualityOfLifeModule.DALY)
         if dalys is None:
             raise TypeError("Java NullPointerException: DALY attribute is not set")
@@ -711,6 +714,8 @@ class Person:
 
     def get_qols_for_year(self, year: int) -> float:
         """Java: Person#getQolsForYear(int)."""
+        from synthea.modules.quality_of_life_module import QualityOfLifeModule
+
         ret_val = 0.0
         qols = self.attributes.get(QualityOfLifeModule.QOLS)
         if qols is not None and year in qols:  # type: ignore[operator]

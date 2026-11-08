@@ -1,18 +1,20 @@
-"""Java API skeleton: Framingham.java."""
+"""Java: org.mitre.synthea.modules.calculators.Framingham."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Protocol
+from typing import TYPE_CHECKING, ClassVar
+
+from synthea.helpers.utilities import Utilities
+from synthea.javacompat.numbers import d2i
+from synthea.modules.calculators.ascvd import Inventory, _inventory
+from synthea.world.concepts.vital_sign import VitalSign
 
 if TYPE_CHECKING:
     from synthea.world.agents.person import Person
 
-    class Inventory(Protocol):
-        """Java boundary type: Inventory; external to the mapped Python port."""
-
 
 class Framingham:
-    """Java: Framingham; pending T23."""
+    """Java: Framingham Heart Study lookup calculators."""
 
     TEN_YEARS_IN_MS: ClassVar[int] = 315360000000
     age_chd_m: ClassVar[list[int]] = [-9, -9, -9, -4, 0, 3, 6, 8, 10, 11, 12, 13]
@@ -239,72 +241,147 @@ class Framingham:
     atrial_fibrillation_stroke_points: ClassVar[list[float]] = [4, 6]
 
     def __init__(self) -> None:
-        """Java: Framingham#Framingham.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: Framingham#Framingham — pending T23")
+        """Java: Framingham#Framingham, implicit empty constructor."""
 
     @staticmethod
     def bound(value: int, min: int, max: int) -> int:
-        """Java: Framingham#bound.
-
-        Java overloads:
-        (int value, int min, int max)
-        """
-        raise NotImplementedError("Java: Framingham#bound — pending T23")
+        """Java: Framingham#bound."""
+        return min if value < min else max if value > max else value
 
     @staticmethod
     def chd10_year(person: Person, time: int, per_timestep: bool) -> float:
-        """Java: Framingham#chd10Year.
-
-        Java overloads:
-        (Person person, long time, boolean perTimestep)
-        """
-        raise NotImplementedError("Java: Framingham#chd10Year — pending T23")
+        """Java: Framingham#chd10Year; integer quotients truncate towards zero."""
+        f = Framingham
+        age = person.age_in_years(time)
+        male = person.attributes.get("gender") == "M"
+        sbp = person.get_vital_sign(VitalSign.SYSTOLIC_BLOOD_PRESSURE, time)
+        dbp = person.get_vital_sign(VitalSign.DIASTOLIC_BLOOD_PRESSURE, time)
+        chol = person.get_vital_sign(VitalSign.TOTAL_CHOLESTEROL, time)
+        if sbp is None or dbp is None or chol is None:
+            return -1.0
+        treated = bool(person.attributes.get("blood_pressure_controlled", False))
+        hdl = person.get_vital_sign(VitalSign.HDL, time)
+        short = f.bound(int((age - 20) / 5), 0, 11)
+        long = f.bound(int((age - 20) / 10), 0, 5)
+        crange = f.bound(int((d2i(chol) - 160) / 40) + 1, 0, 4)
+        brange = f.bound(int((d2i(sbp) - 120) / 10) + 1, 0, 5)
+        points = (f.age_chd_m if male else f.age_chd_f)[short]
+        points += (f.age_chol_chd_m if male else f.age_chol_chd_f)[long][crange]
+        if person.attributes.get("smoker", False):
+            points += (f.age_smoke_chd_m if male else f.age_smoke_chd_f)[long]
+        hrange = f.bound(int((d2i(hdl) - 40) / 10) + 1, 0, 3)
+        points += f.hdl_lookup_chd[hrange]
+        points += (f.sys_bp_chd_m if male else f.sys_bp_chd_f)[brange][0 if treated else 1]
+        risk = (
+            f.risk_chd_m[f.bound(points, 0, 17)] if male else f.risk_chd_f[f.bound(points, 8, 25)]
+        )
+        return Utilities.convert_risk_to_timestep(risk, f.TEN_YEARS_IN_MS) if per_timestep else risk
 
     @staticmethod
     def cvd10_year(person: Person, time: int, per_timestep: bool) -> float:
-        """Java: Framingham#cvd10Year.
-
-        Java overloads:
-        (Person person, long time, boolean perTimestep)
-        """
-        raise NotImplementedError("Java: Framingham#cvd10Year — pending T23")
+        """Java: Framingham#cvd10Year."""
+        f = Framingham
+        age = person.age_in_years(time)
+        if age < 30:
+            return -1.0
+        male = person.attributes.get("gender") == "M"
+        sbp = person.get_vital_sign(VitalSign.SYSTOLIC_BLOOD_PRESSURE, time)
+        chol = person.get_vital_sign(VitalSign.TOTAL_CHOLESTEROL, time)
+        if sbp is None or chol is None:
+            return -1.0
+        treated = bool(person.attributes.get("blood_pressure_controlled", False))
+        hdl = person.get_vital_sign(VitalSign.HDL, time)
+        g = 0 if male else 1
+        points = f.age_cvd_points[g][f.bound(int((age - 30) / 5), 0, 9)]
+        points += f.hdl_cvd_points[f.bound(int((d2i(hdl) - 35) / 5) + 1, 0, 6)]
+        points += f.totalChol_cvd_points[g][f.bound(int((d2i(chol) - 160) / 40) + 1, 0, 4)]
+        points += f.sbp_cvd_points[g][int(treated)][f.bound(int((d2i(sbp) - 120) / 10) + 1, 0, 5)]
+        if person.attributes.get("smoker", False):
+            points += f.cvd_smoker_points[g]
+        if person.attributes.get("diabetes", False):
+            points += f.cvd_diabetes_points[g]
+        risk = (
+            f.risk_cvd_m[f.bound(points, -3, 18)] if male else f.risk_cvd_f[f.bound(points, -2, 21)]
+        )
+        return Utilities.convert_risk_to_timestep(risk, f.TEN_YEARS_IN_MS) if per_timestep else risk
 
     @staticmethod
     def atrial_fibrillation10_year(person: Person, time: int, per_timestep: bool) -> float:
-        """Java: Framingham#atrialFibrillation10Year.
-
-        Java overloads:
-        (Person person, long time, boolean perTimestep)
-        """
-        raise NotImplementedError("Java: Framingham#atrialFibrillation10Year — pending T23")
+        """Java: Framingham#atrialFibrillation10Year, including attribute presence semantics."""
+        f = Framingham
+        age = person.age_in_years(time)
+        if age < 45 or "atrial_fibrillation" in person.attributes:
+            return -1.0
+        if person.get_vital_sign(VitalSign.SYSTOLIC_BLOOD_PRESSURE, time) is None:
+            return -1.0
+        if person.get_vital_sign(VitalSign.BMI, time) is None:
+            return -1.0
+        g = 0 if person.attributes.get("gender") == "M" else 1
+        score = f.age_af[g][min(int((age - 45) / 5), 8)]
+        if person.get_vital_sign(VitalSign.BMI, time) >= 30:
+            score += 1
+        if person.get_vital_sign(VitalSign.SYSTOLIC_BLOOD_PRESSURE, time) >= 160:
+            score += 1
+        if person.attributes.get("blood_pressure_controlled", False):
+            score += 1
+        risk = f.risk_af_table[f.bound(score, 0, 10)]
+        return Utilities.convert_risk_to_timestep(risk, f.TEN_YEARS_IN_MS) if per_timestep else risk
 
     @staticmethod
     def get_index_for_value_in_rangelist(value: int, data: list[int]) -> int:
-        """Java: Framingham#getIndexForValueInRangelist.
-
-        Java overloads:
-        (int value, int data)
-        """
-        raise NotImplementedError("Java: Framingham#getIndexForValueInRangelist — pending T23")
+        """Java: Framingham#getIndexForValueInRangelist; both bounds inclusive."""
+        for i in range(len(data) - 1):
+            if data[i] <= value <= data[i + 1]:
+                return i
+        if value >= data[-1]:
+            return len(data) - 1
+        raise RuntimeError(f"unexpected value {value} for data {data}")
 
     @staticmethod
     def stroke10_year(person: Person, time: int, per_timestep: bool) -> float:
-        """Java: Framingham#stroke10Year.
-
-        Java overloads:
-        (Person person, long time, boolean perTimestep)
-        """
-        raise NotImplementedError("Java: Framingham#stroke10Year — pending T23")
+        """Java: Framingham#stroke10Year."""
+        f = Framingham
+        bp = person.get_vital_sign(VitalSign.SYSTOLIC_BLOOD_PRESSURE, time)
+        if bp is None:
+            return -1.0
+        g = 0 if person.attributes.get("gender") == "M" else 1
+        age = person.age_in_years(time)
+        if age < 20:
+            return -1.0
+        if age < 40:
+            risk = f.stroke_rate_20_39[g]
+        elif age < 55:
+            risk = f.stroke_rate_40_59[g]
+        else:
+            points = 3 if person.attributes.get("smoker", False) else 0
+            if person.attributes.get("left_ventricular_hypertrophy", False):
+                points += 5
+            points += f.get_index_for_value_in_rangelist(age, f.age_stroke[g])
+            table = (
+                f.treated_sys_bp_stroke
+                if person.attributes.get("blood_pressure_controlled", False)
+                else f.untreated_sys_bp_stroke
+            )
+            points += f.get_index_for_value_in_rangelist(d2i(bp), table[g])
+            if person.attributes.get("diabetes", False):
+                points = int(points + f.diabetes_stroke[g])
+            if person.attributes.get("coronary_heart_disease", False):
+                points = int(points + f.chd_stroke_points[g])
+            if "atrial_fibrillation" in person.attributes:
+                points = int(points + f.atrial_fibrillation_stroke_points[g])
+            risk = f.ten_year_stroke_risk[g][min(points, len(f.ten_year_stroke_risk[g]) - 1)]
+        return Utilities.convert_risk_to_timestep(risk, f.TEN_YEARS_IN_MS) if per_timestep else risk
 
     @staticmethod
     def inventory_attributes(attributes: dict[str, Inventory]) -> None:
-        """Java: Framingham#inventoryAttributes.
-
-        Java overloads:
-        (Map attributes)
-        """
-        raise NotImplementedError("Java: Framingham#inventoryAttributes — pending T23")
+        """Java: Framingham#inventoryAttributes."""
+        for key, example in [
+            ("atrial_fibrillation", "ConditionOnset"),
+            ("blood_pressure_controlled", "true"),
+            ("coronary_heart_disease", "true"),
+            ("diabetes", "true"),
+            ("left_ventricular_hypertrophy", "false"),
+            ("gender", "M"),
+            ("smoker", "true"),
+        ]:
+            _inventory(attributes, "Framingham", key, True, False, example)
