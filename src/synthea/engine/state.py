@@ -47,7 +47,6 @@ from synthea.helpers.telemedicine import Telemedicine
 from synthea.helpers.utilities import Utilities
 from synthea.javacompat.collections import JavaHashMap
 from synthea.javacompat.numbers import parse_double
-from synthea.modules.encounter_module import EncounterModule
 from synthea.world.concepts.clinician_specialty import ClinicianSpecialty
 from synthea.world.concepts.health_record import (
     Code,
@@ -1375,6 +1374,8 @@ class Encounter(State):
         Java overloads:
         (Person person, long time)
         """
+        from synthea.modules.encounter_module import EncounterModule
+
         assert self.module is not None
         assert self.module.name is not None
         assert person.record is not None
@@ -1577,6 +1578,8 @@ class EncounterEnd(State):
         Java overloads:
         (Person person, long time)
         """
+        from synthea.modules.encounter_module import EncounterModule
+
         assert self.module is not None
         assert self.module.name is not None
         assert person.record is not None
