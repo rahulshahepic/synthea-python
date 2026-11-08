@@ -271,3 +271,43 @@ def test_json_to_csv_no_transition_match(lookup_config: None) -> None:
         _follow_fixture(
             "lookuptable_nomatchcolumn.json", _lookup_person("english", "F", "Massachusetts"), 0
         )
+
+
+@pytest.mark.parametrize(("flag", "expected"), [(True, "Yes"), (False, "No")])
+def test_lookuptable_boolean_attribute_matches_java_to_string(
+    tmp_path: Path, flag: bool, expected: str
+) -> None:
+    """Java: the key uses Object#toString, so a Boolean attribute is "true"/"false".
+
+    Python's str(True) is "True", which matched no row and fell back to the
+    default probabilities (found by the T28 end-to-end trace, vhd_*.csv tables).
+    """
+    (tmp_path / "flag_test.csv").write_text("flag,Yes,No\ntrue,1,0\nfalse,0,1\n", encoding="utf-8")
+    previous = Config.get("generate.lookup_tables")
+    Config.set("generate.lookup_tables", str(tmp_path) + "/")
+    LookupTableTransition.lookupTables.clear()
+    try:
+        person = Person(0)
+        person.attributes[Person.BIRTHDATE] = 0
+        person.attributes["flag"] = flag
+        transition = build_transition(
+            "lookup_table",
+            {
+                "lookup_table_transition": [
+                    {
+                        "transition": "Yes",
+                        "default_probability": 0,
+                        "lookup_table_name": "flag_test.csv",
+                    },
+                    {
+                        "transition": "No",
+                        "default_probability": 1,
+                        "lookup_table_name": "flag_test.csv",
+                    },
+                ]
+            },
+        )
+        assert transition.follow(person, TIME_2021) == expected
+    finally:
+        Config.set("generate.lookup_tables", previous)
+        LookupTableTransition.lookupTables.clear()

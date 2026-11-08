@@ -98,9 +98,10 @@ class _ThreadLocalShim:
 
 # Java field defaults per State subclass, keyed by class name then field
 # name (object fields -> None, int/long -> 0, double -> 0.0, boolean ->
-# False), with three corrections to the T04 skeleton's annotations:
-# State.entered/exited and Delayable.next are Java Long (nullable), and
-# Symptom.probability is a Java Double (nullable; initialize defaults it).
+# False), with four corrections to the T04 skeleton's annotations:
+# State.entered/exited, Delayable.next and Procedure.stop are Java Long
+# (nullable), and Symptom.probability is a Java Double (nullable;
+# initialize defaults it).
 _FIELD_DEFAULTS: dict[str, dict[str, object]] = {
     "State": {
         "module": None,
@@ -202,7 +203,7 @@ _FIELD_DEFAULTS: dict[str, dict[str, object]] = {
         "reason": None,
         "duration": None,
         "assign_to_attribute": None,
-        "stop": 0,
+        "stop": None,
         "distribution": None,
         "unit": None,
     },
@@ -2161,7 +2162,7 @@ class Procedure(Delayable):
         self.reason: str
         self.duration: RangeWithUnit[int]
         self.assign_to_attribute: str
-        self.stop: int
+        self.stop: int | None
         self.distribution: Distribution
         self.unit: str
 
