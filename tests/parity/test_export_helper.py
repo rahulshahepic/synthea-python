@@ -24,6 +24,7 @@ from synthea.helpers.time_series_data import TimeSeriesData
 from synthea.helpers.utilities import Utilities
 from synthea.modules.death_module import DeathModule
 from synthea.world.agents.person import Person
+from synthea.world.concepts.claim import Claim as RealClaim
 from synthea.world.concepts.health_record import (
     Code,
     EncounterType,
@@ -369,11 +370,17 @@ _FILTER_SCRIPTS: dict[str, Callable[[HealthRecord], None]] = {
 
 
 def _filtered_dump(name: str) -> dict[str, object]:
-    person, record = new_patient()
     if name == "keep_cause_of_death":
-        _script_cause_of_death(person, record)
-    else:
-        _FILTER_SCRIPTS[name](record)
+        # T22 integration: match the real participant setup already present in the Java probe.
+        from tests.parity.canonical.encounter import real_death_filter_patient
+
+        with real_death_filter_patient(TIME, RealClaim) as (person, record):
+            _script_cause_of_death(person, record)
+            filtered = Exporter.filter_for_export(person, YEARS, TIME)
+            assert isinstance(filtered, Person)
+            return dump_record(filtered.record)  # type: ignore[arg-type]
+    person, record = new_patient()
+    _FILTER_SCRIPTS[name](record)
     filtered = Exporter.filter_for_export(person, YEARS, TIME)
     assert isinstance(filtered, Person)
     return dump_record(filtered.record)  # type: ignore[arg-type]

@@ -1,78 +1,64 @@
-"""Java API skeleton: DeathModule.java."""
+"""Java: org.mitre.synthea.modules.DeathModule."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Protocol
+from typing import ClassVar, cast
 
-from synthea.world.concepts.health_record import Code
-
-if TYPE_CHECKING:
-    from synthea.world.agents.person import Person
-    from synthea.world.concepts.health_record import Code
-
-    class Inventory(Protocol):
-        """Java boundary type: Inventory; external to the mapped Python port."""
+from synthea.modules.encounter_module import EncounterModule, Inventory, _inventory
+from synthea.world.agents.person import Person
+from synthea.world.concepts.clinician_specialty import ClinicianSpecialty
+from synthea.world.concepts.health_record import Code, EncounterType
 
 
 class DeathModule:
-    """Java: DeathModule; pending T22."""
+    """Java: org.mitre.synthea.modules.DeathModule."""
 
-    DEATH_CERTIFICATION: ClassVar[Code]  # Java initialization deferred to T22.
-    CAUSE_OF_DEATH_CODE: ClassVar[Code]  # Java initialization deferred to T22.
-    DEATH_CERTIFICATE: ClassVar[Code]  # Java initialization deferred to T22.
+    DEATH_CERTIFICATION: ClassVar[Code] = Code("SNOMED-CT", "308646001", "Death Certification")
+    CAUSE_OF_DEATH_CODE: ClassVar[Code] = Code(
+        "LOINC", "69453-9", "Cause of Death [US Standard Certificate of Death]"
+    )
+    DEATH_CERTIFICATE: ClassVar[Code] = Code(
+        "LOINC", "69409-1", "U.S. standard certificate of death - 2003 revision"
+    )
 
     def __init__(self) -> None:
-        """Java: DeathModule#DeathModule.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: DeathModule#DeathModule — pending T22")
+        """Java: DeathModule#DeathModule (implicit constructor)."""
 
     @staticmethod
     def process(person: Person, time: int) -> None:
-        """Java: DeathModule#process.
-
-        Java overloads:
-        (Person person, long time)
-        """
-        raise NotImplementedError("Java: DeathModule#process — pending T22")
+        """Java: DeathModule#process; retain the final encounter reservation."""
+        if not person.alive(time) and Person.CAUSE_OF_DEATH in person.attributes:
+            cause = cast(Code, person.attributes[Person.CAUSE_OF_DEATH])
+            person.release_current_encounter(time, "DeathModule")
+            encounter = EncounterModule.create_encounter(
+                person,
+                time,
+                EncounterType.WELLNESS,
+                ClinicianSpecialty.GENERAL_PRACTICE,
+                DeathModule.DEATH_CERTIFICATION,
+                "DeathModule",
+            )
+            encounter.reason = cause
+            assert person.record is not None
+            observation = person.record.observation(
+                time, DeathModule.CAUSE_OF_DEATH_CODE.code, cause
+            )
+            observation.codes.append(DeathModule.CAUSE_OF_DEATH_CODE)
+            observation.category = "exam"
+            report = person.record.report(time, DeathModule.DEATH_CERTIFICATE.code, 1)
+            report.codes.append(DeathModule.DEATH_CERTIFICATE)
+            person.record.encounter_end(time, EncounterType.WELLNESS)
 
     @staticmethod
     def get_all_codes() -> list[Code]:
-        """Java: DeathModule#getAllCodes.
-
-        Java overloads:
-        ()
-        """
-        raise NotImplementedError("Java: DeathModule#getAllCodes — pending T22")
+        """Java: DeathModule#getAllCodes."""
+        return [
+            DeathModule.DEATH_CERTIFICATION,
+            DeathModule.CAUSE_OF_DEATH_CODE,
+            DeathModule.DEATH_CERTIFICATE,
+        ]
 
     @staticmethod
     def inventory_attributes(attributes: dict[str, Inventory]) -> None:
-        """Java: DeathModule#inventoryAttributes.
-
-        Java overloads:
-        (Map attributes)
-        """
-        raise NotImplementedError("Java: DeathModule#inventoryAttributes — pending T22")
-
-
-# Java static data initialization; constructors remain stubs.
-DeathModule.DEATH_CERTIFICATION = object.__new__(Code)
-DeathModule.DEATH_CERTIFICATION.system = "SNOMED-CT"
-DeathModule.DEATH_CERTIFICATION.code = "308646001"
-DeathModule.DEATH_CERTIFICATION.display = "Death Certification"
-DeathModule.DEATH_CERTIFICATION.version = None
-DeathModule.DEATH_CERTIFICATION.value_set = None
-DeathModule.CAUSE_OF_DEATH_CODE = object.__new__(Code)
-DeathModule.CAUSE_OF_DEATH_CODE.system = "LOINC"
-DeathModule.CAUSE_OF_DEATH_CODE.code = "69453-9"
-DeathModule.CAUSE_OF_DEATH_CODE.display = "Cause of Death [US Standard Certificate of Death]"
-DeathModule.CAUSE_OF_DEATH_CODE.version = None
-DeathModule.CAUSE_OF_DEATH_CODE.value_set = None
-DeathModule.DEATH_CERTIFICATE = object.__new__(Code)
-DeathModule.DEATH_CERTIFICATE.system = "LOINC"
-DeathModule.DEATH_CERTIFICATE.code = "69409-1"
-DeathModule.DEATH_CERTIFICATE.display = "U.S. standard certificate of death - 2003 revision"
-DeathModule.DEATH_CERTIFICATE.version = None
-DeathModule.DEATH_CERTIFICATE.value_set = None
+        """Java: DeathModule#inventoryAttributes."""
+        _inventory(attributes, "DeathModule", Person.CAUSE_OF_DEATH, True, False, None)
