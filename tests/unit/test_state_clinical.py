@@ -67,7 +67,7 @@ def _fixture(filename: str) -> Module:
     return Module(definition, submodule=False)
 
 
-def _person() -> Person:
+def _person(birthdate: int | None = None) -> Person:
     """Mirror of StateTest.setup: attributes + mock providers."""
     person = Person(0)
     person.attributes[Person.GENDER] = "F"
@@ -75,7 +75,9 @@ def _person() -> Person:
     person.attributes[Person.RACE] = "other"
     person.attributes[Person.ETHNICITY] = "hispanic"
     person.attributes[Person.OCCUPATION_LEVEL] = 1.0
-    person.attributes[Person.BIRTHDATE] = TIME - 35 * 365 * 24 * 3600 * 1000
+    person.attributes[Person.BIRTHDATE] = (
+        TIME - 35 * 365 * 24 * 3600 * 1000 if birthdate is None else birthdate
+    )
     person.history = []
     # Mirror of setup's insurance lines: no-insurance plan from
     # birthdate through TIME + 20 years (PayerManager.loadPayers in
@@ -252,3 +254,22 @@ def test_state_component_gmf_two_observation() -> None:
     obs_value = float(observation.value)  # type: ignore[arg-type]
     assert obs_value > 0
     assert obs_value < 400
+
+
+@pytest.mark.usefixtures("_encounter_double")
+def test_state_component_procedure_duration_before_epoch() -> None:
+    """Java: Procedure.stop is a nullable Long, so a timed procedure ends on time pre-1970.
+
+    A 0 default made endOfDelay return the epoch: every timed procedure
+    before 1970 waited until 1970 (found by the T28 end-to-end trace).
+    """
+    start = -1_000_000_000_000  # 1938-04-24
+    person = _person(birthdate=start - 30 * 365 * 24 * 3600 * 1000)
+    module = _fixture("procedure.json")
+    appendectomy = module.get_state("Appendectomy")
+    assert appendectomy is not None
+    assert appendectomy.clone().stop is None  # type: ignore[attr-defined]
+    assert module.process(person, start) is False  # in the 45-minute procedure
+    assert module.process(person, start + 60 * 60 * 1000) is True  # done an hour later
+    procedure = person.attributes["Most Recent Surgery"]
+    assert procedure.stop == start + 45 * 60 * 1000  # type: ignore[attr-defined]
