@@ -343,7 +343,10 @@ class LifecycleModule(Module):
                 a[Person.NAME_PREFIX] = "Mr." if a.get(Person.GENDER) == "M" else "Ms."
         elif age == 20:
             if a.get(Person.IDENTIFIER_PASSPORT) is None and person.rand() < 0.5:
-                raise NotImplementedError("Passport/RIF identifiers are out of scope")
+                # Java: new Passport(person.randInt(Passport.MAX_PASSPORT + 1)).toString();
+                # the Passport format is 'X' + 8 digits + 'X', MAX_PASSPORT = 10**8 - 1.
+                # (The RIF identifier classes are not ported; the format is inlined here.)
+                a[Person.IDENTIFIER_PASSPORT] = f"X{person.rand_int(100_000_000):08d}X"
             if a.get("veteran") is not None and a.get("veteran_provider_reset") is None:
                 a.pop(Person.CURRENTPROVIDER, None)
                 for kind in EncounterType:

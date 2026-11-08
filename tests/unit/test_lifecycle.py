@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable
 from pathlib import Path
 
@@ -79,17 +80,22 @@ def test_lifecycle_physiology_enabled_out_of_scope(lifecycle_config: None) -> No
         newborn(0, 0)
 
 
-def test_lifecycle_passport_out_of_scope(lifecycle_config: None) -> None:
-    """Java: testPassportFormatIsAlwaysEightDigits; issue #21 excludes Passport/RIF generation."""
+def test_lifecycle_passport_format(lifecycle_config: None) -> None:
+    """Java: testPassportFormatIsAlwaysEightDigits; age 20 may issue a passport.
+
+    Java formats a passport as 'X' + 8 digits + 'X' (Passport.MAX_PASSPORT =
+    10**8 - 1); the RIF identifier classes are not ported, so LifecycleModule
+    formats the value inline.
+    """
     p = newborn(0, 0)
     del p.attributes[Person.IDENTIFIER_PASSPORT]
     # Repeated age-20 calls eventually take Java's issuance branch; no fake seed-specific path.
     birthday = -1577836800000  # 1920-01-01
     for _ in range(100):
-        try:
-            LifecycleModule.age(p, birthday)
-        except NotImplementedError as error:
-            assert "out of scope" in str(error)
+        LifecycleModule.age(p, birthday)
+        passport = p.attributes.get(Person.IDENTIFIER_PASSPORT)
+        if passport is not None:
+            assert re.fullmatch(r"X\d{8}X", str(passport))
             break
     else:
         pytest.fail("No passport issuance branch reached")
