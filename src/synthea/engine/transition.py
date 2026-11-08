@@ -47,6 +47,17 @@ def _range_to_string(rng: IntRange | LongRange) -> str:
     return f"[{rng.minimum},{rng.maximum}]"
 
 
+def _java_to_string(value: object) -> str:
+    """Java: Object#toString() for a person attribute (Boolean prints lower case)."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, float):
+        from synthea.javacompat.numbers import double_to_string
+
+        return double_to_string(value)
+    return str(value)
+
+
 def _java_boxed_equals(left: int, right: int) -> bool:
     """Java ``==`` on two boxed Integer/Long objects.
 
@@ -470,7 +481,7 @@ class LookupTableTransition(Transition):
                         + self.lookup_table_name
                         + "' does not exist as one of this person's attributes."
                     )
-                persons_attribute = str(person.attributes[current_attribute])
+                persons_attribute = _java_to_string(person.attributes[current_attribute])
                 persons_attributes.append(persons_attribute)
         persons_key = LookupTableKey(persons_attributes, age, time)
         table = LookupTableTransition.lookupTables[self.lookup_table_name]
