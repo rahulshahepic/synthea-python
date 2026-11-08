@@ -195,7 +195,11 @@ def test_process() -> None:
 
 @pytest.fixture()
 def _encounter_double() -> None:
-    original = EncounterModule.create_encounter
+    # Save the raw class-dict descriptor: reading the attribute through
+    # the class unwraps a staticmethod to a plain function, and putting
+    # that back would leave create_encounter a plain function (the
+    # skeleton signature test reads the descriptor itself).
+    original = vars(EncounterModule)["create_encounter"]
     EncounterModule.create_encounter = staticmethod(create_encounter_double)  # type: ignore[method-assign]
     try:
         yield
