@@ -19,8 +19,7 @@ from pathlib import Path
 import pytest
 
 from synthea.modules.encounter_module import EncounterModule
-from synthea.world.agents.provider import Provider
-from tests.covid_support import covid_run_lines
+from tests.covid_support import covid_run_lines, isolated_globals
 from tests.state_doubles import create_encounter_double
 
 pytestmark = pytest.mark.parity
@@ -29,9 +28,8 @@ pytestmark = pytest.mark.parity
 @pytest.fixture(autouse=True)
 def _create_encounter_double() -> Iterator[None]:
     # The double reads Provider's global registry; the Java probe ran
-    # in a fresh JVM with it empty. Other parity tests (test_provider)
-    # leave it loaded, so clear it for the run and again on teardown.
-    Provider.clear()
+    # in a fresh JVM with it empty. isolated_globals gives the run a
+    # fresh registry and restores the caller's afterwards (#84).
     # Save the raw class-dict descriptor: reading the attribute through
     # the class unwraps a staticmethod to a plain function, and putting
     # that back would leave create_encounter a plain function (the
@@ -39,10 +37,10 @@ def _create_encounter_double() -> Iterator[None]:
     original = vars(EncounterModule)["create_encounter"]
     EncounterModule.create_encounter = staticmethod(create_encounter_double)  # type: ignore[method-assign]
     try:
-        yield
+        with isolated_globals():
+            yield
     finally:
         EncounterModule.create_encounter = original  # type: ignore[method-assign]
-        Provider.clear()
 
 
 def _read_lines(path: Path) -> list[str]:

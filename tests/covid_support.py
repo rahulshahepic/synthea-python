@@ -8,13 +8,20 @@ The class-level distribution maps are reset before each run so every
 run mirrors the probe's fresh JVM (Java's ``initialize()`` appends to
 the static maps; without a reset a second run in the same pytest
 process would double-load them, which no JVM ever does).
+
+``isolated_globals`` restores every global a run touches afterwards, so
+the providers, payers, Module registry and C19 statics a COVID run
+loads never reach a later test in the same process (#84).
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 
 from synthea.engine.module import Module
+from synthea.helpers.config import Config
 from synthea.helpers.default_random_number_generator import DefaultRandomNumberGenerator
 from synthea.helpers.utilities import Utilities
 from synthea.javacompat.collections import JavaHashMap
@@ -353,3 +360,49 @@ def covid_run_lines() -> list[str]:
     for seed in range(SEEDS):
         lines.extend(run_person(module, seed))
     return lines
+
+
+_MISSING = object()
+_GLOBALS: tuple[tuple[type, tuple[str, ...]], ...] = (
+    (Provider, ("providerByUuid", "providerMap", "statesLoaded", "loaded", "providerFinder")),
+    (PayerManager, ("payers", "noInsurance", "statesLoaded", "planFinder")),
+    (Module, ("modules",)),
+    (
+        C19VaccineAgeDistributions,
+        ("rawDistributions", "distributions", "firstShotProbByAge"),
+    ),
+    (C19Vaccine, ("EUAs", "shotSelector")),
+    (Config, ("properties",)),
+)
+
+
+@contextmanager
+def isolated_globals() -> Iterator[None]:
+    """Run with fresh copies of the globals a COVID run touches, then restore them.
+
+    Fresh objects are bound for the run (rather than the originals being
+    cleared and refilled) because ``Provider.clear``/``PayerManager.clear``
+    empty their maps in place; the originals are put back untouched.
+    """
+    saved = [
+        (cls, name, vars(cls).get(name, _MISSING)) for cls, names in _GLOBALS for name in names
+    ]
+    Provider.providerByUuid = JavaHashMap()
+    Provider.statesLoaded = set()
+    Provider.providerMap = Provider.generate_quad_tree()
+    Provider.loaded = 0
+    Provider.providerFinder = Provider.build_provider_finder()
+    PayerManager.payers = {}
+    PayerManager.statesLoaded = set()
+    PayerManager.planFinder = PayerManager.build_plan_finder()
+    Config.properties = dict(Config.properties)
+    reset_covid_statics()
+    try:
+        yield
+    finally:
+        for cls, name, value in saved:
+            if value is _MISSING:
+                if name in vars(cls):
+                    delattr(cls, name)
+            else:
+                setattr(cls, name, value)
