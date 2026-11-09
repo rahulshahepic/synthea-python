@@ -26,10 +26,6 @@ from tests.dependency_gate import Pending, report_pending, run_or_pending
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCENARIOS_DIR = REPO_ROOT / "parity" / "scenarios"
 DEPENDENCIES = ("T26", "T27")
-
-# Each scenario's CLI runs in a fresh Python process, matching the fresh JVM
-# the golden comes from: in-process runs inherit whatever global state
-# earlier tests in the session loaded (providers, module registry, statics).
 _CLI = "import sys; from synthea.cli import App; App.main(sys.argv[1:])"
 
 
