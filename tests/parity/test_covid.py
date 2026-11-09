@@ -11,7 +11,7 @@ T22 merges, and every other run must match the golden exactly.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -19,6 +19,7 @@ import pytest
 from tests.covid_support import (
     SEEDS,
     direct_lines,
+    isolated_globals,
     reset_covid_statics,
     run_person,
     setup_process_runtime,
@@ -29,6 +30,12 @@ pytestmark = pytest.mark.parity
 
 DEPENDENCIES = ("T22",)
 PROCESS_PREFIXES = {"T", "F", "I", "P"}
+
+
+@pytest.fixture(autouse=True)
+def _isolated_globals() -> Iterator[None]:
+    with isolated_globals():
+        yield
 
 
 def _read_lines(path: Path) -> list[str]:
