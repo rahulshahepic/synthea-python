@@ -13,19 +13,24 @@ reported pending by the dependency gate, never skipped or dropped.
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 
-from synthea.cli import App
-from synthea.helpers.config import Config
 from tests.dependency_gate import Pending, report_pending, run_or_pending
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCENARIOS_DIR = REPO_ROOT / "parity" / "scenarios"
 DEPENDENCIES = ("T26", "T27")
+
+# Each scenario's CLI runs in a fresh Python process, matching the fresh JVM
+# the golden comes from: in-process runs inherit whatever global state
+# earlier tests in the session loaded (providers, module registry, statics).
+_CLI = "import sys; from synthea.cli import App; App.main(sys.argv[1:])"
 
 
 def _scenario_args(path: Path) -> list[str]:
@@ -51,15 +56,15 @@ def _csv_bytes(root: Path) -> dict[str, bytes]:
 def _run_scenario(name: str, golden_root: Path) -> None:
     """Run one scenario end to end and require byte-identical CSVs."""
     args = _scenario_args(SCENARIOS_DIR / f"{name}.args")
-    saved_properties = dict(Config.properties)
-    try:
-        with tempfile.TemporaryDirectory() as tmp:
-            out_dir = Path(tmp)
-            App.main([*args, f"--exporter.baseDirectory={out_dir}/"])
-            actual = _csv_bytes(out_dir)
-    finally:
-        Config.properties.clear()
-        Config.properties.update(saved_properties)
+    with tempfile.TemporaryDirectory() as tmp:
+        out_dir = Path(tmp)
+        subprocess.run(
+            [sys.executable, "-c", _CLI, *args, f"--exporter.baseDirectory={out_dir}/"],
+            cwd=REPO_ROOT,
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
+        actual = _csv_bytes(out_dir)
     expected = _csv_bytes(golden_root / name)
     assert expected, f"no golden CSVs for scenario {name}"
     assert sorted(actual) == sorted(expected), (
